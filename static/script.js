@@ -111,8 +111,10 @@ function formatContent(content) {
 
     // Then handle code blocks
     formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
-        const highlightedCode = Prism.highlight(code.trim(), Prism.languages[lang] || Prism.languages.plain, lang || 'plaintext');
-        return `<pre class="code-block"><code class="language-${lang}">${highlightedCode.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</code></pre>`;
+        const highlightedCode = Prism.highlight(code.trim(), Prism.languages[lang] || Prism.languages.plain, lang || 'plaintext')
+            .split('\n')
+            .join('\n');
+        return `<pre class="code-block"><code class="language-${lang}">${highlightedCode}</code></pre>`;
     });
 
     // Then handle basic Markdown
