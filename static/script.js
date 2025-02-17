@@ -47,7 +47,8 @@ async function startStream() {
             
             for (const line of lines) {
                 if (line.startsWith('data: ')) {
-                    const data = line.slice(5);
+                    const data = line.slice(5).trim();
+                    if (!data) continue;  // Skip empty data
                     if (data === '[DONE]') {
                         showLoading(false);
                         chatHistory.push({ role: 'assistant', content: botMessage.textContent });
@@ -65,7 +66,10 @@ async function startStream() {
                             scrollToBottom();
                         }
                     } catch (e) {
-                        console.error('Error parsing chunk:', e);
+                        // Only log parsing errors for non-empty chunks
+                        if (data !== '[DONE]') {
+                            console.error('Error parsing chunk:', e);
+                        }
                     }
                 }
             }
