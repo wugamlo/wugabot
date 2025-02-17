@@ -1,7 +1,7 @@
 let currentStream = null;
 const chatHistory = [];
 let botContentBuffer = "";
-
+// Fetch models from the server
 async function fetchModels() {
     try {
         const response = await fetch('/models');
@@ -15,8 +15,6 @@ async function fetchModels() {
         appendMessage('Failed to fetch models. Please try again.', 'error');
     }
 }
-
-
 // Load prompt from localStorage when the page loads
 window.addEventListener('load', () => {
     fetchModels();
@@ -33,7 +31,31 @@ function savePrompt() {
     }
 }
 
+// Handle image upload and show preview
+function handleImageUpload(input) {
+    const imagePreview = document.getElementById('imagePreview');
+    if (input.files.length > 0) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const base64Image = event.target.result;
+            imagePreview.innerHTML = `<img src="${base64Image}" alt="Image Preview" style="max-width: 50px; max-height: 50px; margin-left: 10px;" />`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+// Event listeners for both inputs
+document.getElementById('galleryInput').addEventListener('change', () => handleImageUpload(document.getElementById('galleryInput')));
+document.getElementById('cameraInput').addEventListener('change', () => handleImageUpload(document.getElementById('cameraInput')));
 
+// Handle Enter key for user input
+document.getElementById('userInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        startStream();
+        e.preventDefault(); // Prevent form submission if applicable
+    }
+});
+
+// Populate model dropdown
 function populateModelDropdown(models) {
     const modelSelect = document.getElementById('modelSelect');
     modelSelect.innerHTML = '';
@@ -43,24 +65,73 @@ function populateModelDropdown(models) {
         option.text = model.id;
         modelSelect.appendChild(option);
     });
-    modelSelect.value = 'llama-3.3-70b';
+    modelSelect.value = 'qwen-2.5-vl';
 }
 
-// Update startStream to include the system prompt in the messages
+// Start streaming data to the chat
 async function startStream() {
     const userInput = document.getElementById('userInput');
     const message = userInput.value.trim();
-    if (!message) return;
+    const galleryInput = document.getElementById('galleryInput'); // Renamed to avoid confusion
+    const cameraInput = document.getElementById('cameraInput'); // Added for clarity
+    let base64Image = "";
+    // Convert uploaded image to Base64 for sending with the message
+    if (galleryInput.files.length > 0) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            base64Image = event.target.result;
+            submitChat(message, base64Image);
+            galleryInput.value = ''; // Clear the file input after submitting
+        };
+        reader.readAsDataURL(galleryInput.files[0]);
+    } else if (cameraInput.files.length > 0) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            base64Image = event.target.result;
+            submitChat(message, base64Image);
+            cameraInput.value = ''; // Clear the file input after submitting
+        };
+        reader.readAsDataURL(cameraInput.files[0]);
+    } else {
+        submitChat(message);
+    }
+    userInput.value = ''; // Clear input after sending
+}
+
+// Submit chat message along with the image
+function submitChat(message, base64Image) {
+    if (!message && !base64Image) return;
     const systemPrompt = document.getElementById('systemPrompt').value.trim();
     chatHistory.push({ role: 'user', content: message });
-    // Include the system prompt in the messages
-    const messages = [{ role: 'system', content: systemPrompt }, ...chatHistory];
-    appendMessage(message, 'user');
-    userInput.value = '';
+    // Prepare messages to include only one image at the last position
+    const messages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: [{ type: 'text', text: message }] },
+        ...chatHistory
+    ];
+    // If there is a base64 image, push it as the last element
+    if (base64Image) {
+        messages.push({
+            role: 'user',
+            content: [{ type: 'image_url', image_url: { url: base64Image } }]
+        });
+    }
+    appendMessage(message, 'user'); // Append user's message
+    if (base64Image) {
+        appendMessage(`<img src="${base64Image}" alt="User Uploaded Image" style="max-width: 80%; height: auto;" />`, 'user'); // Display the image in chat
+    }
+    // Clear the image preview after the message is submitted
+    document.getElementById('imagePreview').innerHTML = ''; // Clear the preview
     const botMessage = appendMessage('', 'assistant', true);
     botContentBuffer = "";
     showLoading(true);
-    if (currentStream) currentStream.close();
+    fetchChatResponse(messages, botMessage); // Send the message to fetch response
+}
+// Add event listener for the file input to handle image upload
+document.getElementById('fileInput').addEventListener('change', handleImageUpload);
+
+// Fetch response from chat
+async function fetchChatResponse(messages, botMessage) {
     try {
         const response = await fetch('/chat/stream', {
             method: 'POST',
@@ -97,8 +168,7 @@ async function startStream() {
                             return;
                         } else if (parsed.content) {
                             botContentBuffer += parsed.content;
-                            const formatted = formatContent(botContentBuffer);
-                            botMessage.innerHTML = formatted;
+                            botMessage.innerHTML = formatContent(botContentBuffer);
                             Prism.highlightAll();
                             scrollToBottom();
                         }
@@ -116,11 +186,9 @@ async function startStream() {
 }
 
 function formatContent(content) {
-    // First handle think blocks
     let formatted = content.replace(/<think>\n?([\s\S]+?)<\/think>/g, (match, content) => {
         return `<div class="reasoning-content"><strong>Reasoning:</strong><br>${content.trim()}</div>`;
     });
-    // Then handle code blocks
     formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
         const highlightedCode = Prism.highlight(
             code.trim(),
@@ -130,7 +198,6 @@ function formatContent(content) {
         return `<pre class="code-block"><code class="language-${lang}">${highlightedCode}</code></pre>`;
     });
 
-    // Extract code blocks and replace with placeholders
     const codeBlockPattern = /<pre class="code-block">[\s\S]*?<\/pre>/g;
     const codeBlocks = [];
     formatted = formatted.replace(codeBlockPattern, (match) => {
@@ -138,17 +205,15 @@ function formatContent(content) {
         return `<!-- placeholder:${codeBlocks.length - 1} -->`;
     });
 
-    // Now handle basic Markdown for non-code parts
     formatted = formatted
-        .replace(/\n#{3} (.*)/g, '<h3>$1</h3>')  // h3
-        .replace(/\n#{2} (.*)/g, '<h2>$1</h2>')  // h2
-        .replace(/\n# (.*)/g, '<h1>$1</h1>')     // h1
-        .replace(/\n- (.*)/g, '<li>$1</li>')     // bullet points
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // bold
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')    // italic
-        .split('\n').map(line => line.trim()).join('<br>'); // newlines
+        .replace(/\n#{3} (.*)/g, '<h3>$1</h3>') 
+        .replace(/\n#{2} (.*)/g, '<h2>$1</h2>')  
+        .replace(/\n# (.*)/g, '<h1>$1</h1>')     
+        .replace(/\n- (.*)/g, '<li>$1</li>')     
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')    
+        .split('\n').map(line => line.trim()).join('<br>'); 
 
-    // Restore code blocks
     formatted = formatted.replace(/<!-- placeholder:(\d+) -->/g, (match, index) => {
         return codeBlocks[parseInt(index)];
     });
@@ -160,31 +225,24 @@ function appendMessage(content, role, returnElement = false) {
     const chatBox = document.getElementById('chatBox');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
-
-    if (returnElement) {
-        messageDiv.innerHTML = content;
-    } else {
-        const formatted = formatContent(content);
-        messageDiv.innerHTML = formatted;
-    }
-
+    messageDiv.innerHTML = content;
     chatBox.appendChild(messageDiv);
+    if (returnElement) {
+        return messageDiv;
+    }
     scrollToBottom();
-    return returnElement ? messageDiv : null;
 }
-
 function showLoading(show) {
     const loading = document.getElementById('loading');
     loading.classList.toggle('hidden', !show);
 }
-
 function scrollToBottom() {
     const chatBox = document.getElementById('chatBox');
     chatBox.scrollTop = chatBox.scrollHeight;
 }
-
+// Handle Enter key for user input
 document.getElementById('userInput').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') startStream();
 });
-
+// Event listener for window load
 window.addEventListener('load', fetchModels);

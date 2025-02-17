@@ -1,34 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Venice AI Chatbot</title>
+    <title>Image Analyzer</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-json.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-bash.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-typescript.min.js"></script>
 </head>
-<body>
-    <div class="container">
-        <div class="input-area">
-            <input type="text" id="systemPrompt" placeholder="Enter system prompt..." />
-            <button onclick="savePrompt()">Save Prompt</button>
+    <body>
+        <div class="container">
+            <div class="input-area">
+                <input type="text" id="systemPrompt" placeholder="Enter system prompt..." />
+                <button onclick="savePrompt()">Save Prompt</button>
+            </div>
+            <select id="modelSelect" class="model-select"></select>
+            <div class="chat-box" id="chatBox"></div>
+            <div class="input-area">
+                <input type="file" id="galleryInput" accept="image/*" style="display: none;">
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+
+                <button onclick="document.getElementById('galleryInput').click();">
+                    <i class="fas fa-upload"></i> <!-- This button opens the gallery -->
+                </button>
+
+                <button onclick="document.getElementById('cameraInput').click();">
+                    <i class="fas fa-camera"></i> <!-- This button opens the camera -->
+                </button>
+
+                <div id="imagePreview"></div> <!-- This div is for image preview -->
+                <input type="text" id="userInput" placeholder="Type your message...">
+                <button onclick="startStream()">Send</button>
+            </div>
+            <div id="loading" class="loading hidden">
+                <div class="loading-dots"></div>
+            </div>
         </div>
-        <select id="modelSelect" class="model-select"></select>
-        <div class="chat-box" id="chatBox"></div>
-        <div class="input-area">
-            <input type="text" id="userInput" placeholder="Type your message...">
-            <button onclick="startStream()">Send</button>
-        </div>
-        <div id="loading" class="loading hidden">
-            <div class="loading-dots"></div>
-        </div>
-    </div>
-    <script src="/static/script.js" defer></script>
-</body>
+        <script src="/static/script.js" defer></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> <!-- Font Awesome for icons -->
+    </body>
 </html>
