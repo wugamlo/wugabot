@@ -109,6 +109,8 @@ function formatContent(content) {
         .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => 
             `<pre class="language-${lang || 'text'}"><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`
         )
+        // Highlight reasoning content
+        .replace(/<think>(.*?)<\/think>/g, '<span class="reasoning-content">$1</span>') // This line identifies <think> tags
         // Bold
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
         // Italic
@@ -124,10 +126,8 @@ function formatContent(content) {
         .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
         // Line breaks
         .replace(/\n/g, '<br>');
-
     return formatted;
 }
-
 function appendMessage(content, role, returnElement = false) {
     const chatBox = document.getElementById('chatBox');
     const messageDiv = document.createElement('div');

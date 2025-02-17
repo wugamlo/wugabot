@@ -1,25 +1,29 @@
 :root {
-  --primary-color: #2c3e50;
-  --secondary-color: #3498db;
-  --error-color: #e74c3c;
-  --loading-color: #bdc3c7;
-  --code-bg: #1a1a1a;
-  --inline-code-bg: #f3f3f3;
+  --primary-color: #2c3e50; /* Button Color */
+  --secondary-color: #3498db; /* Accent Color */
+  --error-color: #e74c3c; /* Error Color */
+  --loading-color: #bdc3c7; /* Loading Color */
+
+  --background-color: #121212; /* Background Color */
+  --text-color: #ffffff; /* Text Color */
+  --code-bg: #1a1a1a; /* Code Background Color */
+  --inline-code-bg: #f3f3f3; /* Inline Code Background */
 }
 
 body {
   margin: 0;
   padding: 20px;
   font-family: 'Segoe UI', system-ui, sans-serif;
-  background: #f5f6fa;
+  background: var(--background-color);
+  color: var(--text-color);
 }
 
 .container {
   max-width: 800px;
   margin: 0 auto;
-  background: white;
+  background: #1e1e1e; /* Container Background */
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
   position: relative;
 }
 
@@ -30,6 +34,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  background: #2a2a2a; /* Chat Box Background */
 }
 
 .message {
@@ -42,25 +47,26 @@ body {
 
 .message.user {
   background: var(--primary-color);
-  color: white;
+  color: #ffffff;
   align-self: flex-end;
 }
 
 .message.assistant {
-  background: #ecf0f1;
+  background: #ecf0f1; /* Assistant Message Color */
+  color: #333; /* Text color for assistant */
   align-self: flex-start;
 }
 
 .message.error {
   background: var(--error-color);
-  color: white;
+  color: #ffffff;
   align-self: center;
 }
 
 .input-area {
   display: flex;
   padding: 20px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid #444; /* Dark Header Border */
   gap: 10px;
   position: relative;
 }
@@ -68,16 +74,17 @@ body {
 input[type="text"] {
   flex: 1;
   padding: 12px;
-  border: 2px solid #ddd;
+  border: 2px solid #444; /* Dark Input Border */
   border-radius: 25px;
   font-size: 16px;
-  transition: border-color 0.3s;
+  color: #fff; /* Input Text Color */
+  background: #1e1e1e; /* Input Background */
 }
 
 button {
   padding: 12px 24px;
   background: var(--secondary-color);
-  color: white;
+  color: #fff;
   border: none;
   border-radius: 25px;
   cursor: pointer;
@@ -169,4 +176,13 @@ button {
 
 .message li {
   margin: 5px 0;
+}
+
+
+.reasoning-content {
+    background-color: #2ecc71; /* Highlight color for reasoning content */
+    color: #ffffff; /* Text color */
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-weight: bold;
 }
