@@ -3,24 +3,25 @@ const chatHistory = [];
 
 async function fetchModels() {
     try {
-        const response = await fetch('/api/v1/models?type=text');
+        const response = await fetch('/models');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const models = await response.json();
-        populateModelDropdown(models);
+        const data = await response.json();
+        populateModelDropdown(data.models);
     } catch (error) {
         console.error('Error fetching models:', error);
-        // Handle error appropriately (e.g., display an error message)
+        appendMessage('Failed to fetch models. Please try again.', 'error');
     }
 }
 
 function populateModelDropdown(models) {
     const modelSelect = document.getElementById('modelSelect');
+    modelSelect.innerHTML = ''; // Clear existing options
     models.forEach(model => {
         const option = document.createElement('option');
-        option.value = model.name; // Assuming model names are stored in 'name' field
-        option.text = model.name;
+        option.value = model.id;
+        option.text = model.id;
         modelSelect.appendChild(option);
     });
     // Set default model
