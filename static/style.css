@@ -193,8 +193,11 @@ button {
 }
 
 #systemPrompt {
-  font-size: 12px; /* Smaller font size for the input */
-  padding: 8px; /* Smaller padding */
+  font-size: 14px;
+  padding: 12px;
+  min-height: 100px;
+  width: 100%;
+  resize: vertical;
 }
 .input-area button {
   padding: 8px 16px; /* Smaller padding for the button */
@@ -305,16 +308,26 @@ button {
         justify-content: center;
     }
 
+    .settings-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        padding-top: 60px;
+    }
+
     .model-select {
-        margin: 10px;
-        width: calc(100% - 20px);
+        width: 100%;
+        max-width: 300px;
         font-size: 16px;
         height: 44px;
+        margin: 0;
     }
 
     #systemPrompt {
         font-size: 16px;
-        height: 44px;
+        min-height: 120px;
+        width: 100%;
+        margin-bottom: 10px;
     }
 
     #imagePreview img {
