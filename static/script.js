@@ -111,9 +111,11 @@ function formatContent(content) {
 
     // Then handle code blocks
     formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
-        const highlightedCode = Prism.highlight(code.trim(), Prism.languages[lang] || Prism.languages.plain, lang || 'plaintext')
-            .split('\n')
-            .join('\n');
+        const highlightedCode = Prism.highlight(
+            code.trim(),
+            Prism.languages[lang] || Prism.languages.plain,
+            lang || 'plaintext'
+        );
         return `<pre class="code-block"><code class="language-${lang}">${highlightedCode}</code></pre>`;
     });
 
