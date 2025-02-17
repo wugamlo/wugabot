@@ -47,13 +47,27 @@ function handleImageUpload(input) {
 document.getElementById('galleryInput').addEventListener('change', () => handleImageUpload(document.getElementById('galleryInput')));
 document.getElementById('cameraInput').addEventListener('change', () => handleImageUpload(document.getElementById('cameraInput')));
 
-// Handle Enter key for user input
-document.getElementById('userInput').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        startStream();
-        e.preventDefault(); // Prevent form submission if applicable
+function initEventListeners() {
+    const userInput = document.getElementById('userInput');
+    if (userInput) {
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startStream();
+                e.preventDefault();
+            }
+        });
     }
-});
+
+    const galleryInput = document.getElementById('galleryInput');
+    const cameraInput = document.getElementById('cameraInput');
+    
+    if (galleryInput) {
+        galleryInput.addEventListener('change', () => handleImageUpload(galleryInput));
+    }
+    if (cameraInput) {
+        cameraInput.addEventListener('change', () => handleImageUpload(cameraInput));
+    }
+}
 
 // Populate model dropdown
 function populateModelDropdown(models) {
@@ -253,4 +267,5 @@ function initSettingsPanel() {
 window.addEventListener('load', () => {
     fetchModels();
     initSettingsPanel();
+    initEventListeners();
 });
