@@ -1,7 +1,7 @@
 let currentStream = null;
 const chatHistory = [];
 
-function startStream() {
+async function startStream() {
     const userInput = document.getElementById('userInput');
     const message = userInput.value.trim();
     if (!message) return;
@@ -20,7 +20,61 @@ function startStream() {
     // Close any existing stream
     if (currentStream) currentStream.close();
 
-    currentStream = new EventSource(`/chat/stream?timestamp=${Date.now()}`);
+    try {
+        const response = await fetch('/chat/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                messages: chatHistory,
+                model: 'dolphin-2.9.2-qwen2-72b',
+                stream: true
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const {value, done} = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(5);
+                    if (data === '[DONE]') {
+                        showLoading(false);
+                        chatHistory.push({ role: 'assistant', content: botMessage.textContent });
+                        return;
+                    }
+                    
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (parsed.error) {
+                            appendMessage(`Error: ${parsed.error}`, 'error');
+                            showLoading(false);
+                            return;
+                        } else if (parsed.content) {
+                            botMessage.textContent += parsed.content;
+                            scrollToBottom();
+                        }
+                    } catch (e) {
+                        console.error('Error parsing chunk:', e);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Stream error:', error);
+        appendMessage('Failed to connect to chat service. Please try again.', 'error');
+        showLoading(false);
+    }
 
     currentStream.onmessage = (event) => {
         if (event.data === 'data: [DONE]') {
