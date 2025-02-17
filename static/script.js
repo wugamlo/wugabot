@@ -120,9 +120,10 @@ function appendMessage(content, role, returnElement = false) {
     if (returnElement) {
         messageDiv.innerHTML = content;
     } else {
-        // Format code blocks
-        const formattedContent = content.replace(/```([^`]*?)```/g, (match, code) => {
-            return `<pre><code>${code.trim()}</code></pre>`;
+        // Format code blocks with language detection
+        const formattedContent = content.replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, lang, code) => {
+            const language = lang || 'plaintext';
+            return `<pre><code class="language-${language}">${code.trim()}</code></pre>`;
         });
         
         // Format headers
