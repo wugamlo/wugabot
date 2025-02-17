@@ -132,8 +132,13 @@ function appendMessage(content, role, returnElement = false) {
     const chatBox = document.getElementById('chatBox');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
-
-    messageDiv.innerHTML = returnElement ? content : formatContent(content);
+    
+    if (returnElement) {
+        messageDiv.innerHTML = content;
+    } else {
+        const formatted = formatContent(content);
+        messageDiv.innerHTML = formatted;
+    }
 
     chatBox.appendChild(messageDiv);
     scrollToBottom();
