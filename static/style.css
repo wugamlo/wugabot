@@ -118,3 +118,30 @@ button {
 .hidden {
   display: none;
 }
+
+.model-select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  border: 2px solid #ddd;
+  font-size: 14px;
+}
+
+.message pre {
+  background: #1a1a1a;
+  color: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 10px 0;
+}
+
+.message h1, .message h2, .message h3 {
+  margin: 15px 0 10px 0;
+}
+
+.message ul, .message ol {
+  margin: 10px 0;
+  padding-left: 20px;
+}

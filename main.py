@@ -10,6 +10,15 @@ client = OpenAI(
     api_key=os.getenv('VENICE_API_KEY')
 )
 
+@app.route('/models')
+def get_models():
+    try:
+        response = client.models.list()
+        text_models = [model for model in response.data if model.type == 'text']
+        return json.dumps({'models': [{'id': model.id} for model in text_models]})
+    except Exception as e:
+        return json.dumps({'error': str(e)}), 500
+
 @app.route('/')
 def index():
     return render_template('index.html')

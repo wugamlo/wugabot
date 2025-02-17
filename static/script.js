@@ -1,6 +1,33 @@
 let currentStream = null;
 const chatHistory = [];
 
+async function fetchModels() {
+    try {
+        const response = await fetch('/api/v1/models?type=text');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const models = await response.json();
+        populateModelDropdown(models);
+    } catch (error) {
+        console.error('Error fetching models:', error);
+        // Handle error appropriately (e.g., display an error message)
+    }
+}
+
+function populateModelDropdown(models) {
+    const modelSelect = document.getElementById('modelSelect');
+    models.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model.name; // Assuming model names are stored in 'name' field
+        option.text = model.name;
+        modelSelect.appendChild(option);
+    });
+    // Set default model
+    modelSelect.value = 'llama-3.3-70b';
+}
+
+
 async function startStream() {
     const userInput = document.getElementById('userInput');
     const message = userInput.value.trim();
@@ -26,7 +53,7 @@ async function startStream() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 messages: chatHistory,
-                model: 'dolphin-2.9.2-qwen2-72b',
+                model: document.getElementById('modelSelect').value,
                 stream: true
             })
         });
@@ -39,22 +66,22 @@ async function startStream() {
         const decoder = new TextDecoder();
 
         while (true) {
-            const {value, done} = await reader.read();
+            const { value, done } = await reader.read();
             if (done) break;
-            
+
             const chunk = decoder.decode(value);
             const lines = chunk.split('\n');
-            
+
             for (const line of lines) {
                 if (line.startsWith('data: ')) {
                     const data = line.slice(5).trim();
-                    if (!data) continue;  // Skip empty data
+                    if (!data) continue;
                     if (data === '[DONE]') {
                         showLoading(false);
                         chatHistory.push({ role: 'assistant', content: botMessage.textContent });
                         return;
                     }
-                    
+
                     try {
                         const parsed = JSON.parse(data);
                         if (parsed.error) {
@@ -62,11 +89,14 @@ async function startStream() {
                             showLoading(false);
                             return;
                         } else if (parsed.content) {
-                            botMessage.textContent += parsed.content;
+                            // Basic formatting attempt (needs improvement)
+                            let formattedContent = parsed.content;
+                            // Add more sophisticated formatting logic here based on content type (e.g., Markdown parsing)
+
+                            botMessage.innerHTML += formattedContent; // Use innerHTML to allow for basic HTML rendering
                             scrollToBottom();
                         }
                     } catch (e) {
-                        // Only log parsing errors for non-empty chunks
                         if (data !== '[DONE]') {
                             console.error('Error parsing chunk:', e);
                         }
@@ -85,7 +115,7 @@ function appendMessage(content, role, returnElement = false) {
     const chatBox = document.getElementById('chatBox');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
-    messageDiv.textContent = content;
+    messageDiv.textContent = content; // Use textContent for simplicity,  innerHTML for basic HTML rendering if needed
     chatBox.appendChild(messageDiv);
     scrollToBottom();
     return returnElement ? messageDiv : null;
@@ -105,3 +135,6 @@ function scrollToBottom() {
 document.getElementById('userInput').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') startStream();
 });
+
+// Initialize model dropdown on page load
+window.addEventListener('load', fetchModels);
