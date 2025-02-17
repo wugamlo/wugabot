@@ -10,18 +10,11 @@
 </head>
     <body>
         <div class="container">
-            <div class="controls-sheet">
-                <div class="sheet-header">
-                    <div class="sheet-handle"></div>
-                </div>
-                <div class="sheet-content">
-                    <div class="input-area">
-                        <input type="text" id="systemPrompt" placeholder="Enter system prompt..." />
-                        <button onclick="savePrompt()">Save Prompt</button>
-                    </div>
-                    <select id="modelSelect" class="model-select"></select>
-                </div>
+            <div class="input-area">
+                <input type="text" id="systemPrompt" placeholder="Enter system prompt..." />
+                <button onclick="savePrompt()">Save Prompt</button>
             </div>
+            <select id="modelSelect" class="model-select"></select>
             <div class="chat-box" id="chatBox"></div>
             <div class="input-area">
                 <input type="file" id="galleryInput" accept="image/*" style="display: none;">

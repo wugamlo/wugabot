@@ -239,43 +239,5 @@ function scrollToBottom() {
     const chatBox = document.getElementById('chatBox');
     chatBox.scrollTop = chatBox.scrollHeight;
 }
-// Bottom sheet functionality
-function initBottomSheet() {
-    const sheet = document.querySelector('.controls-sheet');
-    const handle = document.querySelector('.sheet-header');
-    let startY = 0;
-    let currentY = 0;
-
-    handle.addEventListener('click', () => {
-        sheet.classList.toggle('expanded');
-    });
-
-    handle.addEventListener('touchstart', (e) => {
-        startY = e.touches[0].clientY;
-        currentY = sheet.getBoundingClientRect().top;
-    });
-
-    handle.addEventListener('touchmove', (e) => {
-        const deltaY = e.touches[0].clientY - startY;
-        const newY = currentY + deltaY;
-        if (newY >= 0 && newY <= window.innerHeight * 0.7) {
-            sheet.style.transform = `translateY(${deltaY}px)`;
-        }
-    });
-
-    handle.addEventListener('touchend', () => {
-        const sheetRect = sheet.getBoundingClientRect();
-        if (sheetRect.top > window.innerHeight * 0.5) {
-            sheet.classList.remove('expanded');
-        } else {
-            sheet.classList.add('expanded');
-        }
-        sheet.style.transform = '';
-    });
-}
-
 // Event listener for window load
-window.addEventListener('load', () => {
-    fetchModels();
-    initBottomSheet();
-});
+window.addEventListener('load', fetchModels);
