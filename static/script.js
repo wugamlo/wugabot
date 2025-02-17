@@ -16,6 +16,24 @@ async function fetchModels() {
     }
 }
 
+
+// Load prompt from localStorage when the page loads
+window.addEventListener('load', () => {
+    fetchModels();
+    const savedPrompt = localStorage.getItem('systemPrompt');
+    if (savedPrompt) {
+        document.getElementById('systemPrompt').value = savedPrompt;
+    }
+});
+// Function to save the prompt
+function savePrompt() {
+    const prompt = document.getElementById('systemPrompt').value.trim();
+    if (prompt) {
+        localStorage.setItem('systemPrompt', prompt);
+    }
+}
+
+
 function populateModelDropdown(models) {
     const modelSelect = document.getElementById('modelSelect');
     modelSelect.innerHTML = '';
@@ -28,44 +46,39 @@ function populateModelDropdown(models) {
     modelSelect.value = 'llama-3.3-70b';
 }
 
+// Update startStream to include the system prompt in the messages
 async function startStream() {
     const userInput = document.getElementById('userInput');
     const message = userInput.value.trim();
     if (!message) return;
-
+    const systemPrompt = document.getElementById('systemPrompt').value.trim();
     chatHistory.push({ role: 'user', content: message });
+    // Include the system prompt in the messages
+    const messages = [{ role: 'system', content: systemPrompt }, ...chatHistory];
     appendMessage(message, 'user');
     userInput.value = '';
-
     const botMessage = appendMessage('', 'assistant', true);
     botContentBuffer = "";
     showLoading(true);
-
     if (currentStream) currentStream.close();
-
     try {
         const response = await fetch('/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                messages: chatHistory,
+                messages: messages,
                 model: document.getElementById('modelSelect').value,
                 stream: true
             })
         });
-
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
-
             const chunk = decoder.decode(value);
             const lines = chunk.split('\n');
-
             for (const line of lines) {
                 if (line.startsWith('data: ')) {
                     const data = line.slice(5).trim();
@@ -76,7 +89,6 @@ async function startStream() {
                         Prism.highlightAll();
                         return;
                     }
-
                     try {
                         const parsed = JSON.parse(data);
                         if (parsed.error) {
@@ -108,7 +120,6 @@ function formatContent(content) {
     let formatted = content.replace(/<think>\n?([\s\S]+?)<\/think>/g, (match, content) => {
         return `<div class="reasoning-content"><strong>Reasoning:</strong><br>${content.trim()}</div>`;
     });
-
     // Then handle code blocks
     formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
         const highlightedCode = Prism.highlight(
@@ -119,7 +130,15 @@ function formatContent(content) {
         return `<pre class="code-block"><code class="language-${lang}">${highlightedCode}</code></pre>`;
     });
 
-    // Then handle basic Markdown
+    // Extract code blocks and replace with placeholders
+    const codeBlockPattern = /<pre class="code-block">[\s\S]*?<\/pre>/g;
+    const codeBlocks = [];
+    formatted = formatted.replace(codeBlockPattern, (match) => {
+        codeBlocks.push(match);
+        return `<!-- placeholder:${codeBlocks.length - 1} -->`;
+    });
+
+    // Now handle basic Markdown for non-code parts
     formatted = formatted
         .replace(/\n#{3} (.*)/g, '<h3>$1</h3>')  // h3
         .replace(/\n#{2} (.*)/g, '<h2>$1</h2>')  // h2
@@ -128,6 +147,11 @@ function formatContent(content) {
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // bold
         .replace(/\*(.*?)\*/g, '<em>$1</em>')    // italic
         .split('\n').map(line => line.trim()).join('<br>'); // newlines
+
+    // Restore code blocks
+    formatted = formatted.replace(/<!-- placeholder:(\d+) -->/g, (match, index) => {
+        return codeBlocks[parseInt(index)];
+    });
 
     return formatted;
 }
