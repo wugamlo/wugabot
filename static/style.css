@@ -206,40 +206,55 @@ button {
 /* Enhanced responsive styles for mobile devices */
 @media (max-width: 600px) {
     body {
-        padding: 10px; /* Adjust padding for small screens */
+        padding: 0;
+        margin: 0;
+        min-height: 100vh;
+        width: 100vw;
     }
 
     .container {
-        padding: 10px; /* Less padding for mobile screens */
-        width: 100%; /* Make the container full width */
-        box-shadow: none; /* Remove shadow for simplicity on mobile */
-    }
-
-    input[type="text"], button {
-        font-size: 16px; /* Bigger text for input/button for better touch */
-        padding: 10px; /* Catchy for mobile */
+        max-width: 100%;
+        margin: 0;
+        height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
     }
 
     .chat-box {
-        height: 60vh; /* Adequate height for chat box */
-        padding: 10px; /* Less padding to fit mobile */
-        font-size: 14px; /* Maintain readable font-size */
-        overflow-y: auto; /* Enable scroll */
+        height: calc(100vh - 200px);
+        padding: 10px;
     }
 
     .message {
-        padding: 10px; /* Slightly adjust padding */
-        max-width: 90%; /* Messages take more width */
+        padding: 12px;
+        max-width: 95%;
+        font-size: 16px;
     }
 
     .input-area {
-        flex-direction: column; /* Stack inputs on small screens */
-        width: 100%; /* Make input area full width */
+        padding: 10px;
+        gap: 8px;
     }
 
-    .input-area input,
-    .input-area button {
-        width: 100%; /* Full width for inputs and buttons */
-        margin-bottom: 5px; /* Space between stacked items */
+    input[type="text"] {
+        font-size: 16px;
+        padding: 12px;
+        width: 100%;
+    }
+
+    button {
+        padding: 12px;
+        font-size: 16px;
+        width: 100%;
+    }
+
+    .model-select {
+        margin: 10px;
+        width: calc(100% - 20px);
+        font-size: 16px;
+    }
+
+    #systemPrompt {
+        font-size: 16px;
     }
 }
