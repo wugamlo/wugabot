@@ -24,7 +24,7 @@ def chat_stream():
                 model=data.get('model', 'llama-3.3-70b'),
                 messages=data['messages'],
                 temperature=data.get('temperature', 0.7),
-                max_tokens=data.get('max_tokens', 500),
+                max_tokens=data.get('max_tokens', 4000),
                 stream=True
             )
 
