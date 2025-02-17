@@ -193,9 +193,15 @@ button {
 }
 
 #systemPrompt {
-  font-size: 12px; /* Smaller font size for the input */
-  padding: 8px; /* Smaller padding */
+    font-size: 14px;
+    min-height: 120px;
+    width: 100%;
+    margin-bottom: 10px;
+    resize: vertical; /* Allow vertical resizing */
+    overflow-wrap: break-word; /* Break words when reaching the end */
 }
+
+
 .input-area button {
   padding: 8px 16px; /* Smaller padding for the button */
   font-size: 12px; /* Smaller font size for the button */
@@ -307,14 +313,17 @@ button {
 
     .model-select {
         margin: 10px;
-        width: calc(100% - 20px);
+        width: calc(100% - 80px);
         font-size: 16px;
         height: 44px;
     }
 
     #systemPrompt {
         font-size: 16px;
-        height: 44px;
+        min-height: 120px;
+        width: 100%;
+        margin-bottom: 10px;
+        overflow-wrap: break-word;
     }
 
     #imagePreview img {
