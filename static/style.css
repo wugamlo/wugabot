@@ -180,9 +180,12 @@ button {
 
 
 .reasoning-content {
-    background-color: #2ecc71; /* Highlight color for reasoning content */
-    color: #ffffff; /* Text color */
+    display: block;
+    margin: 10px 0;
+    padding: 12px;
+    background: #fff3d4;
+    border-left: 4px solid #ffd700;
     border-radius: 4px;
-    padding: 2px 4px;
-    font-weight: bold;
+    color: #6b4d00;
+    font-style: italic;
 }

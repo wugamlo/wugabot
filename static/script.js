@@ -104,35 +104,35 @@ async function startStream() {
 }
 
 function formatContent(content) {
-    let formatted = content
-        // Code blocks
-        .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => 
-            `<pre class="language-${lang || 'text'}"><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`
-        )
-        // Highlight reasoning content
-        .replace(/<think>(.*?)<\/think>/g, '<span class="reasoning-content">$1</span>') // This line identifies <think> tags
-        // Bold
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        // Italic
-        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-        // Inline code
-        .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
-        // Headers
-        .replace(/^(#{1,6})\s(.+)$/gm, (_, hashes, text) => 
-            `<h${hashes.length}>${text}</h${hashes.length}>`
-        )
-        // Lists
-        .replace(/^(\s*[-*+]\s+.+)$/gm, '<li>$1</li>')
-        .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-        // Line breaks
-        .replace(/\n/g, '<br>');
+    // First handle think blocks
+    let formatted = content.replace(/<think>\n?([\s\S]+?)<\/think>/g, (match, content) => {
+        return `<div class="reasoning-content"><strong>Reasoning:</strong><br>${content.trim()}</div>`;
+    });
+
+    // Then handle code blocks
+    formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
+        const highlightedCode = Prism.highlight(code.trim(), Prism.languages[lang] || Prism.languages.plain, lang || 'plaintext');
+        return `<pre class="code-block"><code class="language-${lang}">${highlightedCode.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</code></pre>`;
+    });
+
+    // Then handle basic Markdown
+    formatted = formatted
+        .replace(/\n#{3} (.*)/g, '<h3>$1</h3>')  // h3
+        .replace(/\n#{2} (.*)/g, '<h2>$1</h2>')  // h2
+        .replace(/\n# (.*)/g, '<h1>$1</h1>')     // h1
+        .replace(/\n- (.*)/g, '<li>$1</li>')     // bullet points
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // bold
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')    // italic
+        .split('\n').map(line => line.trim()).join('<br>'); // newlines
+
     return formatted;
 }
+
 function appendMessage(content, role, returnElement = false) {
     const chatBox = document.getElementById('chatBox');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
-    
+
     if (returnElement) {
         messageDiv.innerHTML = content;
     } else {
