@@ -105,16 +105,25 @@ async function startStream() {
 
 function formatContent(content) {
     let formatted = content
+        // Code blocks
         .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => 
             `<pre class="language-${lang || 'text'}"><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`
         )
+        // Bold
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        // Italic
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        // Inline code
         .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
+        // Headers
         .replace(/^(#{1,6})\s(.+)$/gm, (_, hashes, text) => 
             `<h${hashes.length}>${text}</h${hashes.length}>`
         )
-        .replace(/^(\s*[-*+]\s+.+)$/gm, (match) => 
-            match.startsWith('  ') ? match : `<ul>${match.replace(/[-*+]\s+(.+)/g, '<li>$1</li>')}</ul>`
-        );
+        // Lists
+        .replace(/^(\s*[-*+]\s+.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+        // Line breaks
+        .replace(/\n/g, '<br>');
 
     return formatted;
 }
