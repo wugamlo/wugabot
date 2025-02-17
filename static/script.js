@@ -127,8 +127,7 @@ function submitChat(message, base64Image) {
     showLoading(true);
     fetchChatResponse(messages, botMessage); // Send the message to fetch response
 }
-// Add event listener for the file input to handle image upload
-document.getElementById('fileInput').addEventListener('change', handleImageUpload);
+// File input handlers are already set up for galleryInput and cameraInput
 
 // Fetch response from chat
 async function fetchChatResponse(messages, botMessage) {
@@ -240,9 +239,5 @@ function scrollToBottom() {
     const chatBox = document.getElementById('chatBox');
     chatBox.scrollTop = chatBox.scrollHeight;
 }
-// Handle Enter key for user input
-document.getElementById('userInput').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') startStream();
-});
 // Event listener for window load
 window.addEventListener('load', fetchModels);
