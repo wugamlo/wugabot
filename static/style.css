@@ -193,11 +193,8 @@ button {
 }
 
 #systemPrompt {
-  font-size: 14px;
-  padding: 12px;
-  min-height: 100px;
-  width: 100%;
-  resize: vertical;
+  font-size: 12px; /* Smaller font size for the input */
+  padding: 8px; /* Smaller padding */
 }
 .input-area button {
   padding: 8px 16px; /* Smaller padding for the button */
@@ -226,30 +223,24 @@ button {
     display: none;
     position: fixed;
     top: 0;
-    right: -100%;
+    right: 0;
     width: 300px;
     height: 100%;
     background: var(--background-color);
     padding: 20px;
     box-shadow: -2px 0 5px rgba(0,0,0,0.2);
     z-index: 1001;
-    transition: right 0.3s ease;
+    transition: transform 0.3s ease;
 }
 
 .settings-panel.visible {
     display: block;
-    right: 0;
 }
 
 /* Enhanced responsive styles for mobile devices */
 @media (max-width: 600px) {
     .settings-panel {
         width: 100%;
-        right: -100%;
-    }
-    
-    .settings-panel.visible {
-        right: 0;
     }
     body {
         padding: 0;
@@ -314,26 +305,16 @@ button {
         justify-content: center;
     }
 
-    .settings-panel {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        padding-top: 60px;
-    }
-
     .model-select {
-        width: 100%;
-        max-width: 300px;
+        margin: 10px;
+        width: calc(100% - 20px);
         font-size: 16px;
         height: 44px;
-        margin: 0;
     }
 
     #systemPrompt {
         font-size: 16px;
-        min-height: 120px;
-        width: 100%;
-        margin-bottom: 10px;
+        height: 44px;
     }
 
     #imagePreview img {
