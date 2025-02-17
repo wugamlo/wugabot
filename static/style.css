@@ -226,24 +226,30 @@ button {
     display: none;
     position: fixed;
     top: 0;
-    right: 0;
+    right: -100%;
     width: 300px;
     height: 100%;
     background: var(--background-color);
     padding: 20px;
     box-shadow: -2px 0 5px rgba(0,0,0,0.2);
     z-index: 1001;
-    transition: transform 0.3s ease;
+    transition: right 0.3s ease;
 }
 
 .settings-panel.visible {
     display: block;
+    right: 0;
 }
 
 /* Enhanced responsive styles for mobile devices */
 @media (max-width: 600px) {
     .settings-panel {
         width: 100%;
+        right: -100%;
+    }
+    
+    .settings-panel.visible {
+        right: 0;
     }
     body {
         padding: 0;
