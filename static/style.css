@@ -137,6 +137,16 @@ button {
   margin: 10px 0;
 }
 
+.message code {
+  font-family: 'Consolas', 'Monaco', 'Andale Mono', monospace;
+  font-size: 0.9em;
+}
+
+.message pre[class*="language-"] {
+  margin: 10px 0;
+  background: #2d2d2d;
+}
+
 .message h1, .message h2, .message h3 {
   margin: 15px 0 10px 0;
 }
