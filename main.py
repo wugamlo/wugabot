@@ -29,7 +29,7 @@ def chat_stream():
             )
 
             for chunk in stream:
-                if chunk.choices[0].delta.content:
+                if hasattr(chunk, 'choices') and chunk.choices and hasattr(chunk.choices[0], 'delta') and hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content:
                     yield f"data: {json.dumps({'content': chunk.choices[0].delta.content})}\n\n"
 
             yield "data: [DONE]\n\n"
