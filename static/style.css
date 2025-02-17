@@ -3,6 +3,8 @@
   --secondary-color: #3498db;
   --error-color: #e74c3c;
   --loading-color: #bdc3c7;
+  --code-bg: #1a1a1a;
+  --inline-code-bg: #f3f3f3;
 }
 
 body {
@@ -129,7 +131,7 @@ button {
 }
 
 .message pre {
-  background: #1a1a1a;
+  background: var(--code-bg);
   color: #fff;
   padding: 15px;
   border-radius: 8px;
@@ -137,11 +139,34 @@ button {
   margin: 10px 0;
 }
 
+.message pre code {
+  background: none;
+  padding: 0;
+  font-size: 14px;
+}
+
+.inline-code {
+  background: var(--inline-code-bg);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: Monaco, Consolas, 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
 .message h1, .message h2, .message h3 {
   margin: 15px 0 10px 0;
 }
 
-.message ul, .message ol {
-  margin: 10px 0;
-  padding-left: 20px;
+.message ul {
+  list-style-type: disc;
+  margin: 10px 0 10px 20px;
+}
+
+.message ol {
+  list-style-type: decimal;
+  margin: 10px 0 10px 20px;
+}
+
+.message li {
+  margin: 5px 0;
 }
