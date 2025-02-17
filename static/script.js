@@ -116,7 +116,27 @@ function appendMessage(content, role, returnElement = false) {
     const chatBox = document.getElementById('chatBox');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
-    messageDiv.textContent = content; // Use textContent for simplicity,  innerHTML for basic HTML rendering if needed
+    
+    if (returnElement) {
+        messageDiv.innerHTML = content;
+    } else {
+        // Format code blocks
+        const formattedContent = content.replace(/```([^`]*?)```/g, (match, code) => {
+            return `<pre><code>${code.trim()}</code></pre>`;
+        });
+        
+        // Format headers
+        const withHeaders = formattedContent.replace(/^(#{1,6})\s(.+)$/gm, (match, hashes, text) => {
+            const level = hashes.length;
+            return `<h${level}>${text}</h${level}>`;
+        });
+        
+        // Format bullet points
+        const withBullets = withHeaders.replace(/^[-*]\s(.+)$/gm, '<li>$1</li>');
+        
+        messageDiv.innerHTML = withBullets;
+    }
+    
     chatBox.appendChild(messageDiv);
     scrollToBottom();
     return returnElement ? messageDiv : null;
