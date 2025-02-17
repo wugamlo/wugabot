@@ -203,8 +203,45 @@ button {
 }
 
 
+.settings-toggle {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1002;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--secondary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.settings-panel {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 300px;
+    height: 100%;
+    background: var(--background-color);
+    padding: 20px;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+    z-index: 1001;
+    transition: transform 0.3s ease;
+}
+
+.settings-panel.visible {
+    display: block;
+}
+
 /* Enhanced responsive styles for mobile devices */
 @media (max-width: 600px) {
+    .settings-panel {
+        width: 100%;
+    }
     body {
         padding: 0;
         margin: 0;

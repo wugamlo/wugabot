@@ -239,5 +239,18 @@ function scrollToBottom() {
     const chatBox = document.getElementById('chatBox');
     chatBox.scrollTop = chatBox.scrollHeight;
 }
+// Settings panel functionality
+function initSettingsPanel() {
+    const settingsToggle = document.getElementById('settingsToggle');
+    const settingsPanel = document.querySelector('.settings-panel');
+    
+    settingsToggle.addEventListener('click', () => {
+        settingsPanel.classList.toggle('visible');
+    });
+}
+
 // Event listener for window load
-window.addEventListener('load', fetchModels);
+window.addEventListener('load', () => {
+    fetchModels();
+    initSettingsPanel();
+});
