@@ -189,14 +189,22 @@ function submitChat(message, base64Image) {
     // Prepare messages to include only one image at the last position
     const messages = [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: [{ type: 'text', text: message }] },
-        ...chatHistory
+        ...chatHistory.slice(0, -1)
     ];
-    // If there is a base64 image, push it as the last element
+    
+    // Add the current message as the last one
     if (base64Image) {
         messages.push({
             role: 'user',
-            content: [{ type: 'image_url', image_url: { url: base64Image } }]
+            content: [
+                { type: 'text', text: message },
+                { type: 'image_url', image_url: { url: base64Image } }
+            ]
+        });
+    } else {
+        messages.push({
+            role: 'user',
+            content: message
         });
     }
     appendMessage(message, 'user'); // Append user's message
