@@ -238,6 +238,10 @@ button {
     z-index: 1001;
     transition: transform 0.3s ease;
     transform: translateX(-100%);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
 }
 
 .settings-panel.visible {
