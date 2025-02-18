@@ -178,19 +178,6 @@ async function startStream() {
 function submitChat(message, base64Image) {
     if (!message && !base64Image) return;
     const systemPrompt = document.getElementById('systemPrompt').value.trim();
-    let temperature = 0.7;
-    let topP = 0.9;
-    
-    const tempElement = document.getElementById('temperature');
-    const topPElement = document.getElementById('topP');
-    
-    if (tempElement && tempElement.value) {
-        temperature = parseFloat(tempElement.value);
-    }
-    if (topPElement && topPElement.value) {
-        topP = parseFloat(topPElement.value);
-    }
-    
     chatHistory.push({ role: 'user', content: message });
     // Prepare messages to include only one image at the last position
     const messages = [
@@ -227,8 +214,6 @@ async function fetchChatResponse(messages, botMessage) {
             body: JSON.stringify({
                 messages: messages,
                 model: document.getElementById('modelSelect').value,
-                temperature: temperature,
-                top_p: topP,
                 stream: true
             })
         });
@@ -350,12 +335,4 @@ window.addEventListener('load', () => {
     fetchModels();
     initSettingsPanel();
     initEventListeners();
-    
-    // Initialize slider value displays
-    document.getElementById('temperature').addEventListener('input', (e) => {
-        document.getElementById('temperatureValue').textContent = e.target.value;
-    });
-    document.getElementById('topP').addEventListener('input', (e) => {
-        document.getElementById('topPValue').textContent = e.target.value;
-    });
 });
