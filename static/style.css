@@ -277,6 +277,29 @@ button {
     align-self: flex-start;
 }
 
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #333;
+    font-size: 0.9em;
+    color: #888;
+}
+
+.message-header .bot-name {
+    font-weight: bold;
+}
+
+.message-header .model-id {
+    font-family: monospace;
+}
+
+.message-header .timestamp {
+    font-style: italic;
+}
+
 .settings-panel.visible {
     display: block;
 }

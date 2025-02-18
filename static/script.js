@@ -238,7 +238,22 @@ function appendMessage(content, role, returnElement = false) {
     const chatBox = document.getElementById('chatBox');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
-    messageDiv.innerHTML = content;
+    
+    if (role === 'assistant') {
+        const header = document.createElement('div');
+        header.className = 'message-header';
+        header.innerHTML = `
+            <span class="bot-name">WugaBot</span>
+            <span class="model-id">${document.getElementById('modelSelect').value}</span>
+            <span class="timestamp">${new Date().toLocaleTimeString()}</span>
+        `;
+        messageDiv.appendChild(header);
+    }
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.innerHTML = content;
+    messageDiv.appendChild(contentDiv);
+    
     chatBox.appendChild(messageDiv);
     if (returnElement) {
         return messageDiv;
