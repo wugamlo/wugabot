@@ -350,11 +350,10 @@ button {
     }
 
     .input-area {
-        padding: 8px;
+        padding: 12px;
         gap: 8px;
         display: flex;
-        flex-direction: row;
-        align-items: center;
+        flex-direction: column;
         background: var(--background-color);
         position: fixed;
         bottom: 0;
@@ -366,10 +365,22 @@ button {
 
     .input-area input[type="text"] {
         font-size: 16px;
-        padding: 8px 8px;
-        flex: 1;
-        min-width: 0;
+        padding: 12px;
+        width: 100%;
         height: 44px;
+        margin-bottom: 8px;
+        box-sizing: border-box;
+    }
+
+    .input-area .button-row {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .input-area .left-buttons {
+        display: flex;
+        gap: 8px;
     }
 
     .input-area button {
@@ -380,6 +391,11 @@ button {
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+
+    .chat-box {
+        height: calc(100vh - 130px);
+        padding: 15px;
     }
 
     .model-select {
