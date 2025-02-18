@@ -1,0 +1,24 @@
+{
+  "name": "WugaBot",
+  "short_name": "WugaBot",
+  "start_url": "/mobile?homescreen=1",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#283365",
+  "background_color": "#283365",
+  "description": "Your friendly assistant WugaBot.",
+  "icons": [
+    {
+      "src": "/static/banner_app.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/banner_app.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
