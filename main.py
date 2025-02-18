@@ -34,10 +34,7 @@ def chat_stream():
                 messages=data['messages'],
                 temperature=data.get('temperature', 0.7),
                 max_tokens=data.get('max_tokens', 4000),
-                stream=True,
-                venice_parameters={
-                    "include_venice_system_prompt": False
-                }
+                stream=True
             )
 
             for chunk in stream:
