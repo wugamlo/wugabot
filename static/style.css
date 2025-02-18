@@ -239,16 +239,21 @@ button {
     transition: transform 0.3s ease;
     transform: translateX(-100%);
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
 }
 
 .settings-panel.visible {
     transform: translateX(0);
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-panel h2 {
+    margin: 0 0 20px 0;
 }
 
 .settings-panel .input-area {
+    flex: 1;
+    margin-top: 0;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -276,6 +281,16 @@ button {
 /* Enhanced responsive styles for mobile devices */
 @media (max-width: 600px) {
     .settings-panel {
+        width: 100%;
+        padding-bottom: 100px; /* Add space for the bottom safari bar */
+    }
+    
+    .settings-panel .input-area {
+        padding: 0 20px;
+    }
+    
+    .model-select {
+        margin: 10px 0;
         width: 100%;
     }
     body {
