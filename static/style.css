@@ -254,6 +254,17 @@ button {
     margin: 0 0 20px 0;
 }
 
+.settings-panel input[type="range"] {
+    width: 100%;
+    margin: 10px 0;
+}
+
+.settings-panel span {
+    display: inline-block;
+    margin-left: 10px;
+    color: var(--text-color);
+}
+
 .settings-panel .input-area {
     flex: 1;
     margin-top: 0;
