@@ -1,7 +1,7 @@
 {
   "name": "WugaBot",
   "short_name": "WugaBot",
-  "start_url": "/mobile?homescreen=1",
+  "start_url": "/?homescreen=1",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#283365",
