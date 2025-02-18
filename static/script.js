@@ -31,6 +31,53 @@ function savePrompt() {
     }
 }
 
+// Function to resize images to deal with too large images
+function resizeImage(file, maxWidth, maxHeight) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            img.src = e.target.result;
+        };
+
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            // Maintain the aspect ratio
+            if (width > height) {
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width *= maxHeight / height;
+                    height = maxHeight;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob((blob) => {
+                resolve(blob);
+            }, 'image/jpeg', 0.7); // Adjust quality here if needed
+        };
+
+        reader.onerror = (e) => {
+            reject(e);
+        };
+
+        reader.readAsDataURL(file);
+    });
+}
+
+
 // Handle image upload and show preview
 function handleImageUpload(input) {
     const imagePreview = document.getElementById('imagePreview');
@@ -86,28 +133,41 @@ function populateModelDropdown(models) {
 async function startStream() {
     const userInput = document.getElementById('userInput');
     const message = userInput.value.trim();
-    const galleryInput = document.getElementById('galleryInput'); // Renamed to avoid confusion
-    const cameraInput = document.getElementById('cameraInput'); // Added for clarity
+    const galleryInput = document.getElementById('galleryInput');
+    const cameraInput = document.getElementById('cameraInput');
     let base64Image = "";
-    // Convert uploaded image to Base64 for sending with the message
+
+    // Check for image uploads
+    const processImage = async (file) => {
+        if (file.size > 4.5 * 1024 * 1024) { // If the file is larger than 4.5MB
+            const resizedBlob = await resizeImage(file, 1024, 768); // Resize the image to max 1024x768
+            const resizedReader = new FileReader();
+            resizedReader.onload = (event) => {
+                base64Image = event.target.result;
+                submitChat(message, base64Image);
+            };
+            resizedReader.readAsDataURL(resizedBlob);
+        } else {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                base64Image = event.target.result;
+                submitChat(message, base64Image);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // Handle gallery input
     if (galleryInput.files.length > 0) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            base64Image = event.target.result;
-            submitChat(message, base64Image);
-            galleryInput.value = ''; // Clear the file input after submitting
-        };
-        reader.readAsDataURL(galleryInput.files[0]);
-    } else if (cameraInput.files.length > 0) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            base64Image = event.target.result;
-            submitChat(message, base64Image);
-            cameraInput.value = ''; // Clear the file input after submitting
-        };
-        reader.readAsDataURL(cameraInput.files[0]);
+        await processImage(galleryInput.files[0]);
+        galleryInput.value = ''; // Clear input after handling
+    } 
+    // Handle camera input
+    else if (cameraInput.files.length > 0) {
+        await processImage(cameraInput.files[0]);
+        cameraInput.value = ''; // Clear input after handling
     } else {
-        submitChat(message);
+        submitChat(message); // No images to submit
     }
     userInput.value = ''; // Clear input after sending
 }
@@ -181,15 +241,9 @@ async function fetchChatResponse(messages, botMessage) {
                             return;
                         } else if (parsed.content) {
                             botContentBuffer += parsed.content;
-                            const formattedContent = formatContent(botContentBuffer);
-                            botMessage.innerHTML = formattedContent;
+                            botMessage.innerHTML = formatContent(botContentBuffer);
                             Prism.highlightAll();
                             scrollToBottom();
-                            // Update the contentDiv directly
-                            const contentDiv = botMessage.querySelector('div:not(.message-header)');
-                            if (contentDiv) {
-                                contentDiv.innerHTML = formattedContent;
-                            }
                         }
                     } catch (e) {
                         if (data !== '[DONE]') console.error('Error parsing chunk:', e);
@@ -244,22 +298,7 @@ function appendMessage(content, role, returnElement = false) {
     const chatBox = document.getElementById('chatBox');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
-    
-    if (role === 'assistant') {
-        const header = document.createElement('div');
-        header.className = 'message-header';
-        header.innerHTML = `
-            <span class="bot-name">WugaBot</span>
-            <span class="model-id">${document.getElementById('modelSelect').value}</span>
-            <span class="timestamp">${new Date().toLocaleTimeString()}</span>
-        `;
-        messageDiv.appendChild(header);
-    }
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.innerHTML = content;
-    messageDiv.appendChild(contentDiv);
-    
+    messageDiv.innerHTML = content;
     chatBox.appendChild(messageDiv);
     if (returnElement) {
         return messageDiv;
