@@ -227,8 +227,8 @@ async function fetchChatResponse(messages, botMessage) {
             body: JSON.stringify({
                 messages: messages,
                 model: document.getElementById('modelSelect').value,
-                temperature: Number(temperature),
-                top_p: Number(topP),
+                temperature: temperature,
+                top_p: topP,
                 stream: true
             })
         });
