@@ -263,6 +263,11 @@ function initSettingsPanel() {
     });
 }
 
+function clearChatHistory() {
+    chatHistory.length = 0; // Clear the chat history
+    document.getElementById('chatBox').innerHTML = ''; // Clear chat display
+}
+
 // Event listener for window load
 window.addEventListener('load', () => {
     fetchModels();
