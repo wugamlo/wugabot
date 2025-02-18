@@ -178,7 +178,14 @@ async function startStream() {
 function submitChat(message, base64Image) {
     if (!message && !base64Image) return;
     const systemPrompt = document.getElementById('systemPrompt').value.trim();
-    chatHistory.push({ role: 'user', content: message });
+    // Store both text and image in chat history if present
+    const messageContent = base64Image 
+        ? [
+            { type: 'text', text: message },
+            { type: 'image_url', image_url: { url: base64Image } }
+          ]
+        : message;
+    chatHistory.push({ role: 'user', content: messageContent });
     // Prepare messages to include only one image at the last position
     const messages = [
         { role: 'system', content: systemPrompt },
