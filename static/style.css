@@ -323,7 +323,7 @@ button {
         min-height: 120px;
         width: 100%;
         margin-bottom: 10px;
-        overflow-wrap: break-word;
+        
     }
 
     #imagePreview img {
