@@ -181,9 +181,15 @@ async function fetchChatResponse(messages, botMessage) {
                             return;
                         } else if (parsed.content) {
                             botContentBuffer += parsed.content;
-                            botMessage.innerHTML = formatContent(botContentBuffer);
+                            const formattedContent = formatContent(botContentBuffer);
+                            botMessage.innerHTML = formattedContent;
                             Prism.highlightAll();
                             scrollToBottom();
+                            // Update the contentDiv directly
+                            const contentDiv = botMessage.querySelector('div:not(.message-header)');
+                            if (contentDiv) {
+                                contentDiv.innerHTML = formattedContent;
+                            }
                         }
                     } catch (e) {
                         if (data !== '[DONE]') console.error('Error parsing chunk:', e);
