@@ -139,8 +139,10 @@ async function startStream() {
 
     // Check for image uploads
     const processImage = async (file) => {
-        if (file.size > 4.5 * 1024 * 1024) { // If the file is larger than 4.5MB
-            const resizedBlob = await resizeImage(file, 1024, 768); // Resize the image to max 1024x768
+        // Always resize camera photos, and resize any file larger than 2MB
+        const isCameraPhoto = file.type.startsWith('image/') && file.name === 'image.jpg';
+        if (isCameraPhoto || file.size > 2 * 1024 * 1024) {
+            const resizedBlob = await resizeImage(file, 800, 600); // Smaller max dimensions
             const resizedReader = new FileReader();
             resizedReader.onload = (event) => {
                 base64Image = event.target.result;
