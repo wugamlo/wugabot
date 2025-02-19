@@ -6,5 +6,6 @@
         pkgs.glib
         pkgs.nss
         pkgs.nspr
+        pkgs.dbus
     ];
 }
