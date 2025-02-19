@@ -15,14 +15,39 @@ async function fetchModels() {
         appendMessage('Failed to fetch models. Please try again.', 'error');
     }
 }
-// Load prompt from localStorage when the page loads
+// Import character options and system prompts
+import { characterOptions, systemPrompts } from './characters.js';
+
+// Load prompt and populate character dropdown when the page loads
 window.addEventListener('load', () => {
     fetchModels();
+    populateCharacterDropdown();
     const savedPrompt = localStorage.getItem('systemPrompt');
     if (savedPrompt) {
         document.getElementById('systemPrompt').value = savedPrompt;
     }
 });
+
+// Populate character dropdown
+function populateCharacterDropdown() {
+    const characterSelect = document.getElementById('characterSelect');
+    characterSelect.innerHTML = '<option value="">Select a character...</option>';
+    characterOptions.forEach(option => {
+        const optionElement = document.createElement('option');
+        optionElement.value = option.value;
+        optionElement.text = option.label;
+        characterSelect.appendChild(optionElement);
+    });
+
+    // Add event listener for character selection
+    characterSelect.addEventListener('change', function() {
+        const selectedValue = this.value;
+        if (selectedValue && systemPrompts[selectedValue]) {
+            document.getElementById('systemPrompt').value = systemPrompts[selectedValue];
+            savePrompt(); // Automatically save when character is selected
+        }
+    });
+}
 // Function to save the prompt
 function savePrompt() {
     const prompt = document.getElementById('systemPrompt').value.trim();
