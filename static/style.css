@@ -271,8 +271,9 @@ button {
 
 .settings-panel h3 {
     margin: 0;
-    padding: 10px 0;
+    padding: 8px 0;
     color: var(--text-color);
+    font-size: 14px;
 }
 
 .message.assistant {
