@@ -170,6 +170,10 @@ async function startStream() {
     const cameraInput = document.getElementById('cameraInput');
     let base64Image = "";
 
+    if (!message && !galleryInput.files.length && !cameraInput.files.length) {
+        return;
+    }
+
     // Check for image uploads
     const processImage = async (file) => {
         // Always resize camera photos, and resize any file larger than 2MB
@@ -408,6 +412,14 @@ function transferPrompt() {
     document.getElementById('userInput').value = finalPrompt.replace(/\n\n+/g, '\n');
     togglePromptComposer();
 }
+
+// Export functions for global access
+window.startStream = startStream;
+window.savePrompt = savePrompt;
+window.clearChatHistory = clearChatHistory;
+window.togglePromptComposer = togglePromptComposer;
+window.clearFields = clearFields;
+window.transferPrompt = transferPrompt;
 
 window.addEventListener('load', () => {
     fetchModels();
