@@ -53,32 +53,36 @@
             </div>
             
             <div class="prompt-composer">
-                <h2>Prompt Composer</h2>
-                <div class="composer-fields">
-                    <div class="field-group">
-                        <label for="instructions">Instructions</label>
-                        <textarea id="instructions" placeholder="Enter instructions..."></textarea>
-                    </div>
-                    <div class="field-group">
-                        <label for="format">Return Format</label>
-                        <textarea id="format" placeholder="Specify return format..."></textarea>
-                    </div>
-                    <div class="field-group">
-                        <label for="context">Context</label>
-                        <textarea id="context" placeholder="Add context..."></textarea>
-                    </div>
-                    <div class="field-group">
-                        <label for="examples">Examples</label>
-                        <textarea id="examples" placeholder="Provide examples..."></textarea>
-                    </div>
-                    <div class="field-group">
-                        <label for="warnings">Warnings</label>
-                        <textarea id="warnings" placeholder="Add warnings..."></textarea>
+                <div class="prompt-composer-header">
+                    <h2>Prompt Composer</h2>
+                    <div class="composer-buttons">
+                        <button onclick="clearFields()">Clear</button>
+                        <button onclick="transferPrompt()">Transfer</button>
                     </div>
                 </div>
-                <div class="composer-buttons">
-                    <button onclick="clearFields()">Clear</button>
-                    <button onclick="transferPrompt()">Transfer</button>
+                <div class="composer-content">
+                    <div class="composer-fields">
+                        <div class="field-group">
+                            <label for="instructions">Instructions</label>
+                            <textarea id="instructions" placeholder="Enter instructions..."></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label for="format">Return Format</label>
+                            <textarea id="format" placeholder="Specify return format..."></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label for="context">Context</label>
+                            <textarea id="context" placeholder="Add context..."></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label for="examples">Examples</label>
+                            <textarea id="examples" placeholder="Provide examples..."></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label for="warnings">Warnings</label>
+                            <textarea id="warnings" placeholder="Add warnings..."></textarea>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="loading" class="loading hidden">

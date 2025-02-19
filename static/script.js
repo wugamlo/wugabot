@@ -357,7 +357,7 @@ function transferPrompt() {
     for (const [field, tag] of Object.entries(fields)) {
         const content = document.getElementById(field).value.trim();
         if (content) {
-            finalPrompt += `<${tag}>\n${content}\n</${tag}>\n\n`;
+            finalPrompt += `<${tag}>\n${content}\n</${tag}>\n\n\n`;
         }
     }
     

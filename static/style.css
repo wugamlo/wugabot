@@ -307,19 +307,32 @@ button {
 .prompt-composer {
     position: fixed;
     top: 0;
-    right: -400px;
-    width: 400px;
+    right: 0;
+    width: 300px;
     height: 100vh;
+    max-height: 800px;
     background: var(--background-color);
     box-shadow: -2px 0 5px rgba(0,0,0,0.2);
     padding: 20px;
     transition: transform 0.3s ease;
-    z-index: 1002;
-    overflow-y: auto;
+    z-index: 1001;
+    transform: translateX(100%);
 }
 
 .prompt-composer.visible {
-    transform: translateX(-400px);
+    transform: translateX(0);
+}
+
+.prompt-composer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.composer-content {
+    height: calc(100% - 80px);
+    overflow-y: auto;
 }
 
 .prompt-composer h2 {
