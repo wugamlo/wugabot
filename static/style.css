@@ -281,6 +281,12 @@ button {
     align-self: flex-start;
 }
 
+.xml-tag {
+    color: #ff9966;
+    font-weight: bold;
+    font-family: monospace;
+}
+
 .message-header {
     display: flex;
     justify-content: space-between;
