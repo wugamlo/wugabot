@@ -517,3 +517,15 @@ button {
         -webkit-overflow-scrolling: touch;
     }
 }
+
+
+@media (min-width: 601px) {
+  .chat-box {
+    height: 80vh;  /* Increase chat window height */
+  }
+
+  .input-area .button-row {
+    justify-content: flex-start;  /* Align buttons to the left */
+    gap: 10px;  /* Add space between buttons */
+  }
+}
