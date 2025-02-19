@@ -5,5 +5,6 @@
         pkgs.python3
         pkgs.glib
         pkgs.nss
+        pkgs.nspr
     ];
 }
