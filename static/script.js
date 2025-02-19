@@ -362,7 +362,7 @@ function transferPrompt() {
         if (content) {
             // Preserve line breaks by replacing them with actual newlines
             const formattedContent = content.replace(/\r\n|\r|\n/g, '\n');
-            finalPrompt += `<${tag}>\n${formattedContent}\n</${tag}>\n\n\n`;
+            finalPrompt += `<${tag}>\n${formattedContent}\n</${tag}>\n`;
         }
     }
     
