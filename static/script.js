@@ -301,11 +301,13 @@ function appendMessage(content, role, returnElement = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
     if (typeof content === 'string') {
-        content = content
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/&lt;(\/?(?:instructions|format|context|examples|warnings))&gt;/g, '<span class="xml-tag">&lt;$1&gt;</span>')
-            .replace(/\n/g, '<br>');
+        if (!content.startsWith('<img')) {
+            content = content
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/&lt;(\/?(?:instructions|format|context|examples|warnings))&gt;/g, '<span class="xml-tag">&lt;$1&gt;</span>')
+                .replace(/\n/g, '<br>');
+        }
     }
     messageDiv.innerHTML = content;
     chatBox.appendChild(messageDiv);
