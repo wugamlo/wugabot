@@ -97,8 +97,8 @@ document.getElementById('cameraInput').addEventListener('change', () => handleIm
 function initEventListeners() {
     const userInput = document.getElementById('userInput');
     if (userInput) {
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
                 startStream();
                 e.preventDefault();
             }
@@ -300,6 +300,9 @@ function appendMessage(content, role, returnElement = false) {
     const chatBox = document.getElementById('chatBox');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
+    if (typeof content === 'string') {
+        content = content.replace(/\n/g, '<br>');
+    }
     messageDiv.innerHTML = content;
     chatBox.appendChild(messageDiv);
     if (returnElement) {
