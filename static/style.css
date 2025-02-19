@@ -394,11 +394,11 @@ button {
         width: 100%;
         padding-bottom: 100px; /* Add space for the bottom safari bar */
     }
-
+    
     .settings-panel .input-area {
         padding: 0 20px;
     }
-
+    
     .model-select {
         margin: 10px 0;
         width: 100%;
@@ -494,7 +494,7 @@ button {
         min-height: 120px;
         width: 100%;
         margin-bottom: 10px;
-
+        
     }
 
     #imagePreview img {
@@ -525,26 +525,14 @@ button {
   }
 
   .input-area {
-    flex-direction: row; /* Changed to row for desktop */
+    flex-direction: column;
     gap: 10px;
   }
 
   .input-area .button-row {
     display: flex;
-    justify-content: space-between;
-    width: 100%;
-  }
-
-  .input-area .button-row > div:first-child {
-    display: flex;
+    justify-content: flex-start;
     gap: 10px;
-  }
-
-  .input-area .button-row > button:nth-last-child(-n+2) {
-    margin-left: auto;
-  }
-
-  .input-area .button-row > button:last-child {
-    margin-left: 10px;
+    width: 100%;
   }
 }
