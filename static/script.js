@@ -215,14 +215,24 @@ async function startStream() {
 function submitChat(message, base64Image) {
     if (!message && !base64Image) return;
     const systemPrompt = document.getElementById('systemPrompt').value.trim();
-    chatHistory.push({ role: 'user', content: message });
-    // Prepare messages to include only one image at the last position
+    
+    // Only add text messages to chat history
+    if (message) {
+        chatHistory.push({ role: 'user', content: message });
+    }
+    
+    // Prepare messages for API call
     const messages = [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: [{ type: 'text', text: message }] },
-        ...chatHistory
+        ...chatHistory // Include previous conversation history
     ];
-    // If there is a base64 image, push it as the last element
+    
+    // Add current message if exists
+    if (message) {
+        messages.push({ role: 'user', content: [{ type: 'text', text: message }] });
+    }
+    
+    // Add image as the last message if exists (not stored in history)
     if (base64Image) {
         messages.push({
             role: 'user',
