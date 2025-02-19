@@ -82,10 +82,18 @@ function resizeImage(file, maxWidth, maxHeight) {
 function handleImageUpload(input) {
     const imagePreview = document.getElementById('imagePreview');
     if (input.files.length > 0) {
+        // Auto-switch to qwen-2.5-vl model for image analysis
+        const modelSelect = document.getElementById('modelSelect');
+        const previousModel = modelSelect.value;
+        modelSelect.value = 'qwen-2.5-vl';
+        
         const reader = new FileReader();
         reader.onload = (event) => {
             const base64Image = event.target.result;
-            imagePreview.innerHTML = `<img src="${base64Image}" alt="Image Preview" style="max-width: 50px; max-height: 50px; margin-left: 10px;" />`;
+            imagePreview.innerHTML = `
+                <img src="${base64Image}" alt="Image Preview" style="max-width: 50px; max-height: 50px; margin-left: 10px;" />
+                <div style="font-size: 12px; color: #666; margin-top: 4px;">Switched to qwen-2.5-vl for image analysis</div>
+            `;
         };
         reader.readAsDataURL(input.files[0]);
     }
