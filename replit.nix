@@ -22,6 +22,6 @@
         pkgs.xorg.libXrandr
         pkgs.mesa
         pkgs.xorg.libxcb  # Added XCB library
-        pkgs.libdbus  # Added DBus library if not already included
+        pkgs.dbus  # Added DBus library
     ];
 }
