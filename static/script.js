@@ -357,7 +357,9 @@ function transferPrompt() {
     for (const [field, tag] of Object.entries(fields)) {
         const content = document.getElementById(field).value.trim();
         if (content) {
-            finalPrompt += `<${tag}>\n${content}\n</${tag}>\n\n\n`;
+            // Preserve line breaks by replacing them with actual newlines
+            const formattedContent = content.replace(/\r\n|\r|\n/g, '\n');
+            finalPrompt += `<${tag}>\n${formattedContent}\n</${tag}>\n\n\n`;
         }
     }
     

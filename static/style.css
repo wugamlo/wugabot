@@ -71,7 +71,7 @@ body {
   position: relative;
 }
 
-input[type="text"] {
+textarea#userInput {
   flex: 1;
   padding: 12px;
   border: 2px solid #444; /* Dark Input Border */
@@ -79,6 +79,10 @@ input[type="text"] {
   font-size: 16px;
   color: #fff; /* Input Text Color */
   background: #1e1e1e; /* Input Background */
+  resize: none;
+  min-height: 44px;
+  max-height: 150px;
+  overflow-y: auto;
 }
 
 button {
