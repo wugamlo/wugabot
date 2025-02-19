@@ -21,5 +21,6 @@
         pkgs.xorg.libXfixes
         pkgs.xorg.libXrandr
         pkgs.mesa
+        pkgs.xorg.libxcb
     ];
 }
