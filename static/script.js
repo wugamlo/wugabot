@@ -366,7 +366,7 @@ function transferPrompt() {
         }
     }
     
-    document.getElementById('userInput').value = finalPrompt.trim();
+    document.getElementById('userInput').value = finalPrompt.replace(/\n\n+/g, '\n');
     togglePromptComposer();
 }
 
