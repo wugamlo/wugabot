@@ -331,6 +331,40 @@ function clearChatHistory() {
 }
 
 // Event listener for window load
+function togglePromptComposer() {
+    const composer = document.querySelector('.prompt-composer');
+    composer.classList.toggle('visible');
+}
+
+function clearFields() {
+    const fields = ['instructions', 'format', 'context', 'examples', 'warnings'];
+    fields.forEach(field => {
+        document.getElementById(field).value = '';
+    });
+}
+
+function transferPrompt() {
+    const fields = {
+        instructions: 'instructions',
+        format: 'format',
+        context: 'context',
+        examples: 'examples',
+        warnings: 'warnings'
+    };
+    
+    let finalPrompt = '';
+    
+    for (const [field, tag] of Object.entries(fields)) {
+        const content = document.getElementById(field).value.trim();
+        if (content) {
+            finalPrompt += `<${tag}>\n${content}\n</${tag}>\n\n`;
+        }
+    }
+    
+    document.getElementById('userInput').value = finalPrompt.trim();
+    togglePromptComposer();
+}
+
 window.addEventListener('load', () => {
     fetchModels();
     initSettingsPanel();
