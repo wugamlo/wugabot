@@ -521,11 +521,18 @@ button {
 
 @media (min-width: 601px) {
   .chat-box {
-    height: 80vh;  /* Increase chat window height */
+    height: 80vh;
+  }
+
+  .input-area {
+    flex-direction: column;
+    gap: 10px;
   }
 
   .input-area .button-row {
-    justify-content: flex-start;  /* Align buttons to the left */
-    gap: 10px;  /* Add space between buttons */
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+    width: 100%;
   }
 }
