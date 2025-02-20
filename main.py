@@ -78,26 +78,26 @@ def extract_text_from_file(file_data, file_type):
 def process_file():
     try:
         if 'file' not in request.files:
-            return json.dumps({'error': 'No file part'}), 400
+            return json.dumps({'error': 'No file part'}), 400, {'Content-Type': 'application/json'}
         
         file = request.files['file']
         if file.filename == '':
-            return json.dumps({'error': 'No file selected'}), 400
+            return json.dumps({'error': 'No file selected'}), 400, {'Content-Type': 'application/json'}
             
         # Check file size (2MB limit)
         file_data = file.read()
         if len(file_data) > 2 * 1024 * 1024:  # 2MB in bytes
-            return json.dumps({'error': 'File too large. Maximum size is 2MB'}), 400
+            return json.dumps({'error': 'File too large. Maximum size is 2MB'}), 400, {'Content-Type': 'application/json'}
             
         file_type = file.filename.split('.')[-1].lower()
         if file_type not in ['txt', 'pdf', 'doc', 'docx']:
-            return json.dumps({'error': f'Unsupported file type: {file_type}'}, ensure_ascii=False), 400
+            return json.dumps({'error': f'Unsupported file type: {file_type}'}, ensure_ascii=False), 400, {'Content-Type': 'application/json'}
             
         extracted_text = extract_text_from_file(file_data, file_type)
         if extracted_text is None:
             return json.dumps({'error': 'Failed to extract text from file'}, ensure_ascii=False), 400
             
-        return json.dumps({'text': extracted_text}, ensure_ascii=False)
+        return json.dumps({'text': extracted_text}, ensure_ascii=False), 200, {'Content-Type': 'application/json'}
     except Exception as e:
         print(f"File processing error: {str(e)}")
-        return json.dumps({'error': f'File processing error: {str(e)}'}, ensure_ascii=False), 500
+        return json.dumps({'error': f'File processing error: {str(e)}'}, ensure_ascii=False), 500, {'Content-Type': 'application/json'}
