@@ -51,8 +51,6 @@ def chat_stream():
 
     return Response(generate(), mimetype='text/event-stream')
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
 def extract_text_from_file(file_data, file_type):
     try:
         print(f"Extracting text from {file_type} file")
@@ -71,11 +69,11 @@ def extract_text_from_file(file_data, file_type):
             doc = docx.Document(doc_file)
             print(f"DOC file loaded, paragraphs: {len(doc.paragraphs)}")
             text = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
-        
+
         if not text:
             print("Warning: Extracted text is empty")
             return None
-            
+
         print(f"Successfully extracted {len(text)} characters")
         return text.strip()
     except Exception as e:
@@ -88,14 +86,14 @@ def extract_text_from_file(file_data, file_type):
 def process_file():
     try:
         print("Starting file processing...")
-        
+
         if 'file' not in request.files:
             print("No file in request.files")
             return json.dumps({'error': 'No file part'}), 400, {'Content-Type': 'application/json'}
-        
+
         file = request.files['file']
         print(f"Received file: {file.filename}")
-        
+
         if file.filename == '':
             print("Empty filename received")
             return json.dumps({'error': 'No file selected'}), 400, {'Content-Type': 'application/json'}
@@ -107,22 +105,25 @@ def process_file():
             'Access-Control-Allow-Methods': 'POST',
             'Access-Control-Allow-Headers': 'Content-Type'
         }
-            
+
         # Check file size (2MB limit)
         file_data = file.read()
         print(f"File size: {len(file_data)} bytes")
         if len(file_data) > 2 * 1024 * 1024:  # 2MB in bytes
             return json.dumps({'error': 'File too large. Maximum size is 2MB'}), 400, {'Content-Type': 'application/json'}
-            
+
         file_type = file.filename.split('.')[-1].lower()
         if file_type not in ['txt', 'pdf', 'doc', 'docx']:
             return json.dumps({'error': f'Unsupported file type: {file_type}'}, ensure_ascii=False), 400, {'Content-Type': 'application/json'}
-            
+
         extracted_text = extract_text_from_file(file_data, file_type)
         if extracted_text is None:
             return json.dumps({'error': 'Failed to extract text from file'}, ensure_ascii=False), 400
-            
+
         return json.dumps({'text': extracted_text}, ensure_ascii=False), 200, headers
     except Exception as e:
         print(f"File processing error: {str(e)}")
         return json.dumps({'error': f'File processing error: {str(e)}'}, ensure_ascii=False), 500, headers
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
