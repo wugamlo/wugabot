@@ -99,6 +99,14 @@ def process_file():
         if file.filename == '':
             print("Empty filename received")
             return json.dumps({'error': 'No file selected'}), 400, {'Content-Type': 'application/json'}
+
+        # Set CORS headers
+        headers = {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        }
             
         # Check file size (2MB limit)
         file_data = file.read()
@@ -114,7 +122,7 @@ def process_file():
         if extracted_text is None:
             return json.dumps({'error': 'Failed to extract text from file'}, ensure_ascii=False), 400
             
-        return json.dumps({'text': extracted_text}, ensure_ascii=False), 200, {'Content-Type': 'application/json'}
+        return json.dumps({'text': extracted_text}, ensure_ascii=False), 200, headers
     except Exception as e:
         print(f"File processing error: {str(e)}")
-        return json.dumps({'error': f'File processing error: {str(e)}'}, ensure_ascii=False), 500, {'Content-Type': 'application/json'}
+        return json.dumps({'error': f'File processing error: {str(e)}'}, ensure_ascii=False), 500, headers

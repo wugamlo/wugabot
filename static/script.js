@@ -168,8 +168,15 @@ async function handleFileUpload(event) {
     try {
         const response = await fetch('/process_file', {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: {
+                'Accept': 'application/json'
+            }
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
         const data = await response.json();
         if (data.error) {
