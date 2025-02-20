@@ -55,19 +55,29 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
 def extract_text_from_file(file_data, file_type):
     try:
+        print(f"Extracting text from {file_type} file")
         text = ""
         if file_type == 'txt':
             text = file_data.decode('utf-8')
+            print("Text file decoded successfully")
         elif file_type == 'pdf':
             pdf_file = io.BytesIO(file_data)
             pdf_reader = PyPDF2.PdfReader(pdf_file)
+            print(f"PDF file loaded, pages: {len(pdf_reader.pages)}")
             for page in pdf_reader.pages:
                 text += page.extract_text()
         elif file_type in ['doc', 'docx']:
             doc_file = io.BytesIO(file_data)
             doc = docx.Document(doc_file)
+            print(f"DOC file loaded, paragraphs: {len(doc.paragraphs)}")
             text = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
-        return text.strip() if text else None
+        
+        if not text:
+            print("Warning: Extracted text is empty")
+            return None
+            
+        print(f"Successfully extracted {len(text)} characters")
+        return text.strip()
     except Exception as e:
         print(f"Error extracting text: {str(e)}", flush=True)
         import traceback
@@ -77,15 +87,22 @@ def extract_text_from_file(file_data, file_type):
 @app.route('/process_file', methods=['POST'])
 def process_file():
     try:
+        print("Starting file processing...")
+        
         if 'file' not in request.files:
+            print("No file in request.files")
             return json.dumps({'error': 'No file part'}), 400, {'Content-Type': 'application/json'}
         
         file = request.files['file']
+        print(f"Received file: {file.filename}")
+        
         if file.filename == '':
+            print("Empty filename received")
             return json.dumps({'error': 'No file selected'}), 400, {'Content-Type': 'application/json'}
             
         # Check file size (2MB limit)
         file_data = file.read()
+        print(f"File size: {len(file_data)} bytes")
         if len(file_data) > 2 * 1024 * 1024:  # 2MB in bytes
             return json.dumps({'error': 'File too large. Maximum size is 2MB'}), 400, {'Content-Type': 'application/json'}
             

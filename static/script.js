@@ -197,7 +197,18 @@ async function handleFileUpload(event) {
     } catch (error) {
         console.error('Error processing file:', error);
         console.error('Error details:', error.message);
-        alert(`Error processing file: ${error.message}`);
+        console.error('Response:', error.response);
+        
+        let errorMessage = error.message;
+        try {
+            const responseText = await error.response.text();
+            console.error('Response text:', responseText);
+            errorMessage = `Server error: ${responseText}`;
+        } catch (e) {
+            console.error('Could not read response text:', e);
+        }
+        
+        alert(`Error processing file: ${errorMessage}`);
     }
     
     // Clear the file input
