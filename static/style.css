@@ -118,8 +118,9 @@ button {
 
 .loading-dots {
   display: inline-block;
-  width: 20px;
-  height: 20px;
+  position: relative;
+  width: 40px;
+  height: 12px;
 }
 
 .loading-dots::after {
@@ -544,57 +545,4 @@ button {
     gap: 10px;
     width: 100%;
   }
-}
-
-.document-manager {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-.upload-section {
-    background: #f5f5f5;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-}
-
-.documents-list {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.document-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-}
-
-.document-item:last-child {
-    border-bottom: none;
-}
-
-.document-item .timestamp {
-    color: #666;
-    font-size: 0.9em;
-}
-
-#uploadStatus {
-    margin-top: 10px;
-    padding: 10px;
-    border-radius: 4px;
-}
-
-#uploadStatus.success {
-    background: #e7f7e7;
-    color: #2c662d;
-}
-
-#uploadStatus.error {
-    background: #fff6f6;
-    color: #9f3a38;
 }

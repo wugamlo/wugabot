@@ -1,14 +1,12 @@
-from flask import Flask, Response, render_template, request, jsonify
+from flask import Flask, Response, render_template, request
 from openai import OpenAI
 import os
 import json
 import PyPDF2
 import docx
 import io
-from storage_handler import StorageHandler
 
 app = Flask(__name__)
-storage = StorageHandler()
 
 client = OpenAI(
     base_url="https://api.venice.ai/api/v1",
@@ -92,44 +90,6 @@ def process_file():
         if 'file' not in request.files:
             print("No file in request.files")
             return json.dumps({'error': 'No file part'}), 400, {'Content-Type': 'application/json'}
-
-
-@app.route('/document_manager')
-def document_manager():
-    return render_template('document_manager.html')
-
-@app.route('/upload_document', methods=['POST'])
-def upload_document():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-        
-    content = extract_text_from_file(file.read(), file.filename.split('.')[-1])
-    if content is None:
-        return jsonify({'error': 'Could not extract text from file'}), 400
-        
-    result = storage.process_document(content, file.filename)
-    return jsonify(result)
-
-@app.route('/list_documents')
-def list_documents():
-    documents = storage.list_documents()
-    return jsonify({'documents': documents})
-
-@app.route('/delete_document/<int:doc_id>', methods=['DELETE'])
-def delete_document(doc_id):
-    result = storage.delete_document(doc_id)
-    if isinstance(result, tuple):
-        return jsonify(result[0]), result[1]
-    return jsonify(result)
-
-def get_relevant_context(query):
-    results = storage.search(query)
-    return "\n".join([r["content"] for r in results])
-
 
         file = request.files['file']
         print(f"Received file: {file.filename}")
