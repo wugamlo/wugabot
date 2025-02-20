@@ -54,19 +54,23 @@ def chat_stream():
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
 def extract_text_from_file(file_data, file_type):
-    text = ""
-    if file_type == 'txt':
-        text = file_data.decode('utf-8')
-    elif file_type == 'pdf':
-        pdf_file = io.BytesIO(file_data)
-        pdf_reader = PyPDF2.PdfReader(pdf_file)
-        for page in pdf_reader.pages:
-            text += page.extract_text()
-    elif file_type in ['doc', 'docx']:
-        doc_file = io.BytesIO(file_data)
-        doc = docx.Document(doc_file)
-        text = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
-    return text.strip()
+    try:
+        text = ""
+        if file_type == 'txt':
+            text = file_data.decode('utf-8')
+        elif file_type == 'pdf':
+            pdf_file = io.BytesIO(file_data)
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            for page in pdf_reader.pages:
+                text += page.extract_text()
+        elif file_type in ['doc', 'docx']:
+            doc_file = io.BytesIO(file_data)
+            doc = docx.Document(doc_file)
+            text = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
+        return text.strip() if text else None
+    except Exception as e:
+        print(f"Error extracting text: {str(e)}")
+        return None
 
 @app.route('/process_file', methods=['POST'])
 def process_file():
@@ -85,13 +89,13 @@ def process_file():
             
         file_type = file.filename.split('.')[-1].lower()
         if file_type not in ['txt', 'pdf', 'doc', 'docx']:
-            return json.dumps({'error': 'Unsupported file type'}), 400
+            return json.dumps({'error': f'Unsupported file type: {file_type}'}, ensure_ascii=False), 400
             
         extracted_text = extract_text_from_file(file_data, file_type)
-        if not extracted_text:
-            return json.dumps({'error': 'Could not extract text from file'}), 400
+        if extracted_text is None:
+            return json.dumps({'error': 'Failed to extract text from file'}, ensure_ascii=False), 400
             
-        return json.dumps({'text': extracted_text})
+        return json.dumps({'text': extracted_text}, ensure_ascii=False)
     except Exception as e:
-        print(f"File processing error: {str(e)}")  # Add logging
-        return json.dumps({'error': str(e)}), 500
+        print(f"File processing error: {str(e)}")
+        return json.dumps({'error': f'File processing error: {str(e)}'}, ensure_ascii=False), 500
