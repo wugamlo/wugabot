@@ -184,19 +184,27 @@ async function handleFileUpload(event) {
             return;
         }
 
-        // Add file icon to preview area
+        // Add success notification
         const imagePreview = document.getElementById('imagePreview');
-        imagePreview.innerHTML = '<i class="fas fa-file-check" style="font-size: 24px; color: #4CAF50;"></i>';
+        imagePreview.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-file-check" style="font-size: 24px; color: #4CAF50;"></i>
+                <span style="color: #4CAF50;">File uploaded successfully</span>
+            </div>
+        `;
         
         // Update messages with the extracted text
         const userMessage = document.getElementById('userInput').value;
+        const fileMessage = `📎 File: ${file.name}`;
+        
         chatHistory.push({
             role: 'user',
             content: userMessage + '\n\nFile contents:\n' + data.text
         });
         
-        // Only show the user message in the chat
+        // Show the user message and file info in the chat
         appendMessage(userMessage, 'user');
+        appendMessage(fileMessage, 'user-file');
         
         // Start the stream with the current model
         startStream();
