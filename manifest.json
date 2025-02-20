@@ -9,13 +9,13 @@
   "description": "Your friendly assistant WugaBot.",
   "icons": [
     {
-      "src": "/static/banner_app.png",
+      "src": "/static/WugaBot_png420.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/static/banner_app.png",
+      "src": "/static/WugaBot_png420.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
