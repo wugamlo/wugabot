@@ -71,9 +71,12 @@ def extract_text_from_file(file_data, file_type):
 @app.route('/process_file', methods=['POST'])
 def process_file():
     try:
+        if 'file' not in request.files:
+            return json.dumps({'error': 'No file part'}), 400
+        
         file = request.files['file']
-        if not file:
-            return json.dumps({'error': 'No file provided'}), 400
+        if file.filename == '':
+            return json.dumps({'error': 'No file selected'}), 400
             
         # Check file size (2MB limit)
         file_data = file.read()
@@ -85,6 +88,10 @@ def process_file():
             return json.dumps({'error': 'Unsupported file type'}), 400
             
         extracted_text = extract_text_from_file(file_data, file_type)
+        if not extracted_text:
+            return json.dumps({'error': 'Could not extract text from file'}), 400
+            
         return json.dumps({'text': extracted_text})
     except Exception as e:
+        print(f"File processing error: {str(e)}")  # Add logging
         return json.dumps({'error': str(e)}), 500
