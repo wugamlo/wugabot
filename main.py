@@ -69,7 +69,9 @@ def extract_text_from_file(file_data, file_type):
             text = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
         return text.strip() if text else None
     except Exception as e:
-        print(f"Error extracting text: {str(e)}")
+        print(f"Error extracting text: {str(e)}", flush=True)
+        import traceback
+        print(f"Stack trace: {traceback.format_exc()}", flush=True)
         return None
 
 @app.route('/process_file', methods=['POST'])

@@ -196,7 +196,8 @@ async function handleFileUpload(event) {
         
     } catch (error) {
         console.error('Error processing file:', error);
-        alert('Error processing file');
+        console.error('Error details:', error.message);
+        alert(`Error processing file: ${error.message}`);
     }
     
     // Clear the file input
