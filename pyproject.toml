@@ -5,6 +5,7 @@ description = ""
 authors = ["Your Name <you@example.com>"]
 requires-python = ">=3.11"
 dependencies = [
+    "docx>=0.2.4",
     "flask>=3.1.0",
     "openai>=1.63.0",
     "pypdf2>=3.0.1",
