@@ -140,6 +140,7 @@ function initEventListeners() {
 
     const galleryInput = document.getElementById('galleryInput');
     const cameraInput = document.getElementById('cameraInput');
+    const fileInput = document.getElementById('fileInput');
     
     if (galleryInput) {
         galleryInput.addEventListener('change', () => handleImageUpload(galleryInput));
@@ -147,6 +148,59 @@ function initEventListeners() {
     if (cameraInput) {
         cameraInput.addEventListener('change', () => handleImageUpload(cameraInput));
     }
+    if (fileInput) {
+        fileInput.addEventListener('change', handleFileUpload);
+    }
+}
+
+async function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+        alert('File too large. Maximum size is 2MB');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/process_file', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        // Add file icon to preview area
+        const imagePreview = document.getElementById('imagePreview');
+        imagePreview.innerHTML = '<i class="fas fa-file-check" style="font-size: 24px; color: #4CAF50;"></i>';
+        
+        // Update messages with the extracted text
+        const userMessage = document.getElementById('userInput').value;
+        chatHistory.push({
+            role: 'user',
+            content: userMessage + '\n\nFile contents:\n' + data.text
+        });
+        
+        // Only show the user message in the chat
+        appendMessage(userMessage, 'user');
+        
+        // Start the stream with the current model
+        startStream();
+        
+    } catch (error) {
+        console.error('Error processing file:', error);
+        alert('Error processing file');
+    }
+    
+    // Clear the file input
+    event.target.value = '';
 }
 
 // Populate model dropdown

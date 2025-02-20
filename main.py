@@ -2,6 +2,9 @@ from flask import Flask, Response, render_template, request
 from openai import OpenAI
 import os
 import json
+import PyPDF2
+import docx
+import io
 
 app = Flask(__name__)
 
@@ -50,3 +53,38 @@ def chat_stream():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
+def extract_text_from_file(file_data, file_type):
+    text = ""
+    if file_type == 'txt':
+        text = file_data.decode('utf-8')
+    elif file_type == 'pdf':
+        pdf_file = io.BytesIO(file_data)
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        for page in pdf_reader.pages:
+            text += page.extract_text()
+    elif file_type in ['doc', 'docx']:
+        doc_file = io.BytesIO(file_data)
+        doc = docx.Document(doc_file)
+        text = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
+    return text.strip()
+
+@app.route('/process_file', methods=['POST'])
+def process_file():
+    try:
+        file = request.files['file']
+        if not file:
+            return json.dumps({'error': 'No file provided'}), 400
+            
+        # Check file size (2MB limit)
+        file_data = file.read()
+        if len(file_data) > 2 * 1024 * 1024:  # 2MB in bytes
+            return json.dumps({'error': 'File too large. Maximum size is 2MB'}), 400
+            
+        file_type = file.filename.split('.')[-1].lower()
+        if file_type not in ['txt', 'pdf', 'doc', 'docx']:
+            return json.dumps({'error': 'Unsupported file type'}), 400
+            
+        extracted_text = extract_text_from_file(file_data, file_type)
+        return json.dumps({'text': extracted_text})
+    except Exception as e:
+        return json.dumps({'error': str(e)}), 500
