@@ -53,11 +53,12 @@ body {
 }
 
 .message.user-file {
-  background-color: #e8f5e9;
+  background-color: #1a2634;
+  color: #ffffff;
   align-self: flex-end;
   border-radius: 15px 15px 5px 15px;
   font-size: 0.9em;
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
 .message.assistant {
