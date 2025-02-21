@@ -33,7 +33,7 @@ import os
 brave = Brave(api_key=os.getenv('BRAVE_API_KEY'))
 
 @lru_cache(maxsize=100)
-def cached_search(query, count=5):
+def cached_search(query, count=3):
     try:
         print(f"Making Brave API request for query: {query}")
         results = brave.search(q=query, count=count, raw=True)
