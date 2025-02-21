@@ -35,7 +35,7 @@ brave = Brave(api_key=os.getenv('BRAVE_API_KEY'))
 @lru_cache(maxsize=100)
 def cached_search(query, count=5):
     try:
-        results = brave.search(query=query, count=count)
+        results = brave.search(q=query, count=count)
         if hasattr(results, 'web') and results.web:
             return '\n'.join([result.description for result in results.web.results[:3] if hasattr(result, 'description')])
         return ""
