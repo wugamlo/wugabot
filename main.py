@@ -37,10 +37,13 @@ def cached_search(query, count=3):
     try:
         print(f"Making Brave API request for query: {query}")
         results = brave.search(q=query, count=count, raw=True)
-        
+
+        # Log cache usage
+        print("Cache miss for query:", query)
+
         # Process raw JSON response
         print(f"Raw API response: {results}")
-        
+
         # Extract web results directly from JSON
         if 'web' in results and 'results' in results['web']:
             search_results = []
@@ -48,7 +51,7 @@ def cached_search(query, count=3):
                 if 'description' in result:
                     search_results.append(f"- {result['description']}")
             return "\n".join(search_results) if search_results else ""
-        
+
         print("No valid web results found in response")
         return ""
     except Exception as e:
