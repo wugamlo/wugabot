@@ -36,10 +36,9 @@ brave = Brave(api_key=os.getenv('BRAVE_API_KEY'))
 def cached_search(query, count=5):
     try:
         print(f"Making Brave API request for query: {query}")
-        response = brave.search(q=query, count=count, raw_response=True)
+        results = brave.search(q=query, count=count, raw=True)
         
-        # Get raw JSON response
-        results = response.json()
+        # Process raw JSON response
         print(f"Raw API response: {results}")
         
         # Extract web results directly from JSON
