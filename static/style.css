@@ -437,16 +437,39 @@ button {
 @media (max-width: 600px) {
     .settings-panel {
         width: 100%;
-        padding-bottom: 100px; /* Add space for the bottom safari bar */
+        height: 100%;
+        max-height: none;
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .settings-content {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 80px;
     }
 
     .settings-panel .input-area {
-        padding: 0 20px;
+        padding: 0;
     }
 
     .model-select {
         margin: 10px 0;
         width: 100%;
+    }
+
+    .settings-panel-header {
+        position: sticky;
+        top: 0;
+        background: var(--background-color);
+        z-index: 1;
+        padding: 10px 0;
     }
     body {
         padding: 0;
