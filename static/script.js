@@ -296,6 +296,7 @@ async function startStream() {
 function submitChat(message, base64Image) {
     if (!message && !base64Image) return;
     const systemPrompt = document.getElementById('systemPrompt').value.trim();
+    const searchEnabled = document.getElementById('searchEnabled').classList.contains('active');
     
     // Only add text messages to chat history
     if (message) {
@@ -433,7 +434,8 @@ function appendMessage(content, role, returnElement = false, searchEnabled = fal
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
     if (role === 'user' && searchEnabled) {
-        messageDiv.innerHTML = '<i class="fas fa-globe" style="margin-right: 8px; color: #3498db;"></i>';
+        messageDiv.innerHTML = '<i class="fas fa-globe" style="margin-right: 8px; color: #3498db;"></i>' + (typeof content === 'string' ? content : '');
+        return messageDiv;
     }
     if (typeof content === 'string') {
         if (!content.startsWith('<img')) {
