@@ -60,10 +60,13 @@ def chat_stream():
         if isinstance(query, list):
             query = next((item['text'] for item in query if item.get('type') == 'text'), '')
         try:
+            print(f"Searching for query: {query}")
             search_results = cached_search(query)
+            print(f"Search results found: {bool(search_results)}")
             if search_results:
                 context_msg = {"role": "system", "content": f"Web search results:\n{search_results}"}
                 messages.insert(-1, context_msg)
+                print(f"Final messages structure: {json.dumps(messages, indent=2)}")
         except Exception as e:
             print(f"Search error: {str(e)}")
 
