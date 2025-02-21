@@ -336,7 +336,7 @@ function submitChat(message, base64Image) {
 // Fetch response from chat
 async function fetchChatResponse(messages, botMessage) {
     try {
-        const searchEnabled = document.getElementById('searchEnabled').checked;
+        const searchEnabled = document.getElementById('searchEnabled').classList.contains('active');
         const response = await fetch('/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -513,6 +513,10 @@ window.clearChatHistory = clearChatHistory;
 window.togglePromptComposer = togglePromptComposer;
 window.clearFields = clearFields;
 window.transferPrompt = transferPrompt;
+
+function toggleWebSearch(button) {
+    button.classList.toggle('active');
+}
 
 window.addEventListener('load', () => {
     fetchModels();

@@ -39,10 +39,9 @@
 
                 <textarea id="userInput" placeholder="Type your message..." rows="1"></textarea>
                 <div class="button-row">
-                    <div class="search-toggle">
-                        <input type="checkbox" id="searchEnabled" name="searchEnabled">
-                        <label for="searchEnabled">Enable Web Search</label>
-                    </div>
+                    <button id="searchEnabled" class="icon-button" onclick="toggleWebSearch(this)">
+                        <i class="fas fa-globe"></i>
+                    </button>
                     <div class="left-buttons">
                     <button onclick="document.getElementById('galleryInput').click();">
                         <i class="fas fa-upload"></i>
