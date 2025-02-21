@@ -336,7 +336,9 @@ function submitChat(message, base64Image) {
 // Fetch response from chat
 async function fetchChatResponse(messages, botMessage) {
     try {
-        const searchEnabled = document.getElementById('searchEnabled').classList.contains('active');
+        const searchButton = document.getElementById('searchEnabled');
+        const searchEnabled = searchButton && searchButton.classList.contains('active');
+        console.log('Web search enabled:', searchEnabled); // Debug log
         const response = await fetch('/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

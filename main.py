@@ -43,6 +43,8 @@ def chat_stream():
     search_enabled = data.get('searchEnabled', False)
     messages = data.get('messages', [])
     
+    print(f"Search enabled: {search_enabled}")  # Debug log
+    
     if search_enabled and messages and messages[-1]['role'] == 'user':
         query = messages[-1]['content']
         if isinstance(query, list):
