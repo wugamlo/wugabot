@@ -27,10 +27,10 @@ def index():
     return render_template('index.html')
 
 from functools import lru_cache
-from brave.search import BraveAPI as BraveSearch
+from brave import Brave
 import os
 
-brave = BraveSearch(api_key=os.getenv('BRAVE_API_KEY'))
+brave = Brave(api_key=os.getenv('BRAVE_API_KEY'))
 
 @lru_cache(maxsize=100)
 def cached_search(query, count=5):
