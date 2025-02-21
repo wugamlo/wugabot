@@ -5,6 +5,15 @@ import json
 import PyPDF2
 import docx
 import io
+import logging
+
+# Configure logging
+log_level = os.getenv('LOG_LEVEL', 'INFO')
+logging.basicConfig(
+    level=getattr(logging, log_level),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -35,14 +44,14 @@ brave = Brave(api_key=os.getenv('BRAVE_API_KEY'))
 @lru_cache(maxsize=100)
 def cached_search(query, count=3):
     try:
-        print(f"Making Brave API request for query: {query}")
+        logger.info(f"Making Brave API request for query: {query}")
         results = brave.search(q=query, count=count, raw=True)
 
         # Log cache usage
-        print("Cache miss for query:", query)
+        logger.debug("Cache miss for query: %s", query)
 
         # Process raw JSON response
-        print(f"Raw API response: {results}")
+        logger.debug("Raw API response: %s", results)
 
         # Extract web results directly from JSON
         if 'web' in results and 'results' in results['web']:
@@ -55,9 +64,8 @@ def cached_search(query, count=3):
         print("No valid web results found in response")
         return ""
     except Exception as e:
-        print(f"Search error details: {type(e).__name__}: {str(e)}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
+        logger.error("Search error: %s - %s", type(e).__name__, str(e))
+        logger.debug("Full traceback:", exc_info=True)
         return ""
 
 @app.route('/chat/stream', methods=['POST'])
