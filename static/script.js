@@ -521,13 +521,11 @@ window.togglePromptComposer = togglePromptComposer;
 window.clearFields = clearFields;
 window.transferPrompt = transferPrompt;
 
-function toggleWebSearch(button) {
+// Initialize global functions
+window.toggleWebSearch = function(button) {
     button.classList.toggle('active');
     console.log('Search toggled:', button.classList.contains('active'));
-}
-
-// Initialize global functions
-window.toggleWebSearch = toggleWebSearch;
+};
 window.startStream = startStream;
 window.savePrompt = savePrompt;
 window.clearChatHistory = clearChatHistory;
