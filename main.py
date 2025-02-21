@@ -35,16 +35,32 @@ brave = Brave(api_key=os.getenv('BRAVE_API_KEY'))
 @lru_cache(maxsize=100)
 def cached_search(query, count=5):
     try:
+        print(f"Making Brave API request for query: {query}")
         results = brave.search(q=query, count=count)
-        if hasattr(results, 'web_results') and results.web_results:
-            search_results = []
-            for result in results.web_results[:3]:
-                if hasattr(result, 'description'):
-                    search_results.append(f"- {result.description}")
-            return "\n".join(search_results) if search_results else ""
-        return ""
+        
+        # Debug the response
+        print(f"Raw API response: {results}")
+        
+        if not hasattr(results, 'web_results'):
+            print("No web_results attribute in response")
+            return ""
+            
+        if not results.web_results:
+            print("Empty web_results in response")
+            return ""
+            
+        search_results = []
+        for i, result in enumerate(results.web_results[:3]):
+            if hasattr(result, 'description'):
+                search_results.append(f"- {result.description}")
+            else:
+                print(f"Result {i} missing description attribute")
+                
+        return "\n".join(search_results) if search_results else ""
     except Exception as e:
-        print(f"Search error: {str(e)}")
+        print(f"Search error details: {type(e).__name__}: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return ""
 
 @app.route('/chat/stream', methods=['POST'])
