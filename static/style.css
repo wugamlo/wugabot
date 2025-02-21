@@ -435,8 +435,9 @@ button {
 
 /* Enhanced responsive styles for mobile devices */
 @media (max-width: 600px) {
-    .settings-panel {
+    .settings-panel, .prompt-composer {
         width: 100%;
+        max-width: 300px;
         height: 100%;
         max-height: none;
         position: fixed;
