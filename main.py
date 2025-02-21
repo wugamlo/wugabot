@@ -36,27 +36,22 @@ brave = Brave(api_key=os.getenv('BRAVE_API_KEY'))
 def cached_search(query, count=5):
     try:
         print(f"Making Brave API request for query: {query}")
-        results = brave.search(q=query, count=count)
+        response = brave.search(q=query, count=count, raw_response=True)
         
-        # Debug the response
+        # Get raw JSON response
+        results = response.json()
         print(f"Raw API response: {results}")
         
-        if not hasattr(results, 'web_results'):
-            print("No web_results attribute in response")
-            return ""
-            
-        if not results.web_results:
-            print("Empty web_results in response")
-            return ""
-            
-        search_results = []
-        for i, result in enumerate(results.web_results[:3]):
-            if hasattr(result, 'description'):
-                search_results.append(f"- {result.description}")
-            else:
-                print(f"Result {i} missing description attribute")
-                
-        return "\n".join(search_results) if search_results else ""
+        # Extract web results directly from JSON
+        if 'web' in results and 'results' in results['web']:
+            search_results = []
+            for result in results['web']['results'][:3]:
+                if 'description' in result:
+                    search_results.append(f"- {result['description']}")
+            return "\n".join(search_results) if search_results else ""
+        
+        print("No valid web results found in response")
+        return ""
     except Exception as e:
         print(f"Search error details: {type(e).__name__}: {str(e)}")
         import traceback
