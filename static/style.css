@@ -42,7 +42,12 @@ body {
   border-radius: 20px;
   max-width: 85%;
   line-height: 1.5;
-  transition: opacity 0.3s;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+
+.big-text .message {
+  font-size: 18px;
 }
 
 .message.user {

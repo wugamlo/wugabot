@@ -530,8 +530,26 @@ window.togglePromptComposer = togglePromptComposer;
 window.clearFields = clearFields;
 window.transferPrompt = transferPrompt;
 
+function toggleTextSize(size) {
+    const container = document.querySelector('.container');
+    if (size === 'big') {
+        container.classList.add('big-text');
+    } else {
+        container.classList.remove('big-text');
+    }
+    localStorage.setItem('textSize', size);
+}
+
 window.addEventListener('load', () => {
     fetchModels();
     initSettingsPanel();
     initEventListeners();
+    
+    // Restore text size preference
+    const savedSize = localStorage.getItem('textSize') || 'small';
+    document.getElementById('textSize').value = savedSize;
+    toggleTextSize(savedSize);
 });
+
+// Export the function for global access
+window.toggleTextSize = toggleTextSize;

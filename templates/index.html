@@ -36,6 +36,13 @@
                             <select id="characterSelect"></select>
                         </div>
                         <div class="field-group">
+                            <label for="textSize">Text Size</label>
+                            <select id="textSize" onchange="toggleTextSize(this.value)">
+                                <option value="small">Small</option>
+                                <option value="big">Big</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
                             <label for="systemPrompt">System Prompt</label>
                             <textarea id="systemPrompt" placeholder="Enter system prompt..." wrap="soft"></textarea>
                             <button onclick="savePrompt()">Update Prompt</button>
