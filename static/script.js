@@ -296,7 +296,6 @@ async function startStream() {
 function submitChat(message, base64Image) {
     if (!message && !base64Image) return;
     const systemPrompt = document.getElementById('systemPrompt').value.trim();
-    const searchEnabled = document.getElementById('searchEnabled').classList.contains('active');
     
     // Only add text messages to chat history
     if (message) {
@@ -321,9 +320,9 @@ function submitChat(message, base64Image) {
             content: [{ type: 'image_url', image_url: { url: base64Image } }]
         });
     }
-    appendMessage(message, 'user', false, searchEnabled); // Append user's message with search status
+    appendMessage(message, 'user'); // Append user's message
     if (base64Image) {
-        appendMessage(`<img src="${base64Image}" alt="User Uploaded Image" style="max-width: 80%; height: auto;" />`, 'user', false, false); // Display the image in chat
+        appendMessage(`<img src="${base64Image}" alt="User Uploaded Image" style="max-width: 80%; height: auto;" />`, 'user'); // Display the image in chat
     }
     // Clear the image preview after the message is submitted
     document.getElementById('imagePreview').innerHTML = ''; // Clear the preview
@@ -429,14 +428,10 @@ function formatContent(content) {
     return formatted;
 }
 
-function appendMessage(content, role, returnElement = false, searchEnabled = false) {
+function appendMessage(content, role, returnElement = false) {
     const chatBox = document.getElementById('chatBox');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
-    if (role === 'user' && searchEnabled) {
-        messageDiv.innerHTML = '<i class="fas fa-globe" style="margin-right: 8px; color: #3498db;"></i>' + (typeof content === 'string' ? content : '');
-        return messageDiv;
-    }
     if (typeof content === 'string') {
         if (!content.startsWith('<img')) {
             content = content
@@ -521,11 +516,13 @@ window.togglePromptComposer = togglePromptComposer;
 window.clearFields = clearFields;
 window.transferPrompt = transferPrompt;
 
-// Initialize global functions
-window.toggleWebSearch = function(button) {
+function toggleWebSearch(button) {
     button.classList.toggle('active');
     console.log('Search toggled:', button.classList.contains('active'));
-};
+}
+
+// Initialize global functions
+window.toggleWebSearch = toggleWebSearch;
 window.startStream = startStream;
 window.savePrompt = savePrompt;
 window.clearChatHistory = clearChatHistory;
