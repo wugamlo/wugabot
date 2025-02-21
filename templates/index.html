@@ -19,17 +19,28 @@
                 <i class="fas fa-cog"></i>
             </button>
             <div class="settings-panel">
-                <h2>Settings</h2>
-                <div class="input-area">
-                    <h3>Select Model</h3>
-                    <select id="modelSelect" class="model-select"></select>
-                    <h3>Characters</h3>
-                    <select id="characterSelect" class="model-select"></select>
-                    <h3>System Prompt</h3>
-                    <textarea id="systemPrompt" placeholder="Enter system prompt..." wrap="soft"></textarea>
-                    <button onclick="savePrompt()">Update Prompt</button>
-                    <button onclick="clearChatHistory()">Clear Chat History</button>
-                    <div style="height: 35vh;"></div>
+                <div class="settings-panel-header">
+                    <h2>Settings</h2>
+                    <div class="settings-buttons">
+                        <button onclick="clearChatHistory()">Clear Chat</button>
+                    </div>
+                </div>
+                <div class="settings-content">
+                    <div class="settings-fields">
+                        <div class="field-group">
+                            <label for="modelSelect">Model</label>
+                            <select id="modelSelect"></select>
+                        </div>
+                        <div class="field-group">
+                            <label for="characterSelect">Character</label>
+                            <select id="characterSelect"></select>
+                        </div>
+                        <div class="field-group">
+                            <label for="systemPrompt">System Prompt</label>
+                            <textarea id="systemPrompt" placeholder="Enter system prompt..." wrap="soft"></textarea>
+                            <button onclick="savePrompt()">Update Prompt</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="chat-box" id="chatBox"></div>
