@@ -518,6 +518,9 @@ function toggleWebSearch(button) {
     button.classList.toggle('active');
 }
 
+// Expose function globally
+window.toggleWebSearch = toggleWebSearch;
+
 window.addEventListener('load', () => {
     fetchModels();
     initSettingsPanel();

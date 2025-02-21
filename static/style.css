@@ -556,18 +556,19 @@ button {
 }
 
 .icon-button {
-    padding: 12px;
+    padding: 8px;
     border-radius: 50%;
     border: none;
     background-color: #808080;
     color: white;
     cursor: pointer;
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background-color 0.3s ease;
+    margin: 4px;
 }
 
 .icon-button.active {
