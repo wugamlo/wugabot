@@ -27,7 +27,7 @@ def index():
     return render_template('index.html')
 
 from functools import lru_cache
-from brave.search import BraveSearch
+from brave_search import BraveSearch
 import os
 
 brave = BraveSearch(api_key=os.getenv('BRAVE_API_KEY'))
