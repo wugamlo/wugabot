@@ -16,4 +16,5 @@ dependencies = [
     "python-docx>=1.1.2",
     "replit-object-storage>=1.0.2",
     "faiss-cpu>=1.10.0",
+    "brave-search>=0.1.8",
 ]

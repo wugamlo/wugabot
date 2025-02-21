@@ -544,5 +544,30 @@ button {
     justify-content: flex-start;
     gap: 10px;
     width: 100%;
+    align-items: center;
   }
+}
+
+.button-row {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    align-items: center;
+}
+
+.search-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 10px;
+}
+
+.search-toggle label {
+    color: var(--text-color);
+    font-size: 14px;
+}
+
+.search-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
 }

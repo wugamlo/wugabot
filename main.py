@@ -26,9 +26,34 @@ def get_models():
 def index():
     return render_template('index.html')
 
+from functools import lru_cache
+from brave_search import BraveSearch
+import os
+
+brave = BraveSearch(api_key=os.getenv('BRAVE_API_KEY'))
+
+@lru_cache(maxsize=100)
+def cached_search(query, count=5):
+    results = brave.search(q=query, count=count)
+    return '\n'.join([result.get('description', '') for result in results.get('web', {}).get('results', [])[:3]])
+
 @app.route('/chat/stream', methods=['POST'])
 def chat_stream():
     data = request.json
+    search_enabled = data.get('searchEnabled', False)
+    messages = data.get('messages', [])
+    
+    if search_enabled and messages and messages[-1]['role'] == 'user':
+        query = messages[-1]['content']
+        if isinstance(query, list):
+            query = next((item['text'] for item in query if item.get('type') == 'text'), '')
+        try:
+            search_results = cached_search(query)
+            if search_results:
+                context_msg = {"role": "system", "content": f"Web search results:\n{search_results}"}
+                messages.insert(-1, context_msg)
+        except Exception as e:
+            print(f"Search error: {str(e)}")
 
     def generate():
         try:

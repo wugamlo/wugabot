@@ -336,13 +336,15 @@ function submitChat(message, base64Image) {
 // Fetch response from chat
 async function fetchChatResponse(messages, botMessage) {
     try {
+        const searchEnabled = document.getElementById('searchEnabled').checked;
         const response = await fetch('/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 messages: messages,
                 model: document.getElementById('modelSelect').value,
-                stream: true
+                stream: true,
+                searchEnabled: searchEnabled
             })
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
