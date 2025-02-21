@@ -518,10 +518,17 @@ window.transferPrompt = transferPrompt;
 
 function toggleWebSearch(button) {
     button.classList.toggle('active');
+    console.log('Search toggled:', button.classList.contains('active'));
 }
 
-// Expose function globally
+// Initialize global functions
 window.toggleWebSearch = toggleWebSearch;
+window.startStream = startStream;
+window.savePrompt = savePrompt;
+window.clearChatHistory = clearChatHistory;
+window.togglePromptComposer = togglePromptComposer;
+window.clearFields = clearFields;
+window.transferPrompt = transferPrompt;
 
 window.addEventListener('load', () => {
     fetchModels();

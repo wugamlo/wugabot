@@ -36,8 +36,12 @@ brave = Brave(api_key=os.getenv('BRAVE_API_KEY'))
 def cached_search(query, count=5):
     try:
         results = brave.search(q=query, count=count)
-        if hasattr(results, 'web') and results.web:
-            return '\n'.join([result.description for result in results.web.results[:3] if hasattr(result, 'description')])
+        if hasattr(results, 'web_results') and results.web_results:
+            search_results = []
+            for result in results.web_results[:3]:
+                if hasattr(result, 'description'):
+                    search_results.append(f"- {result.description}")
+            return "\n".join(search_results) if search_results else ""
         return ""
     except Exception as e:
         print(f"Search error: {str(e)}")
