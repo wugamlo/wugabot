@@ -43,11 +43,11 @@ body {
   max-width: 85%;
   line-height: 1.5;
   transition: all 0.3s;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .big-text .message {
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .message.user {
@@ -327,7 +327,7 @@ button {
 }
 
 .message.assistant {
-    background: #000000;
+    background: #121212;
     color: #ffffff;
     align-self: flex-start;
 }
