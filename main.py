@@ -42,7 +42,7 @@ import os
 brave = Brave(api_key=os.getenv('BRAVE_API_KEY'))
 
 @lru_cache(maxsize=100)
-def cached_search(query, count=3):
+def cached_search(query, count=5):
     try:
         logger.info(f"Making Brave API request for query: {query}")
         results = brave.search(q=query, count=count, raw=True)
@@ -85,7 +85,7 @@ def chat_stream():
             search_results = cached_search(query)
             print(f"Search results found: {bool(search_results)}")
             if search_results:
-                context_msg = {"role": "system", "content": f"Web search results:\n{search_results}"}
+                context_msg = {"role": "system", "content": f"Web search results:\n{search_results}\n\nPrioritize the information from the web content when answering the user's question. The web content is the most recent and accurate source of information. If the web content does not provide the necessary information should you rely on your own knowledge."}
                 messages.insert(-1, context_msg)
                 print(f"Final messages structure: {json.dumps(messages, indent=2)}")
         except Exception as e:
