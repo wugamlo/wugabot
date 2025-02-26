@@ -620,7 +620,7 @@ button {
 }
 
 .icon-button {
-    padding: 8px;
+    padding: 0;
     border-radius: 50%;
     border: none;
     background-color: #808080;
@@ -628,11 +628,16 @@ button {
     cursor: pointer;
     width: 36px;
     height: 36px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     transition: background-color 0.3s ease;
     margin: 4px;
+}
+
+.icon-button i {
+    font-size: 16px;
+    line-height: 1;
 }
 
 .icon-button.active {
