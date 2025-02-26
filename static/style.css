@@ -334,11 +334,18 @@ button {
 
 .citations-section {
     margin-top: 20px;
-    padding: 15px;
+    padding: 20px;
     background: #1a1a1a;
-    border-top: 2px solid #333;
+    border: 1px solid #333;
     font-size: 0.9em;
     border-radius: 8px;
+}
+
+.citations-section h3 {
+    color: var(--secondary-color);
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.1em;
 }
 
 .citation-item {

@@ -437,13 +437,19 @@ async function fetchChatResponse(messages, botMessage) {
 function formatCitations(citations) {
     if (!citations || !citations.length) return '';
 
-    let citationsHtml = '\n\n<div class="citations-section"><strong>Sources:</strong>';
-    citations.forEach(citation => {
+    let citationsHtml = '\n\n<div class="citations-section">';
+    citationsHtml += '<h3>Web Search Results</h3>';
+    citations.forEach((citation, index) => {
         if (citation.title && citation.url) {
             citationsHtml += `
                 <div class="citation-item">
-                    <a href="${citation.url}" class="citation-title" target="_blank">${citation.title}</a>
-                    <div class="citation-snippet">${citation.content || ''}</div>
+                    <div class="citation-number">[${index + 1}]</div>
+                    <div class="citation-content">
+                        <a href="${citation.url}" class="citation-title" target="_blank">${citation.title}</a>
+                        ${citation.content ? `<div class="citation-snippet">${citation.content}</div>` : ''}
+                        <div class="citation-url">${citation.url}</div>
+                        ${citation.published_date ? `<div class="citation-date">Published: ${citation.published_date}</div>` : ''}
+                    </div>
                 </div>`;
         }
     });
