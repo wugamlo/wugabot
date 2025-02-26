@@ -405,14 +405,18 @@ async function fetchChatResponse(messages, botMessage) {
                             botContentBuffer += parsed.content;
                         }
 
-                        // Handle citations if present
-                        if (parsed.venice_parameters?.web_search_citations) {
+                        // Handle citations if present in venice_parameters
+                        if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
                             lastCitations = parsed.venice_parameters.web_search_citations;
-                            const citationsHtml = formatCitations(lastCitations);
-                            botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
-                        } else {
-                            botMessage.innerHTML = formatContent(botContentBuffer);
                         }
+
+                        // Always try to display content with citations if available
+                        let displayContent = formatContent(botContentBuffer);
+                        if (lastCitations && lastCitations.length > 0) {
+                            displayContent += formatCitations(lastCitations);
+                        }
+                        
+                        botMessage.innerHTML = displayContent;
                         Prism.highlightAll();
                         scrollToBottom();
                     } catch (e) {
