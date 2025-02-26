@@ -40,7 +40,7 @@ def get_models():
             models.append(model_info)
         return json.dumps({'models': models})
     except Exception as e:
-        print(f"Error fetching models: {str(e)}")
+        logger.error(f"Error fetching models: {str(e)}")
         return json.dumps({'error': str(e)}), 500
 
 @app.route('/')
@@ -57,9 +57,9 @@ def chat_stream():
 
     def generate(model, messages, temperature, max_tokens, search_enabled):
         try:
-            print(f"Generating response for model: {model}")
-            print(f"Web search setting: {search_enabled}")
-            
+            logger.info(f"Generating response for model: {model}")
+            logger.info(f"Web search setting: {search_enabled}")
+
             # Prepare the payload for Venice API
             # Prepare payload following Venice API structure
             payload = {
@@ -78,7 +78,7 @@ def chat_stream():
                 payload["venice_parameters"]["enable_web_search"] = "on"
 
             # Make request to Venice API
-            print("Sending request to Venice API with payload:", json.dumps(payload))
+            logger.debug("Sending request to Venice API with payload:", json.dumps(payload))
             response = requests.post(
                 "https://api.venice.ai/api/v1/chat/completions",
                 headers={
@@ -89,8 +89,8 @@ def chat_stream():
                 stream=True
             )
             if not response.ok:
-                print(f"Venice API error: Status {response.status_code}")
-                print(f"Response content: {response.text}")
+                logger.error(f"Venice API error: Status {response.status_code}")
+                logger.error(f"Response content: {response.text}")
 
             # Stream the response
             for line in response.iter_lines():
@@ -103,13 +103,13 @@ def chat_stream():
                             break
                         try:
                             json_data = json.loads(data)
-                            print("Venice API response chunk:", json_data)
-                            
+                            logger.debug("Venice API response chunk:", json_data)
+
                             # Check for venice_parameters at top level first
                             if 'venice_parameters' in json_data:
-                                print("Venice parameters found at top level:", json_data['venice_parameters'])
+                                logger.debug("Venice parameters found at top level:", json_data['venice_parameters'])
                                 yield f"data: {json.dumps(json_data)}\n\n"
-                            
+
                             # Process content from delta as usual
                             if 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0]:
                                 delta = json_data['choices'][0]['delta']
@@ -118,13 +118,13 @@ def chat_stream():
                                     if content:
                                         yield f"data: {json.dumps({'content': content})}\n\n"
                                 if 'venice_parameters' in delta:
-                                    print("Venice parameters found in delta:", delta['venice_parameters'])
+                                    logger.debug("Venice parameters found in delta:", delta['venice_parameters'])
                                     yield f"data: {json.dumps(json_data)}\n\n"
                         except json.JSONDecodeError:
                             continue
 
         except Exception as e:
-            print(f"Error in generate: {str(e)}")
+            logger.exception(f"Error in generate: {str(e)}")
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
     return Response(
@@ -140,49 +140,47 @@ def chat_stream():
 
 def extract_text_from_file(file_data, file_type):
     try:
-        print(f"Extracting text from {file_type} file")
+        logger.info(f"Extracting text from {file_type} file")
         text = ""
         if file_type == 'txt':
             text = file_data.decode('utf-8')
-            print("Text file decoded successfully")
+            logger.debug("Text file decoded successfully")
         elif file_type == 'pdf':
             pdf_file = io.BytesIO(file_data)
             pdf_reader = PyPDF2.PdfReader(pdf_file)
-            print(f"PDF file loaded, pages: {len(pdf_reader.pages)}")
+            logger.debug(f"PDF file loaded, pages: {len(pdf_reader.pages)}")
             for page in pdf_reader.pages:
                 text += page.extract_text()
         elif file_type in ['doc', 'docx']:
             doc_file = io.BytesIO(file_data)
             doc = docx.Document(doc_file)
-            print(f"DOC file loaded, paragraphs: {len(doc.paragraphs)}")
+            logger.debug(f"DOC file loaded, paragraphs: {len(doc.paragraphs)}")
             text = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
 
         if not text:
-            print("Warning: Extracted text is empty")
+            logger.warning("Warning: Extracted text is empty")
             return None
 
-        print(f"Successfully extracted {len(text)} characters")
+        logger.info(f"Successfully extracted {len(text)} characters")
         return text.strip()
     except Exception as e:
-        print(f"Error extracting text: {str(e)}", flush=True)
-        import traceback
-        print(f"Stack trace: {traceback.format_exc()}", flush=True)
+        logger.exception(f"Error extracting text: {str(e)}")
         return None
 
 @app.route('/process_file', methods=['POST'])
 def process_file():
     try:
-        print("Starting file processing...")
+        logger.info("Starting file processing...")
 
         if 'file' not in request.files:
-            print("No file in request.files")
+            logger.warning("No file in request.files")
             return json.dumps({'error': 'No file part'}), 400, {'Content-Type': 'application/json'}
 
         file = request.files['file']
-        print(f"Received file: {file.filename}")
+        logger.info(f"Received file: {file.filename}")
 
         if file.filename == '':
-            print("Empty filename received")
+            logger.warning("Empty filename received")
             return json.dumps({'error': 'No file selected'}), 400, {'Content-Type': 'application/json'}
 
         # Set CORS headers
@@ -195,7 +193,7 @@ def process_file():
 
         # Check file size (2MB limit)
         file_data = file.read()
-        print(f"File size: {len(file_data)} bytes")
+        logger.debug(f"File size: {len(file_data)} bytes")
         if len(file_data) > 2 * 1024 * 1024:  # 2MB in bytes
             return json.dumps({'error': 'File too large. Maximum size is 2MB'}), 400, {'Content-Type': 'application/json'}
 
@@ -209,7 +207,7 @@ def process_file():
 
         return json.dumps({'text': extracted_text}, ensure_ascii=False), 200, headers
     except Exception as e:
-        print(f"File processing error: {str(e)}")
+        logger.exception(f"File processing error: {str(e)}")
         return json.dumps({'error': f'File processing error: {str(e)}'}, ensure_ascii=False), 500, headers
 
 if __name__ == '__main__':
