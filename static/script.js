@@ -1,6 +1,8 @@
 let currentStream = null;
 const chatHistory = [];
 let botContentBuffer = "";
+let lastCitations = null; // Added to store the latest citations
+
 // Fetch models from the server
 async function fetchModels() {
     try {
@@ -397,19 +399,26 @@ async function fetchChatResponse(messages, botMessage) {
                             appendMessage(`Error: ${parsed.error}`, 'error');
                             showLoading(false);
                             return;
-                        } else if (parsed.content || parsed.venice_parameters?.web_search_citations) {
-                            if (parsed.content) {
-                                botContentBuffer += parsed.content;
-                            }
-                            // Handle citations separately to ensure they appear at the end
-                            let displayContent = botContentBuffer;
-                            if (parsed.venice_parameters?.web_search_citations) {
-                                displayContent += formatCitations(parsed.venice_parameters.web_search_citations);
-                            }
-                            botMessage.innerHTML = formatContent(displayContent);
-                            Prism.highlightAll();
-                            scrollToBottom();
                         }
+
+                        if (parsed.content) {
+                            botContentBuffer += parsed.content;
+                        }
+
+                        // Store the latest citations
+                        if (parsed.venice_parameters?.web_search_citations) {
+                            lastCitations = parsed.venice_parameters.web_search_citations;
+                        }
+
+                        // Always display content with the latest citations
+                        let displayContent = botContentBuffer;
+                        if (lastCitations) {
+                            displayContent += '\n\n' + formatCitations(lastCitations);
+                        }
+
+                        botMessage.innerHTML = formatContent(displayContent);
+                        Prism.highlightAll();
+                        scrollToBottom();
                     } catch (e) {
                         if (data !== '[DONE]') console.error('Error parsing chunk:', e);
                     }

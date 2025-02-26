@@ -336,14 +336,28 @@ button {
     margin-top: 20px;
     padding: 15px;
     background: #1a1a1a;
-    border-top: 1px solid #333;
+    border-top: 2px solid #333;
     font-size: 0.9em;
+    border-radius: 8px;
 }
 
 .citation-item {
-    margin: 8px 0;
-    padding: 8px 0;
-    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    margin: 12px 0;
+    padding: 12px;
+    background: #252525;
+    border-radius: 6px;
+    gap: 12px;
+}
+
+.citation-number {
+    color: var(--secondary-color);
+    font-weight: bold;
+    min-width: 30px;
+}
+
+.citation-content {
+    flex: 1;
 }
 
 .citation-title {
