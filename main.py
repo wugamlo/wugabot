@@ -66,13 +66,16 @@ def chat_stream():
                 "model": model,
                 "messages": messages,
                 "venice_parameters": {
-                    "enable_web_search": "on" if search_enabled == "on" else "auto",
                     "include_venice_system_prompt": False
                 },
                 "max_tokens": max_tokens,
                 "temperature": temperature,
                 "stream": True
             }
+
+            # Only add web search parameter for web-enabled models and when explicitly enabled
+            if search_enabled == "on":
+                payload["venice_parameters"]["enable_web_search"] = "on"
 
             # Make request to Venice API
             print("Sending request to Venice API with payload:", json.dumps(payload))

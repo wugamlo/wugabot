@@ -354,7 +354,7 @@ async function fetchChatResponse(messages, botMessage) {
         console.log('Web search enabled:', searchEnabled);
         console.log('Sending chat request:', {
             model: document.getElementById('modelSelect').value,
-            web_search: searchEnabled ? "on" : "auto",
+            web_search: searchEnabled ? "on" : null,
             messageCount: messages.length
         });
 
@@ -365,7 +365,7 @@ async function fetchChatResponse(messages, botMessage) {
                 messages: messages,
                 model: document.getElementById('modelSelect').value,
                 stream: true,
-                web_search: searchEnabled ? "on" : "auto"
+                web_search: searchEnabled ? "on" : null
             })
         });
         console.log('Response status:', response.status);
