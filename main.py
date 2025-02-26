@@ -31,7 +31,14 @@ def get_models():
         )
         response.raise_for_status()
         models_data = response.json()
-        return json.dumps({'models': [{'id': model['id']} for model in models_data['data']]})
+        models = []
+        for model in models_data['data']:
+            model_info = {'id': model['id']}
+            if 'model_spec' in model and 'capabilities' in model['model_spec']:
+                if 'supportsWebSearch' in model['model_spec']['capabilities']:
+                    model_info['supportsWebSearch'] = model['model_spec']['capabilities']['supportsWebSearch']
+            models.append(model_info)
+        return json.dumps({'models': models})
     except Exception as e:
         print(f"Error fetching models: {str(e)}")
         return json.dumps({'error': str(e)}), 500
@@ -40,38 +47,7 @@ def get_models():
 def index():
     return render_template('index.html')
 
-from functools import lru_cache
-from brave import Brave
-import os
 
-brave = Brave(api_key=os.getenv('BRAVE_API_KEY'))
-
-@lru_cache(maxsize=100)
-def cached_search(query, count=5):
-    try:
-        logger.info(f"Making Brave API request for query: {query}")
-        results = brave.search(q=query, count=count, raw=True)
-
-        # Log cache usage
-        logger.debug("Cache miss for query: %s", query)
-
-        # Process raw JSON response
-        logger.debug("Raw API response: %s", results)
-
-        # Extract web results directly from JSON
-        if 'web' in results and 'results' in results['web']:
-            search_results = []
-            for result in results['web']['results'][:3]:
-                if 'description' in result:
-                    search_results.append(f"- {result['description']}")
-            return "\n".join(search_results) if search_results else ""
-
-        print("No valid web results found in response")
-        return ""
-    except Exception as e:
-        logger.error("Search error: %s - %s", type(e).__name__, str(e))
-        logger.debug("Full traceback:", exc_info=True)
-        return ""
 
 @app.route('/chat/stream', methods=['POST'])
 def chat_stream():
@@ -99,6 +75,7 @@ def chat_stream():
     def generate(model, messages, temperature, max_tokens, search_enabled):
         try:
             # Prepare the payload for Venice API
+            # Prepare basic payload
             payload = {
                 "model": model,
                 "messages": messages,
@@ -106,10 +83,27 @@ def chat_stream():
                 "max_tokens": max_tokens,
                 "stream": True,
                 "venice_parameters": {
-                    "enable_web_search": "on" if search_enabled else "off",
                     "include_venice_system_prompt": False
                 }
             }
+            
+            # Get model info to check web search support
+            models_response = requests.get(
+                "https://api.venice.ai/api/v1/models",
+                headers={"Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}"}
+            )
+            models_data = models_response.json()
+            
+            # Check if selected model supports web search
+            selected_model = next((m for m in models_data['data'] if m['id'] == model), None)
+            supports_web_search = (selected_model and 
+                                 'model_spec' in selected_model and 
+                                 'capabilities' in selected_model['model_spec'] and 
+                                 'supportsWebSearch' in selected_model['model_spec']['capabilities'])
+            
+            # Add web search parameter only if model supports it
+            if supports_web_search:
+                payload["venice_parameters"]["enable_web_search"] = "on" if search_enabled else "auto"
 
             # Make request to Venice API
             response = requests.post(

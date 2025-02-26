@@ -233,14 +233,30 @@ async function handleFileUpload(event) {
 // Populate model dropdown
 function populateModelDropdown(models) {
     const modelSelect = document.getElementById('modelSelect');
+    const searchButton = document.getElementById('searchEnabled');
     modelSelect.innerHTML = '';
+    
     models.forEach(model => {
         const option = document.createElement('option');
         option.value = model.id;
         option.text = model.id;
+        option.dataset.supportsWebSearch = model.supportsWebSearch || false;
         modelSelect.appendChild(option);
     });
     modelSelect.value = 'llama-3.3-70b';
+    
+    // Handle model change
+    modelSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const supportsWebSearch = selectedOption.dataset.supportsWebSearch === 'true';
+        searchButton.style.display = supportsWebSearch ? 'block' : 'none';
+        searchButton.classList.remove('active');
+    });
+    
+    // Trigger initial visibility
+    const initialOption = modelSelect.options[modelSelect.selectedIndex];
+    const initialSupportsWebSearch = initialOption.dataset.supportsWebSearch === 'true';
+    searchButton.style.display = initialSupportsWebSearch ? 'block' : 'none';
 }
 
 // Start streaming data to the chat
