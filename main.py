@@ -54,23 +54,6 @@ def chat_stream():
     data = request.json
     search_enabled = data.get('web_search', False)
     messages = data.get('messages', [])
-    
-    print(f"Search enabled: {search_enabled}")  # Debug log
-    
-    if search_enabled and messages and messages[-1]['role'] == 'user':
-        query = messages[-1]['content']
-        if isinstance(query, list):
-            query = next((item['text'] for item in query if item.get('type') == 'text'), '')
-        try:
-            print(f"Searching for query: {query}")
-            search_results = cached_search(query)
-            print(f"Search results found: {bool(search_results)}")
-            if search_results:
-                context_msg = {"role": "system", "content": f"Web search results:\n{search_results}\n\nPrioritize the information from the web content when answering the user's question. The web content is the most recent and accurate source of information. If the web content does not provide the necessary information should you rely on your own knowledge."}
-                messages.insert(-1, context_msg)
-                print(f"Final messages structure: {json.dumps(messages, indent=2)}")
-        except Exception as e:
-            print(f"Search error: {str(e)}")
 
     def generate(model, messages, temperature, max_tokens, search_enabled):
         try:
@@ -87,23 +70,9 @@ def chat_stream():
                 }
             }
             
-            # Get model info to check web search support
-            models_response = requests.get(
-                "https://api.venice.ai/api/v1/models",
-                headers={"Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}"}
-            )
-            models_data = models_response.json()
-            
-            # Check if selected model supports web search
-            selected_model = next((m for m in models_data['data'] if m['id'] == model), None)
-            supports_web_search = (selected_model and 
-                                 'model_spec' in selected_model and 
-                                 'capabilities' in selected_model['model_spec'] and 
-                                 'supportsWebSearch' in selected_model['model_spec']['capabilities'])
-            
-            # Add web search parameter only if model supports it
-            if supports_web_search and search_enabled:
-                payload["venice_parameters"]["enable_web_search"] = "on"
+            # Add web search parameter based on the request
+            if search_enabled == "on" or search_enabled == "auto":
+                payload["venice_parameters"]["enable_web_search"] = search_enabled
 
             # Make request to Venice API
             response = requests.post(
