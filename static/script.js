@@ -297,48 +297,45 @@ function submitChat(message, base64Image) {
     if (!message && !base64Image) return;
     const systemPrompt = document.getElementById('systemPrompt').value.trim();
     
-    // Only add text messages to chat history
     if (message) {
         chatHistory.push({ role: 'user', content: message });
     }
     
-    // Prepare messages for API call
     const messages = [
         { role: 'system', content: systemPrompt },
-        ...chatHistory // Include previous conversation history
+        ...chatHistory
     ];
     
-    // Add current message if exists
     if (message) {
         messages.push({ role: 'user', content: [{ type: 'text', text: message }] });
     }
     
-    // Add image as the last message if exists (not stored in history)
     if (base64Image) {
         messages.push({
             role: 'user',
             content: [{ type: 'image_url', image_url: { url: base64Image } }]
         });
     }
-    appendMessage(message, 'user'); // Append user's message
+    
+    appendMessage(message, 'user');
     if (base64Image) {
-        appendMessage(`<img src="${base64Image}" alt="User Uploaded Image" style="max-width: 80%; height: auto;" />`, 'user'); // Display the image in chat
+        appendMessage(`<img src="${base64Image}" alt="User Uploaded Image" style="max-width: 80%; height: auto;" />`, 'user');
     }
-    // Clear the image preview after the message is submitted
-    document.getElementById('imagePreview').innerHTML = ''; // Clear the preview
+    
+    document.getElementById('imagePreview').innerHTML = '';
     const botMessage = appendMessage('', 'assistant', true);
     botContentBuffer = "";
-    showLoading(true);
-    fetchChatResponse(messages, botMessage); // Send the message to fetch response
+    fetchChatResponse(messages, botMessage);
 }
 // File input handlers are already set up for galleryInput and cameraInput
 
 // Fetch response from chat
 async function fetchChatResponse(messages, botMessage) {
+    showLoading(true);
     try {
         const searchButton = document.getElementById('searchEnabled');
         const searchEnabled = searchButton && searchButton.classList.contains('active');
-        console.log('Web search enabled:', searchEnabled); // Debug log
+        console.log('Web search enabled:', searchEnabled);
         const response = await fetch('/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -350,7 +347,6 @@ async function fetchChatResponse(messages, botMessage) {
             })
         });
         if (!response.ok) {
-            showLoading(false);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const reader = response.body.getReader();
