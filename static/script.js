@@ -240,7 +240,7 @@ function populateModelDropdown(models) {
         option.text = model.id;
         modelSelect.appendChild(option);
     });
-    modelSelect.value = 'qwen-2.5-vl';
+    modelSelect.value = 'llama-3.3-70b';
 }
 
 // Start streaming data to the chat

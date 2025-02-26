@@ -1482,6 +1482,7 @@ dependencies = [
     { name = "pypdf2" },
     { name = "python-docx" },
     { name = "replit-object-storage" },
+    { name = "requests" },
 ]
 
 [package.metadata]
@@ -1498,6 +1499,7 @@ requires-dist = [
     { name = "pypdf2", specifier = ">=3.0.1" },
     { name = "python-docx", specifier = ">=1.1.2" },
     { name = "replit-object-storage", specifier = ">=1.0.2" },
+    { name = "requests", specifier = ">=2.32.3" },
 ]
 
 [[package]]

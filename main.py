@@ -94,7 +94,7 @@ def chat_stream():
     def generate():
         try:
             stream = client.chat.completions.create(
-                model=data.get('model', 'qwen-2.5-vl'),
+                model=data.get('model', 'llama-3.3-70b'),
                 messages=data['messages'],
                 temperature=data.get('temperature', 0.7),
                 max_tokens=data.get('max_tokens', 4000),
