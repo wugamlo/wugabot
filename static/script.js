@@ -445,7 +445,10 @@ function formatCitations(citations) {
     if (!citations || !citations.length) return '';
 
     let citationsHtml = '\n\n<div class="citations-section">';
-    citationsHtml += '<h3>Web Search Results</h3>';
+    citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
+        <h3>Web Search Results (${citations.length})</h3>
+        <span class="toggle-icon"></span>
+    </div><div class="citations-content">`;
     citations.forEach((citation, index) => {
         if (citation.title && citation.url) {
             citationsHtml += `
@@ -460,9 +463,17 @@ function formatCitations(citations) {
                 </div>`;
         }
     });
-    citationsHtml += '</div>';
+    citationsHtml += '</div></div>';
     return citationsHtml;
 }
+
+function toggleCitations(header) {
+    header.classList.toggle('expanded');
+    header.nextElementSibling.classList.toggle('expanded');
+}
+
+// Export the toggle function for global access
+window.toggleCitations = toggleCitations;
 
 function formatContent(content) {
     let formatted = content.replace(/<think>\n?([\s\S]+?)<\/think>/g, (match, content) => {

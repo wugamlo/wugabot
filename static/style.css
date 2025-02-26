@@ -334,11 +334,43 @@ button {
 
 .citations-section {
     margin-top: 20px;
-    padding: 20px;
+    padding: 0;
     background: #1a1a1a;
     border: 1px solid #333;
     font-size: 0.9em;
     border-radius: 8px;
+}
+
+.citations-header {
+    padding: 10px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #333;
+}
+
+.citations-header:hover {
+    background: #252525;
+}
+
+.citations-content {
+    padding: 20px;
+    display: none;
+}
+
+.citations-content.expanded {
+    display: block;
+}
+
+.citations-header .toggle-icon::after {
+    content: '▼';
+    font-size: 12px;
+    transition: transform 0.3s;
+}
+
+.citations-header.expanded .toggle-icon::after {
+    transform: rotate(180deg);
 }
 
 .citations-section h3 {
