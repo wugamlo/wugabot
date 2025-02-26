@@ -314,6 +314,8 @@ async function startStream() {
 function submitChat(message, base64Image) {
     if (!message && !base64Image) return;
     const systemPrompt = document.getElementById('systemPrompt').value.trim();
+    // Clear lastCitations at the start of each new message
+    lastCitations = null;
 
     if (message) {
         chatHistory.push({ role: 'user', content: message });
