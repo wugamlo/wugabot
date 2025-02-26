@@ -96,14 +96,14 @@ def chat_stream():
         except Exception as e:
             print(f"Search error: {str(e)}")
 
-    def generate():
+    def generate(model, messages, temperature, max_tokens, search_enabled):
         try:
             # Prepare the payload for Venice API
             payload = {
-                "model": data.get('model', 'llama-3.3-70b'),
-                "messages": data.get('messages', []),
-                "temperature": data.get('temperature', 0.7),
-                "max_tokens": data.get('max_tokens', 4000),
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
                 "stream": True,
                 "venice_parameters": {
                     "enable_web_search": "on" if search_enabled else "off",
@@ -144,7 +144,16 @@ def chat_stream():
             print(f"Error in generate: {str(e)}")
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-    return Response(generate(), mimetype='text/event-stream')
+    return Response(
+        generate(
+            model=data.get('model', 'llama-3.3-70b'),
+            messages=data.get('messages', []),
+            temperature=data.get('temperature', 0.7),
+            max_tokens=data.get('max_tokens', 4000),
+            search_enabled=search_enabled
+        ), 
+        mimetype='text/event-stream'
+    )
 
 def extract_text_from_file(file_data, file_type):
     try:
