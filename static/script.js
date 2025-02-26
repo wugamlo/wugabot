@@ -403,20 +403,18 @@ async function fetchChatResponse(messages, botMessage) {
 
                         if (parsed.content) {
                             botContentBuffer += parsed.content;
+                            botMessage.innerHTML = formatContent(botContentBuffer);
                         }
 
-                        // Handle citations if present in venice_parameters
+                        // Store citations but don't display yet
                         if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
                             lastCitations = parsed.venice_parameters.web_search_citations;
                         }
 
-                        // Always try to display content with citations if available
-                        let displayContent = formatContent(botContentBuffer);
-                        if (lastCitations && lastCitations.length > 0) {
-                            displayContent += formatCitations(lastCitations);
+                        // Only add citations when the stream is done
+                        if (data === '[DONE]' && lastCitations && lastCitations.length > 0) {
+                            botMessage.innerHTML = formatContent(botContentBuffer) + formatCitations(lastCitations);
                         }
-                        
-                        botMessage.innerHTML = displayContent;
                         Prism.highlightAll();
                         scrollToBottom();
                     } catch (e) {
