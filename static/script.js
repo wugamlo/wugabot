@@ -396,7 +396,7 @@ async function fetchChatResponse(messages, botMessage) {
                     try {
                         const parsed = JSON.parse(data);
                         console.log('Parsed response chunk:', parsed);
-                        
+
                         if (parsed.error) {
                             appendMessage(`Error: ${parsed.error}`, 'error');
                             showLoading(false);
@@ -407,23 +407,22 @@ async function fetchChatResponse(messages, botMessage) {
                             botContentBuffer += parsed.content;
                             botMessage.innerHTML = formatContent(botContentBuffer);
                         }
-                        
-                        // Handle citations
-                        if (parsed.venice_parameters?.web_search_citations) {
-                            console.log('Found citations in root:', parsed.venice_parameters.web_search_citations);
-                            lastCitations = parsed.venice_parameters.web_search_citations;
-                        } else if (parsed.choices?.[0]?.delta?.venice_parameters?.web_search_citations) {
-                            console.log('Found citations in delta:', parsed.choices[0].delta.venice_parameters.web_search_citations);
-                            lastCitations = parsed.choices[0].delta.venice_parameters.web_search_citations;
-                        }
 
-                        // Update content with citations
-                        if (lastCitations?.length > 0) {
+                        // Handle citations from response
+                        const citationsInResponse = parsed.venice_parameters?.web_search_citations;
+                        if (citationsInResponse) {
+                            console.log('Found citations:', citationsInResponse);
+                            lastCitations = citationsInResponse;
                             const updatedContent = formatContent(botContentBuffer) + formatCitations(lastCitations);
-                            console.log('Updating message with citations:', lastCitations);
+                            console.log('Updating message with citations');
                             botMessage.innerHTML = updatedContent;
                         } else if (parsed.content) {
-                            botMessage.innerHTML = formatContent(botContentBuffer);
+                            const updatedContent = formatContent(botContentBuffer);
+                            if (lastCitations?.length > 0) {
+                                botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
+                            } else {
+                                botMessage.innerHTML = updatedContent;
+                            }
                         }
                         Prism.highlightAll();
                         scrollToBottom();
