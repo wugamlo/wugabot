@@ -410,11 +410,16 @@ async function fetchChatResponse(messages, botMessage) {
                         
                         // Handle citations from choices delta
                         if (parsed.choices?.[0]?.delta?.venice_parameters?.web_search_citations) {
-                            console.log('Found citations:', parsed.choices[0].delta.venice_parameters.web_search_citations);
-                            lastCitations = parsed.choices[0].delta.venice_parameters.web_search_citations;
-                            console.log('Updated lastCitations:', lastCitations);
-                            // Append citations only after we have content
-                            if (botContentBuffer && lastCitations.length > 0) {
+                            console.log('Found citations:', parsed.venice_parameters?.web_search_citations);
+                            if (parsed.venice_parameters?.web_search_citations) {
+                                lastCitations = parsed.venice_parameters.web_search_citations;
+                                console.log('Updated lastCitations:', lastCitations);
+                            } else if (parsed.choices?.[0]?.delta?.venice_parameters?.web_search_citations) {
+                                lastCitations = parsed.choices[0].delta.venice_parameters.web_search_citations;
+                                console.log('Updated lastCitations from delta:', lastCitations);
+                            }
+                            // Append citations after every content update
+                            if (lastCitations?.length > 0) {
                                 const updatedContent = formatContent(botContentBuffer) + formatCitations(lastCitations);
                                 console.log('Updating message with citations');
                                 botMessage.innerHTML = updatedContent;
