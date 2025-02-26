@@ -395,7 +395,6 @@ async function fetchChatResponse(messages, botMessage) {
         chatHistory.push({ role: 'assistant', content: botContentBuffer });
     }
 }
-}
 
 function formatContent(content) {
     let formatted = content.replace(/<think>\n?([\s\S]+?)<\/think>/g, (match, content) => {
