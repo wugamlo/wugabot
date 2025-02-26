@@ -401,10 +401,12 @@ async function fetchChatResponse(messages, botMessage) {
                             if (parsed.content) {
                                 botContentBuffer += parsed.content;
                             }
+                            // Handle citations separately to ensure they appear at the end
+                            let displayContent = botContentBuffer;
                             if (parsed.venice_parameters?.web_search_citations) {
-                                botContentBuffer += formatCitations(parsed.venice_parameters.web_search_citations);
+                                displayContent += formatCitations(parsed.venice_parameters.web_search_citations);
                             }
-                            botMessage.innerHTML = formatContent(botContentBuffer);
+                            botMessage.innerHTML = formatContent(displayContent);
                             Prism.highlightAll();
                             scrollToBottom();
                         }
@@ -428,12 +430,15 @@ function formatCitations(citations) {
 
     let citationsHtml = '\n\n<div class="citations-section"><strong>Web Citations:</strong>';
     citations.forEach(citation => {
-        citationsHtml += `
-            <div class="citation-item">
-                <div class="citation-title">${citation.title}</div>
-                <div class="citation-url">${citation.url}</div>
-                <div class="citation-date">${new Date(citation.date).toLocaleDateString()}</div>
-            </div>`;
+        if (citation.title && citation.url) {
+            citationsHtml += `
+                <div class="citation-item">
+                    <div class="citation-title">${citation.title}</div>
+                    <a href="${citation.url}" class="citation-url" target="_blank">${citation.url}</a>
+                    ${citation.date ? `<div class="citation-date">${new Date(citation.date).toLocaleDateString()}</div>` : ''}
+                    ${citation.content ? `<div class="citation-content">${citation.content}</div>` : ''}
+                </div>`;
+        }
     });
     citationsHtml += '</div>';
     return citationsHtml;
