@@ -22,10 +22,18 @@ import requests
 @app.route('/models')
 def get_models():
     try:
-        response = client.models.list()
-        text_models = [model for model in response.data if model.type == 'text']
-        return json.dumps({'models': [{'id': model.id} for model in text_models]})
+        response = requests.get(
+            "https://api.venice.ai/api/v1/models",
+            headers={
+                "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
+                "Content-Type": "application/json"
+            }
+        )
+        response.raise_for_status()
+        models_data = response.json()
+        return json.dumps({'models': [{'id': model['id']} for model in models_data['data']]})
     except Exception as e:
+        print(f"Error fetching models: {str(e)}")
         return json.dumps({'error': str(e)}), 500
 
 @app.route('/')
