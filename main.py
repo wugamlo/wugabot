@@ -103,10 +103,17 @@ def chat_stream():
                             break
                         try:
                             json_data = json.loads(data)
-                            if 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0] and 'content' in json_data['choices'][0]['delta']:
-                                content = json_data['choices'][0]['delta']['content']
-                                if content:
-                                    yield f"data: {json.dumps({'content': content})}\n\n"
+                            print("Venice API response chunk:", json_data)
+                            
+                            if 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0]:
+                                delta = json_data['choices'][0]['delta']
+                                if 'content' in delta:
+                                    content = delta['content']
+                                    if content:
+                                        yield f"data: {json.dumps({'content': content})}\n\n"
+                                if 'venice_parameters' in delta:
+                                    print("Venice parameters received:", delta['venice_parameters'])
+                                    yield f"data: {json.dumps(json_data)}\n\n"
                         except json.JSONDecodeError:
                             continue
 
