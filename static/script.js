@@ -395,6 +395,8 @@ async function fetchChatResponse(messages, botMessage) {
                     }
                     try {
                         const parsed = JSON.parse(data);
+                        console.log('Parsed response chunk:', parsed);
+                        
                         if (parsed.error) {
                             appendMessage(`Error: ${parsed.error}`, 'error');
                             showLoading(false);
@@ -408,10 +410,14 @@ async function fetchChatResponse(messages, botMessage) {
                         
                         // Handle citations from choices delta
                         if (parsed.choices?.[0]?.delta?.venice_parameters?.web_search_citations) {
+                            console.log('Found citations:', parsed.choices[0].delta.venice_parameters.web_search_citations);
                             lastCitations = parsed.choices[0].delta.venice_parameters.web_search_citations;
+                            console.log('Updated lastCitations:', lastCitations);
                             // Append citations only after we have content
                             if (botContentBuffer && lastCitations.length > 0) {
-                                botMessage.innerHTML = formatContent(botContentBuffer) + formatCitations(lastCitations);
+                                const updatedContent = formatContent(botContentBuffer) + formatCitations(lastCitations);
+                                console.log('Updating message with citations');
+                                botMessage.innerHTML = updatedContent;
                             }
                         }
                         Prism.highlightAll();
