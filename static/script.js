@@ -352,6 +352,12 @@ async function fetchChatResponse(messages, botMessage) {
         const searchButton = document.getElementById('searchEnabled');
         const searchEnabled = searchButton && searchButton.classList.contains('active');
         console.log('Web search enabled:', searchEnabled);
+        console.log('Sending chat request:', {
+            model: document.getElementById('modelSelect').value,
+            web_search: searchEnabled ? "on" : "auto",
+            messageCount: messages.length
+        });
+
         const response = await fetch('/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -362,8 +368,10 @@ async function fetchChatResponse(messages, botMessage) {
                 web_search: searchEnabled ? "on" : "auto"
             })
         });
+        console.log('Response status:', response.status);
         if (!response.ok) {
             showLoading(false);
+            console.error('Response error:', await response.text());
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const reader = response.body.getReader();

@@ -57,6 +57,9 @@ def chat_stream():
 
     def generate(model, messages, temperature, max_tokens, search_enabled):
         try:
+            print(f"Generating response for model: {model}")
+            print(f"Web search setting: {search_enabled}")
+            
             # Prepare the payload for Venice API
             # Prepare basic payload
             payload = {
@@ -75,6 +78,7 @@ def chat_stream():
                 payload["venice_parameters"]["enable_web_search"] = search_enabled
 
             # Make request to Venice API
+            print("Sending request to Venice API with payload:", json.dumps(payload))
             response = requests.post(
                 "https://api.venice.ai/api/v1/chat/completions",
                 headers={
@@ -84,6 +88,9 @@ def chat_stream():
                 json=payload,
                 stream=True
             )
+            if not response.ok:
+                print(f"Venice API error: Status {response.status_code}")
+                print(f"Response content: {response.text}")
 
             # Stream the response
             for line in response.iter_lines():
