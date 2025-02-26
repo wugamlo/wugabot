@@ -359,7 +359,7 @@ async function fetchChatResponse(messages, botMessage) {
                 messages: messages,
                 model: document.getElementById('modelSelect').value,
                 stream: true,
-                web_search: searchEnabled
+                web_search: searchEnabled ? "on" : "auto"
             })
         });
         if (!response.ok) {
