@@ -347,6 +347,7 @@ async function fetchChatResponse(messages, botMessage) {
             })
         });
         if (!response.ok) {
+            showLoading(false);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const reader = response.body.getReader();
@@ -387,8 +388,9 @@ async function fetchChatResponse(messages, botMessage) {
     } catch (error) {
         console.error('Stream error:', error);
         appendMessage('Failed to connect to chat service. Please try again.', 'error');
-        showLoading(false);
         chatHistory.push({ role: 'assistant', content: botContentBuffer });
+    } finally {
+        showLoading(false);
     }
 }
 
