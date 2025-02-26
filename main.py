@@ -52,7 +52,7 @@ def index():
 @app.route('/chat/stream', methods=['POST'])
 def chat_stream():
     data = request.json
-    search_enabled = data.get('searchEnabled', False)
+    search_enabled = data.get('web_search', False)
     messages = data.get('messages', [])
     
     print(f"Search enabled: {search_enabled}")  # Debug log
@@ -102,8 +102,8 @@ def chat_stream():
                                  'supportsWebSearch' in selected_model['model_spec']['capabilities'])
             
             # Add web search parameter only if model supports it
-            if supports_web_search:
-                payload["venice_parameters"]["enable_web_search"] = "on" if search_enabled else "auto"
+            if supports_web_search and search_enabled:
+                payload["venice_parameters"]["enable_web_search"] = "on"
 
             # Make request to Venice API
             response = requests.post(

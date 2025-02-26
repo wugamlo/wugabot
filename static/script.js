@@ -111,7 +111,7 @@ function handleImageUpload(input) {
         const modelSelect = document.getElementById('modelSelect');
         const previousModel = modelSelect.value;
         modelSelect.value = 'qwen-2.5-vl';
-        
+
         const reader = new FileReader();
         reader.onload = (event) => {
             const base64Image = event.target.result;
@@ -141,7 +141,7 @@ function initEventListeners() {
     const galleryInput = document.getElementById('galleryInput');
     const cameraInput = document.getElementById('cameraInput');
     const fileInput = document.getElementById('fileInput');
-    
+
     if (galleryInput) {
         galleryInput.addEventListener('change', () => handleImageUpload(galleryInput));
     }
@@ -173,11 +173,11 @@ async function handleFileUpload(event) {
                 'Accept': 'application/json'
             }
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         if (data.error) {
             alert(data.error);
@@ -192,28 +192,28 @@ async function handleFileUpload(event) {
                 <span style="color: #4CAF50;">File uploaded successfully</span>
             </div>
         `;
-        
+
         // Update messages with the extracted text
         const userMessage = document.getElementById('userInput').value;
         const fileMessage = `📎 File: ${file.name}`;
-        
+
         chatHistory.push({
             role: 'user',
             content: userMessage + '\n\nFile contents:\n' + data.text
         });
-        
+
         // Show the user message and file info in the chat
         appendMessage(userMessage, 'user');
         appendMessage(fileMessage, 'user-file');
-        
+
         // Start the stream with the current model
         startStream();
-        
+
     } catch (error) {
         console.error('Error processing file:', error);
         console.error('Error details:', error.message);
         console.error('Response:', error.response);
-        
+
         let errorMessage = error.message;
         try {
             const responseText = await error.response.text();
@@ -222,10 +222,10 @@ async function handleFileUpload(event) {
         } catch (e) {
             console.error('Could not read response text:', e);
         }
-        
+
         alert(`Error processing file: ${errorMessage}`);
     }
-    
+
     // Clear the file input
     event.target.value = '';
 }
@@ -235,7 +235,7 @@ function populateModelDropdown(models) {
     const modelSelect = document.getElementById('modelSelect');
     const searchButton = document.getElementById('searchEnabled');
     modelSelect.innerHTML = '';
-    
+
     models.forEach(model => {
         const option = document.createElement('option');
         option.value = model.id;
@@ -244,7 +244,7 @@ function populateModelDropdown(models) {
         modelSelect.appendChild(option);
     });
     modelSelect.value = 'llama-3.3-70b';
-    
+
     // Handle model change
     modelSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
@@ -252,7 +252,7 @@ function populateModelDropdown(models) {
         searchButton.style.display = supportsWebSearch ? 'block' : 'none';
         searchButton.classList.remove('active');
     });
-    
+
     // Trigger initial visibility
     const initialOption = modelSelect.options[modelSelect.selectedIndex];
     const initialSupportsWebSearch = initialOption.dataset.supportsWebSearch === 'true';
@@ -312,32 +312,32 @@ async function startStream() {
 function submitChat(message, base64Image) {
     if (!message && !base64Image) return;
     const systemPrompt = document.getElementById('systemPrompt').value.trim();
-    
+
     if (message) {
         chatHistory.push({ role: 'user', content: message });
     }
-    
+
     const messages = [
         { role: 'system', content: systemPrompt },
         ...chatHistory
     ];
-    
+
     if (message) {
         messages.push({ role: 'user', content: [{ type: 'text', text: message }] });
     }
-    
+
     if (base64Image) {
         messages.push({
             role: 'user',
             content: [{ type: 'image_url', image_url: { url: base64Image } }]
         });
     }
-    
+
     appendMessage(message, 'user');
     if (base64Image) {
         appendMessage(`<img src="${base64Image}" alt="User Uploaded Image" style="max-width: 80%; height: auto;" />`, 'user');
     }
-    
+
     document.getElementById('imagePreview').innerHTML = '';
     const botMessage = appendMessage('', 'assistant', true);
     botContentBuffer = "";
@@ -359,7 +359,7 @@ async function fetchChatResponse(messages, botMessage) {
                 messages: messages,
                 model: document.getElementById('modelSelect').value,
                 stream: true,
-                searchEnabled: searchEnabled
+                web_search: searchEnabled
             })
         });
         if (!response.ok) {
@@ -478,7 +478,7 @@ function scrollToBottom() {
 function initSettingsPanel() {
     const settingsToggle = document.getElementById('settingsToggle');
     const settingsPanel = document.querySelector('.settings-panel');
-    
+
     settingsToggle.addEventListener('click', () => {
         settingsPanel.classList.toggle('visible');
     });
@@ -510,9 +510,9 @@ function transferPrompt() {
         examples: 'examples',
         warnings: 'warnings'
     };
-    
+
     let finalPrompt = '';
-    
+
     for (const [field, tag] of Object.entries(fields)) {
         const content = document.getElementById(field).value.trim();
         if (content) {
@@ -521,7 +521,7 @@ function transferPrompt() {
             finalPrompt += `<${tag}>\n${formattedContent}\n</${tag}>\n`;
         }
     }
-    
+
     document.getElementById('userInput').value = finalPrompt.replace(/\n\n+/g, '\n');
     togglePromptComposer();
 }
@@ -562,7 +562,7 @@ window.addEventListener('load', () => {
     fetchModels();
     initSettingsPanel();
     initEventListeners();
-    
+
     // Restore text size preference
     const savedSize = localStorage.getItem('textSize') || 'small';
     document.getElementById('textSize').value = savedSize;
