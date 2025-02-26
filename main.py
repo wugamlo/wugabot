@@ -104,8 +104,11 @@ def chat_stream():
                 "messages": data.get('messages', []),
                 "temperature": data.get('temperature', 0.7),
                 "max_tokens": data.get('max_tokens', 4000),
-                "stream": True
-                # Add any Venice-specific parameters here
+                "stream": True,
+                "venice_parameters": {
+                    "enable_web_search": "on" if search_enabled else "off",
+                    "include_venice_system_prompt": False
+                }
             }
 
             # Make request to Venice API
