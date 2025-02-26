@@ -101,7 +101,7 @@ def chat_stream():
             # Prepare the payload for Venice API
             payload = {
                 "model": data.get('model', 'llama-3.3-70b'),
-                "messages": messages,
+                "messages": data.get('messages', []),
                 "temperature": data.get('temperature', 0.7),
                 "max_tokens": data.get('max_tokens', 4000),
                 "stream": True
