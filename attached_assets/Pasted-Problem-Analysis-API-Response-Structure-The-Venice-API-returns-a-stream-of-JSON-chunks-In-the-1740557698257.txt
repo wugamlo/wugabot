@@ -1,0 +1,37 @@
+Problem Analysis
+API Response Structure:
+
+The Venice API returns a stream of JSON chunks.
+In the first chunk, the venice_parameters field is present at the top level, containing an array of web_search_citations with details like titles, URLs, dates, and content snippets.
+In subsequent chunks, the response contains a delta field under choices[0], which includes the content (the assistant’s reply) but no venice_parameters.
+
+Backend Processing:
+
+Your backend (likely a Python/Flask application) processes this stream and forwards data to the frontend.
+The current logic only sends the full JSON data (including venice_parameters) to the frontend if venice_parameters is found inside the delta field. However, since venice_parameters appears at the top level in the first chunk and not in delta, this data is not being forwarded.
+Instead, the backend sends only the content from the delta field in each chunk, omitting the citations.
+
+Frontend Handling:
+
+The frontend JavaScript is designed to parse the streamed data and look for venice_parameters to display citations.
+Because the backend isn’t sending the chunk with venice_parameters, the frontend never receives the citations and thus cannot display them.
+Root Cause
+The issue lies in the backend’s generate function, which filters the Venice API response too aggressively. It only forwards the full JSON data when venice_parameters is in the delta, missing the case where it’s at the top level in the initial chunk. As a result, the frontend only receives content updates and never sees the citations.
+
+Solution:
+To fix this, modify the backend to forward the full JSON data whenever venice_parameters is present in the response, not just when it’s in the delta. This ensures the citations reach the frontend, which is already equipped to handle them.
+
+Key Changes
+New Condition: Added if 'venice_parameters' in json_data: to check for venice_parameters at the top level of the JSON response.
+Yield Full Data: When venice_parameters is found, the entire json_data is yielded, including the web_search_citations.
+Preserve Existing Logic: The delta content processing remains unchanged, ensuring the assistant’s reply continues to stream correctly.
+
+Since this code checks for parsed.venice_parameters, it will detect and display the citations once the backend sends the full JSON chunk containing them. No frontend changes are needed if this logic is already in place.
+
+Verification
+After applying this fix:
+
+The backend will send the first chunk with venice_parameters to the frontend.
+The frontend will parse it, extract web_search_citations, and append them to the chat window using your formatCitations function.
+Subsequent content chunks will continue building the assistant’s reply as before.
+You should see the citations appear below the LLM’s response in the chat window, matching the data from the API response (e.g., links to Merriam-Webster, Cambridge Dictionary, etc.).
