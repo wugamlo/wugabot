@@ -408,22 +408,22 @@ async function fetchChatResponse(messages, botMessage) {
                             botMessage.innerHTML = formatContent(botContentBuffer);
                         }
                         
-                        // Handle citations from choices delta
-                        if (parsed.choices?.[0]?.delta?.venice_parameters?.web_search_citations) {
-                            console.log('Found citations:', parsed.venice_parameters?.web_search_citations);
-                            if (parsed.venice_parameters?.web_search_citations) {
-                                lastCitations = parsed.venice_parameters.web_search_citations;
-                                console.log('Updated lastCitations:', lastCitations);
-                            } else if (parsed.choices?.[0]?.delta?.venice_parameters?.web_search_citations) {
-                                lastCitations = parsed.choices[0].delta.venice_parameters.web_search_citations;
-                                console.log('Updated lastCitations from delta:', lastCitations);
-                            }
-                            // Append citations after every content update
-                            if (lastCitations?.length > 0) {
-                                const updatedContent = formatContent(botContentBuffer) + formatCitations(lastCitations);
-                                console.log('Updating message with citations');
-                                botMessage.innerHTML = updatedContent;
-                            }
+                        // Handle citations
+                        if (parsed.venice_parameters?.web_search_citations) {
+                            console.log('Found citations in root:', parsed.venice_parameters.web_search_citations);
+                            lastCitations = parsed.venice_parameters.web_search_citations;
+                        } else if (parsed.choices?.[0]?.delta?.venice_parameters?.web_search_citations) {
+                            console.log('Found citations in delta:', parsed.choices[0].delta.venice_parameters.web_search_citations);
+                            lastCitations = parsed.choices[0].delta.venice_parameters.web_search_citations;
+                        }
+
+                        // Update content with citations
+                        if (lastCitations?.length > 0) {
+                            const updatedContent = formatContent(botContentBuffer) + formatCitations(lastCitations);
+                            console.log('Updating message with citations:', lastCitations);
+                            botMessage.innerHTML = updatedContent;
+                        } else if (parsed.content) {
+                            botMessage.innerHTML = formatContent(botContentBuffer);
                         }
                         Prism.highlightAll();
                         scrollToBottom();
