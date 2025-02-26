@@ -405,18 +405,14 @@ async function fetchChatResponse(messages, botMessage) {
                             botContentBuffer += parsed.content;
                         }
 
-                        // Store the latest citations
+                        // Handle citations if present
                         if (parsed.venice_parameters?.web_search_citations) {
                             lastCitations = parsed.venice_parameters.web_search_citations;
+                            const citationsHtml = formatCitations(lastCitations);
+                            botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
+                        } else {
+                            botMessage.innerHTML = formatContent(botContentBuffer);
                         }
-
-                        // Always display content with the latest citations
-                        let displayContent = botContentBuffer;
-                        if (lastCitations) {
-                            displayContent += '\n\n' + formatCitations(lastCitations);
-                        }
-
-                        botMessage.innerHTML = formatContent(displayContent);
                         Prism.highlightAll();
                         scrollToBottom();
                     } catch (e) {
