@@ -17,10 +17,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-client = OpenAI(
-    base_url="https://api.venice.ai/api/v1",
-    api_key=os.getenv('VENICE_API_KEY')
-)
+import requests
 
 @app.route('/models')
 def get_models():
@@ -93,21 +90,47 @@ def chat_stream():
 
     def generate():
         try:
-            stream = client.chat.completions.create(
-                model=data.get('model', 'llama-3.3-70b'),
-                messages=data['messages'],
-                temperature=data.get('temperature', 0.7),
-                max_tokens=data.get('max_tokens', 4000),
+            # Prepare the payload for Venice API
+            payload = {
+                "model": data.get('model', 'llama-3.3-70b'),
+                "messages": messages,
+                "temperature": data.get('temperature', 0.7),
+                "max_tokens": data.get('max_tokens', 4000),
+                "stream": True
+                # Add any Venice-specific parameters here
+            }
+
+            # Make request to Venice API
+            response = requests.post(
+                "https://api.venice.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
+                    "Content-Type": "application/json"
+                },
+                json=payload,
                 stream=True
             )
 
-            for chunk in stream:
-                if hasattr(chunk, 'choices') and chunk.choices and hasattr(chunk.choices[0], 'delta') and hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content:
-                    yield f"data: {json.dumps({'content': chunk.choices[0].delta.content})}\n\n"
-
-            yield "data: [DONE]\n\n"
+            # Stream the response
+            for line in response.iter_lines():
+                if line:
+                    line = line.decode('utf-8')
+                    if line.startswith('data: '):
+                        data = line[6:]
+                        if data == '[DONE]':
+                            yield "data: [DONE]\n\n"
+                            break
+                        try:
+                            json_data = json.loads(data)
+                            if 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0] and 'content' in json_data['choices'][0]['delta']:
+                                content = json_data['choices'][0]['delta']['content']
+                                if content:
+                                    yield f"data: {json.dumps({'content': content})}\n\n"
+                        except json.JSONDecodeError:
+                            continue
 
         except Exception as e:
+            print(f"Error in generate: {str(e)}")
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
     return Response(generate(), mimetype='text/event-stream')
