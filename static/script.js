@@ -397,12 +397,12 @@ async function fetchChatResponse(messages, botMessage) {
                             appendMessage(`Error: ${parsed.error}`, 'error');
                             showLoading(false);
                             return;
-                        } else if (parsed.content || parsed.citations) {
+                        } else if (parsed.content || parsed.venice_parameters?.web_search_citations) {
                             if (parsed.content) {
                                 botContentBuffer += parsed.content;
                             }
-                            if (parsed.citations) {
-                                botContentBuffer += formatCitations(parsed.citations);
+                            if (parsed.venice_parameters?.web_search_citations) {
+                                botContentBuffer += formatCitations(parsed.venice_parameters.web_search_citations);
                             }
                             botMessage.innerHTML = formatContent(botContentBuffer);
                             Prism.highlightAll();
@@ -425,7 +425,7 @@ async function fetchChatResponse(messages, botMessage) {
 
 function formatCitations(citations) {
     if (!citations || !citations.length) return '';
-    
+
     let citationsHtml = '\n\n<div class="citations-section"><strong>Web Citations:</strong>';
     citations.forEach(citation => {
         citationsHtml += `
