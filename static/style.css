@@ -336,28 +336,31 @@ button {
     margin-top: 20px;
     padding: 15px;
     background: #1a1a1a;
-    border-left: 4px solid var(--secondary-color);
-    border-radius: 6px;
-    font-size: 0.95em;
+    border-top: 1px solid #333;
+    font-size: 0.9em;
 }
 
 .citation-item {
-    margin: 12px 0;
-    padding: 12px;
-    background: #252525;
-    border-radius: 6px;
-    border: 1px solid #333;
-    transition: background-color 0.2s ease;
-}
-
-.citation-item:hover {
-    background: #2a2a2a;
+    margin: 8px 0;
+    padding: 8px 0;
+    border-bottom: 1px solid #2a2a2a;
 }
 
 .citation-title {
     color: var(--secondary-color);
-    font-weight: bold;
+    text-decoration: none;
+    display: block;
     margin-bottom: 4px;
+}
+
+.citation-title:hover {
+    text-decoration: underline;
+}
+
+.citation-snippet {
+    color: #888;
+    font-size: 0.9em;
+    margin-top: 4px;
 }
 
 .citation-url {
