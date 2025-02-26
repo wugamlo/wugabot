@@ -365,7 +365,7 @@ async function fetchChatResponse(messages, botMessage) {
                 messages: messages,
                 model: document.getElementById('modelSelect').value,
                 stream: true,
-                web_search: searchEnabled ? "on" : "auto"
+                web_search: searchEnabled ? "on" : undefined
             })
         });
         console.log('Response status:', response.status);

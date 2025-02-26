@@ -73,9 +73,9 @@ def chat_stream():
                 }
             }
             
-            # Add web search parameter based on the request
-            if search_enabled == "on" or search_enabled == "auto":
-                payload["venice_parameters"]["enable_web_search"] = search_enabled
+            # Add web search parameter only if explicitly enabled
+            if search_enabled == "on":
+                payload["venice_parameters"]["enable_web_search"] = "on"
 
             # Make request to Venice API
             print("Sending request to Venice API with payload:", json.dumps(payload))
