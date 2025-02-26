@@ -403,18 +403,20 @@ async function fetchChatResponse(messages, botMessage) {
 
                         if (parsed.content) {
                             botContentBuffer += parsed.content;
-                            botMessage.innerHTML = formatContent(botContentBuffer);
+                        }
+                        
+                        if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.venice_parameters) {
+                            const params = parsed.choices[0].delta.venice_parameters;
+                            if (params.web_search_citations) {
+                                lastCitations = params.web_search_citations;
+                            }
                         }
 
-                        // Store citations but don't display yet
-                        if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
-                            lastCitations = parsed.venice_parameters.web_search_citations;
+                        let displayContent = formatContent(botContentBuffer);
+                        if (lastCitations && lastCitations.length > 0) {
+                            displayContent += formatCitations(lastCitations);
                         }
-
-                        // Only add citations when the stream is done
-                        if (data === '[DONE]' && lastCitations && lastCitations.length > 0) {
-                            botMessage.innerHTML = formatContent(botContentBuffer) + formatCitations(lastCitations);
-                        }
+                        botMessage.innerHTML = displayContent;
                         Prism.highlightAll();
                         scrollToBottom();
                     } catch (e) {
