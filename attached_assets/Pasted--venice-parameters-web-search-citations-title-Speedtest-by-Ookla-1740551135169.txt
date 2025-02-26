@@ -1,0 +1,57 @@
+"venice_parameters": {
+    "web_search_citations": [
+      {
+        "title": "Speedtest by Ookla - The Global Broadband Speed Test",
+        "url": "https://www.speedtest.net/",
+        "date": "2023-05-30T00:00:00",
+        "content": "Use Speedtest on all your devices with our free desktop and mobile apps."
+      },
+      {
+        "title": "Test Definition & Meaning - Merriam-Webster",
+        "url": "https://www.merriam-webster.com/dictionary/test",
+        "date": "2025-02-14T08:25:03",
+        "content": "The meaning of TEST is a means of testing. How to use test in a sentence."
+      },
+      {
+        "title": "TEST | definition in the Cambridge English Dictionary",
+        "url": "https://dictionary.cambridge.org/us/dictionary/english/test",
+        "date": "2025-01-29T19:55:02",
+        "content": "TEST meaning: 1. a way of discovering, by questions or practical activities, what someone knows, or what someone…. Learn more."
+      },
+      {
+        "title": "FairTest Home - Fairtest",
+        "url": "https://fairtest.org/",
+        "date": "2024-12-10T16:56:32",
+        "content": "FairTest advocates against the misuse and overuse of standardized tests in education and for more effective and beneficial ways of assessing students and schools."
+      },
+      {
+        "title": "Take a Test",
+        "url": "https://implicit.harvard.edu/implicit/takeatest.html",
+        "date": "2023-03-24T00:00:00",
+        "content": "On the next page, you&#x27;ll be asked to select an Implicit Association Test (IAT) from a list of possible topics. We&#x27;ll also ask you (optionally) to report your attitudes or beliefs about these topics and give you some information about yourself. We ask these questions because the IAT can be more ..."
+      },
+      {
+        "title": "ASPR COVID-19 Testing",
+        "url": "https://covidtests.gov",
+        "date": "2024-09-25T20:50:02",
+        "content": "ASPR provide details on how U.S households can order free at-home COVID-19 tests, emphasizing the importance of testing and the ease of access."
+      },
+      {
+        "title": "TEST Definition & Meaning | Dictionary.com",
+        "url": "https://www.dictionary.com/browse/test",
+        "date": "2025-02-13T08:35:02",
+        "content": "Test definition: . See examples of TEST used in a sentence."
+      },
+      {
+        "title": "Join a Test Meeting | Zoom",
+        "url": "https://zoom.us/test",
+        "date": "2023-06-28T00:00:00",
+        "content": "Preview your next Zoom Meeting using out test meeting tool to check your settings and display."
+      },
+      {
+        "title": "Internet Speed Test | Fast.com",
+        "url": "https://fast.com/",
+        "date": "2016-04-24T00:00:00",
+        "content": "How fast is your download speed? In seconds, FAST.com&#x27;s simple Internet speed test will estimate your ISP speed."
+      }
+    ]
