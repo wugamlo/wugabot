@@ -418,7 +418,7 @@ async function fetchChatResponse(messages, botMessage) {
                             botMessage.innerHTML = updatedContent;
                         } else if (parsed.content) {
                             const updatedContent = formatContent(botContentBuffer);
-                            if (lastCitations?.length > 0) {
+                            if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
                                 botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
                             } else {
                                 botMessage.innerHTML = updatedContent;
@@ -442,7 +442,7 @@ async function fetchChatResponse(messages, botMessage) {
 }
 
 function formatCitations(citations) {
-    if (!citations || !citations.length) return '';
+    if (!citations || !citations.length || citations.every(c => !c.title && !c.url)) return '';
 
     let citationsHtml = '\n\n<div class="citations-section">';
     citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
