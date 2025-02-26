@@ -397,8 +397,13 @@ async function fetchChatResponse(messages, botMessage) {
                             appendMessage(`Error: ${parsed.error}`, 'error');
                             showLoading(false);
                             return;
-                        } else if (parsed.content) {
-                            botContentBuffer += parsed.content;
+                        } else if (parsed.content || parsed.citations) {
+                            if (parsed.content) {
+                                botContentBuffer += parsed.content;
+                            }
+                            if (parsed.citations) {
+                                botContentBuffer += formatCitations(parsed.citations);
+                            }
                             botMessage.innerHTML = formatContent(botContentBuffer);
                             Prism.highlightAll();
                             scrollToBottom();
@@ -416,6 +421,22 @@ async function fetchChatResponse(messages, botMessage) {
     } finally {
         showLoading(false);
     }
+}
+
+function formatCitations(citations) {
+    if (!citations || !citations.length) return '';
+    
+    let citationsHtml = '\n\n<div class="citations-section"><strong>Web Citations:</strong>';
+    citations.forEach(citation => {
+        citationsHtml += `
+            <div class="citation-item">
+                <div class="citation-title">${citation.title}</div>
+                <div class="citation-url">${citation.url}</div>
+                <div class="citation-date">${new Date(citation.date).toLocaleDateString()}</div>
+            </div>`;
+    });
+    citationsHtml += '</div>';
+    return citationsHtml;
 }
 
 function formatContent(content) {

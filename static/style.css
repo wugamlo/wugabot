@@ -332,6 +332,39 @@ button {
     align-self: flex-start;
 }
 
+.citations-section {
+    margin-top: 15px;
+    padding: 12px;
+    background: #1a1a1a;
+    border-left: 3px solid var(--secondary-color);
+    border-radius: 4px;
+}
+
+.citation-item {
+    margin: 8px 0;
+    padding: 8px;
+    background: #252525;
+    border-radius: 4px;
+}
+
+.citation-title {
+    color: var(--secondary-color);
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.citation-url {
+    color: #888;
+    font-size: 0.9em;
+    word-break: break-all;
+}
+
+.citation-date {
+    color: #666;
+    font-size: 0.8em;
+    margin-top: 2px;
+}
+
 .xml-tag {
     color: #ff9966;
     font-weight: bold;
