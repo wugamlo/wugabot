@@ -105,6 +105,12 @@ def chat_stream():
                             json_data = json.loads(data)
                             print("Venice API response chunk:", json_data)
                             
+                            # Check for venice_parameters at top level first
+                            if 'venice_parameters' in json_data:
+                                print("Venice parameters found at top level:", json_data['venice_parameters'])
+                                yield f"data: {json.dumps(json_data)}\n\n"
+                            
+                            # Process content from delta as usual
                             if 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0]:
                                 delta = json_data['choices'][0]['delta']
                                 if 'content' in delta:
@@ -112,7 +118,7 @@ def chat_stream():
                                     if content:
                                         yield f"data: {json.dumps({'content': content})}\n\n"
                                 if 'venice_parameters' in delta:
-                                    print("Venice parameters received:", delta['venice_parameters'])
+                                    print("Venice parameters found in delta:", delta['venice_parameters'])
                                     yield f"data: {json.dumps(json_data)}\n\n"
                         except json.JSONDecodeError:
                             continue
