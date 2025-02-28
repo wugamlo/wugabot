@@ -111,8 +111,12 @@ function handleImageUpload(input) {
     if (input.files.length > 0) {
         // Auto-switch to qwen-2.5-vl model for image analysis
         const modelSelect = document.getElementById('modelSelect');
+        const headerModelSelect = document.getElementById('headerModelSelect');
         const previousModel = modelSelect.value;
+        
+        // Update both model selectors to ensure consistency
         modelSelect.value = 'qwen-2.5-vl';
+        headerModelSelect.value = 'qwen-2.5-vl';
 
         const reader = new FileReader();
         reader.onload = (event) => {
