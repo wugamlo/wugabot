@@ -797,13 +797,7 @@ button {
     justify-content: center;
 }
 
-/* Make only send button wider */
-.input-area button:nth-child(3) {
-    min-width: 80px;
-    font-weight: bold;
-}
-
-/* Ensure all other buttons have consistent sizing */
+/* Ensure all buttons have consistent base sizing */
 .input-area button {
     height: 32px;
     min-width: 32px;
@@ -811,4 +805,10 @@ button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Make only the Send button wider - it's the one with "Send" text and no icon */
+.input-area button:nth-child(4) {
+    min-width: 80px;
+    font-weight: bold;
 }
