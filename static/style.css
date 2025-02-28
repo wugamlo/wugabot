@@ -58,7 +58,7 @@ body {
 
 .container {
   max-width: 800px;
-  margin: 50px auto 0;
+  margin: 60px auto 0; /* Increased top margin to account for header */
   background: #1e1e1e; /* Container Background */
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
@@ -67,13 +67,14 @@ body {
 }
 
 .chat-box {
-  height: 60vh;
+  height: calc(60vh - 20px); /* Adjusted height to account for header */
   padding: 20px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 15px;
   background: #2a2a2a; /* Chat Box Background */
+  padding-bottom: 40px; /* Extra padding at bottom to ensure messages are visible */
 }
 
 .message {
@@ -617,6 +618,8 @@ button {
         height: calc(100vh - 70px);
         border-radius: 0;
         box-shadow: none;
+        display: flex;
+        flex-direction: column;
     }
 
     .header {
@@ -637,6 +640,9 @@ button {
     .chat-box {
         height: calc(100vh - 240px);
         padding: 15px;
+        padding-bottom: 80px; /* Ensure bottom messages are visible above input area */
+        flex: 1;
+        overflow-y: auto;
     }
 
     .message {
