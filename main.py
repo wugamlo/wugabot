@@ -146,11 +146,33 @@ def extract_text_from_file(file_data, file_type):
             text = file_data.decode('utf-8')
             logger.debug("Text file decoded successfully")
         elif file_type == 'pdf':
+            import fitz  # PyMuPDF
             pdf_file = io.BytesIO(file_data)
-            pdf_reader = PyPDF2.PdfReader(pdf_file)
-            logger.debug(f"PDF file loaded, pages: {len(pdf_reader.pages)}")
-            for page in pdf_reader.pages:
-                text += page.extract_text()
+            pdf_document = fitz.open(stream=pdf_file, filetype="pdf")
+            
+            logger.debug(f"PDF file loaded, pages: {len(pdf_document)}")
+            
+            # Process each page
+            for page_num in range(len(pdf_document)):
+                page = pdf_document[page_num]
+                
+                # Extract text with better formatting preservation
+                page_text = page.get_text("text")
+                
+                # Extract tables if present (simplified approach)
+                tables = page.find_tables()
+                if tables and tables.tables:
+                    for table in tables.tables:
+                        rows = []
+                        for cells in table.rows:
+                            row_text = " | ".join([page.get_text("text", clip=cell.rect) for cell in cells])
+                            rows.append(row_text)
+                        table_text = "\n".join(rows)
+                        page_text += f"\n\n--- Table ---\n{table_text}\n--- End Table ---\n"
+                
+                text += f"\n--- Page {page_num + 1} ---\n{page_text}"
+            
+            pdf_document.close()
         elif file_type in ['doc', 'docx']:
             doc_file = io.BytesIO(file_data)
             doc = docx.Document(doc_file)
