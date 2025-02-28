@@ -156,6 +156,22 @@ def extract_text_from_file(file_data, file_type):
             doc = docx.Document(doc_file)
             logger.debug(f"DOC file loaded, paragraphs: {len(doc.paragraphs)}")
             text = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
+        elif file_type in ['xls', 'xlsx']:
+            import pandas as pd
+            excel_file = io.BytesIO(file_data)
+            # Read all sheets
+            excel_data = pd.read_excel(excel_file, sheet_name=None)
+            
+            # Process each sheet
+            tables = []
+            for sheet_name, df in excel_data.items():
+                # Convert DataFrame to string representation with proper formatting
+                table_text = f"\n--- Sheet: {sheet_name} ---\n"
+                table_text += df.to_string(index=False)
+                tables.append(table_text)
+            
+            text = "\n\n".join(tables)
+            logger.debug(f"Excel file processed, found {len(excel_data)} sheets")
 
         if not text:
             logger.warning("Warning: Extracted text is empty")
@@ -198,7 +214,7 @@ def process_file():
             return json.dumps({'error': 'File too large. Maximum size is 2MB'}), 400, {'Content-Type': 'application/json'}
 
         file_type = file.filename.split('.')[-1].lower()
-        if file_type not in ['txt', 'pdf', 'doc', 'docx']:
+        if file_type not in ['txt', 'pdf', 'doc', 'docx', 'xls', 'xlsx']:
             return json.dumps({'error': f'Unsupported file type: {file_type}'}, ensure_ascii=False), 400, {'Content-Type': 'application/json'}
 
         extracted_text = extract_text_from_file(file_data, file_type)
