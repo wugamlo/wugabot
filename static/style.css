@@ -49,7 +49,8 @@ body {
   width: auto;
   margin: 0;
   min-width: 200px;
-  height: 30px;
+  height: 35px;
+  padding: 0 8px;
   background: #2a2a2a;
   color: var(--text-color);
   border: 1px solid #444;
@@ -796,8 +797,8 @@ button {
     justify-content: center;
 }
 
-/* Make send button wider */
-.input-area button:nth-child(3) {
+/* Make only send button wider */
+.input-area button:last-child {
     min-width: 80px;
     font-weight: bold;
 }
