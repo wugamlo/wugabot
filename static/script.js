@@ -235,30 +235,55 @@ async function handleFileUpload(event) {
 // Populate model dropdown
 function populateModelDropdown(models) {
     const modelSelect = document.getElementById('modelSelect');
+    const headerModelSelect = document.getElementById('headerModelSelect');
     const searchButton = document.getElementById('searchEnabled');
+    
+    // Clear both dropdowns
     modelSelect.innerHTML = '';
+    headerModelSelect.innerHTML = '';
 
+    // Populate both dropdowns with the same models
     models.forEach(model => {
+        // For settings dropdown
         const option = document.createElement('option');
         option.value = model.id;
         option.text = model.id;
         option.dataset.supportsWebSearch = model.supportsWebSearch || false;
         modelSelect.appendChild(option);
+        
+        // For header dropdown
+        const headerOption = document.createElement('option');
+        headerOption.value = model.id;
+        headerOption.text = model.id;
+        headerOption.dataset.supportsWebSearch = model.supportsWebSearch || false;
+        headerModelSelect.appendChild(headerOption);
     });
+    
+    // Set the default value for both dropdowns
     modelSelect.value = 'llama-3.3-70b';
+    headerModelSelect.value = 'llama-3.3-70b';
 
-    // Handle model change
-    modelSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
+    // Function to update search button visibility
+    const updateSearchButtonVisibility = (dropdown) => {
+        const selectedOption = dropdown.options[dropdown.selectedIndex];
         const supportsWebSearch = selectedOption.dataset.supportsWebSearch === 'true';
         searchButton.style.display = supportsWebSearch ? 'block' : 'none';
         searchButton.classList.remove('active');
+    };
+
+    // Keep the dropdowns in sync
+    modelSelect.addEventListener('change', function() {
+        headerModelSelect.value = this.value;
+        updateSearchButtonVisibility(this);
+    });
+
+    headerModelSelect.addEventListener('change', function() {
+        modelSelect.value = this.value;
+        updateSearchButtonVisibility(this);
     });
 
     // Trigger initial visibility
-    const initialOption = modelSelect.options[modelSelect.selectedIndex];
-    const initialSupportsWebSearch = initialOption.dataset.supportsWebSearch === 'true';
-    searchButton.style.display = initialSupportsWebSearch ? 'block' : 'none';
+    updateSearchButtonVisibility(modelSelect);
 }
 
 // Start streaming data to the chat

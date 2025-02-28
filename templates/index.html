@@ -14,10 +14,23 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-javascript.min.js"></script>
 </head>
     <body>
+        <div class="header">
+            <div class="header-left">
+                <button id="settingsToggle" class="icon-button">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <div class="header-title">WugaBot</div>
+            </div>
+            <div class="header-center">
+                <select id="headerModelSelect" class="model-select"></select>
+            </div>
+            <div class="header-right">
+                <button id="headerClearChat" class="icon-button" onclick="clearChatHistory()">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
         <div class="container">
-            <button id="settingsToggle" class="settings-toggle">
-                <i class="fas fa-cog"></i>
-            </button>
             <div class="settings-panel">
                 <div class="settings-panel-header">
                     <h2>Settings</h2>

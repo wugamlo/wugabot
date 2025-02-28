@@ -12,19 +12,53 @@
 
 body {
   margin: 0;
-  padding: 20px;
+  padding: 0;
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: var(--background-color);
   color: var(--text-color);
 }
 
+.header {
+  background: #1a1a1a;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1010;
+  height: 50px;
+}
+
+.header-left, .header-center, .header-right {
+  display: flex;
+  align-items: center;
+}
+
+.header-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-left: 10px;
+  color: var(--text-color);
+}
+
+.header .model-select {
+  width: auto;
+  margin: 0;
+  min-width: 200px;
+}
+
 .container {
   max-width: 800px;
-  margin: 0 auto;
+  margin: 70px auto 0;
   background: #1e1e1e; /* Container Background */
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
   position: relative;
+  padding: 0;
 }
 
 .chat-box {
@@ -228,21 +262,7 @@ button {
 }
 
 
-.settings-toggle {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    z-index: 1002;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: var(--secondary-color);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
+/* Settings toggle is now in the header */
 
 .settings-panel {
     position: fixed;
@@ -573,6 +593,7 @@ button {
         z-index: 1;
         padding: 10px 0;
     }
+    
     body {
         padding: 0;
         margin: 0;
@@ -585,10 +606,25 @@ button {
 
     .container {
         max-width: 100%;
-        margin: 0;
-        height: 100vh;
+        margin: 70px 0 0;
+        height: calc(100vh - 70px);
         border-radius: 0;
         box-shadow: none;
+    }
+    
+    .header {
+        padding: 5px 10px;
+        height: 60px;
+    }
+    
+    .header-title {
+        font-size: 18px;
+    }
+    
+    .header .model-select {
+        min-width: 150px;
+        max-width: 150px;
+        font-size: 14px;
     }
 
     .chat-box {
