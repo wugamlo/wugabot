@@ -282,7 +282,7 @@ button {
     box-shadow: -2px 0 5px rgba(0,0,0,0.2);
     padding: 20px;
     transition: transform 0.3s ease;
-    z-index: 1001;
+    z-index: 1020;
     transform: translateX(100%);
 }
 
@@ -499,7 +499,7 @@ button {
     box-shadow: -2px 0 5px rgba(0,0,0,0.2);
     padding: 20px;
     transition: transform 0.3s ease;
-    z-index: 1001;
+    z-index: 1020;
     transform: translateX(100%);
 }
 
@@ -600,7 +600,7 @@ button {
         z-index: 1;
         padding: 10px 0;
     }
-    
+
     body {
         padding: 0;
         margin: 0;
@@ -618,16 +618,16 @@ button {
         border-radius: 0;
         box-shadow: none;
     }
-    
+
     .header {
         padding: 5px 10px;
         height: 60px;
     }
-    
+
     .header-title {
         font-size: 18px;
     }
-    
+
     .header .model-select {
         min-width: 150px;
         max-width: 150px;
