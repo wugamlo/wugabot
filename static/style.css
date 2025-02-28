@@ -20,7 +20,7 @@ body {
 
 .header {
   background: #1a1a1a;
-  padding: 10px 20px;
+  padding: 5px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -30,7 +30,7 @@ body {
   left: 0;
   right: 0;
   z-index: 1010;
-  height: 50px;
+  height: 40px;
 }
 
 .header-left, .header-center, .header-right {
@@ -49,11 +49,15 @@ body {
   width: auto;
   margin: 0;
   min-width: 200px;
+  height: 30px;
+  background: #2a2a2a;
+  color: var(--text-color);
+  border: 1px solid #444;
 }
 
 .container {
   max-width: 800px;
-  margin: 70px auto 0;
+  margin: 50px auto 0;
   background: #1e1e1e; /* Container Background */
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
@@ -186,8 +190,10 @@ button {
   padding: 10px;
   margin-bottom: 15px;
   border-radius: 8px;
-  border: 2px solid #ddd;
+  border: 2px solid #444;
   font-size: 14px;
+  background: #2a2a2a;
+  color: var(--text-color);
 }
 
 .message pre {
@@ -788,4 +794,10 @@ button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Make send button wider */
+.input-area button:nth-child(3) {
+    min-width: 80px;
+    font-weight: bold;
 }
