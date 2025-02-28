@@ -643,7 +643,7 @@ button {
         padding-bottom: 150px; /* Increased padding to ensure messages are visible */
         flex: 1;
         overflow-y: auto;
-        margin-bottom: 110px; /* Add margin to prevent content from being hidden */
+        margin-bottom: 135px; /* Add margin to prevent content from being hidden */
     }
 
     .message {
