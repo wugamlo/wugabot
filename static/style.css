@@ -798,7 +798,17 @@ button {
 }
 
 /* Make only send button wider */
-.input-area button:last-child {
+.input-area button:nth-child(3) {
     min-width: 80px;
     font-weight: bold;
+}
+
+/* Ensure all other buttons have consistent sizing */
+.input-area button {
+    height: 32px;
+    min-width: 32px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
