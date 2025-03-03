@@ -20,14 +20,34 @@ async function fetchModels() {
 // Import character options and system prompts
 import { characterOptions, systemPrompts } from './characters.js';
 
-// Load prompt and populate character dropdown when the page loads
+// Load settings and populate character dropdown when the page loads
 window.addEventListener('load', () => {
     fetchModels();
     populateCharacterDropdown();
+    
+    // Load saved settings
     const savedPrompt = localStorage.getItem('systemPrompt');
+    const savedMaxTokens = localStorage.getItem('maxTokens');
+    const savedTemperature = localStorage.getItem('temperature');
+    
     if (savedPrompt) {
         document.getElementById('systemPrompt').value = savedPrompt;
     }
+    
+    if (savedMaxTokens) {
+        document.getElementById('maxTokens').value = savedMaxTokens;
+    }
+    
+    if (savedTemperature) {
+        document.getElementById('temperature').value = savedTemperature;
+        document.getElementById('temperatureValue').textContent = savedTemperature;
+    }
+    
+    // Add event listener for temperature slider
+    const temperatureSlider = document.getElementById('temperature');
+    temperatureSlider.addEventListener('input', function() {
+        document.getElementById('temperatureValue').textContent = this.value;
+    });
 });
 
 // Populate character dropdown
@@ -46,16 +66,34 @@ function populateCharacterDropdown() {
         const selectedValue = this.value;
         if (selectedValue && systemPrompts[selectedValue]) {
             document.getElementById('systemPrompt').value = systemPrompts[selectedValue];
-            savePrompt(); // Automatically save when character is selected
+            saveSettings(); // Automatically save when character is selected
         }
     });
 }
-// Function to save the prompt
-function savePrompt() {
+// Function to save all settings
+function saveSettings() {
     const prompt = document.getElementById('systemPrompt').value.trim();
+    const maxTokens = document.getElementById('maxTokens').value;
+    const temperature = document.getElementById('temperature').value;
+    
     if (prompt) {
         localStorage.setItem('systemPrompt', prompt);
     }
+    
+    localStorage.setItem('maxTokens', maxTokens);
+    localStorage.setItem('temperature', temperature);
+    
+    // Show feedback to user
+    const settingsPanel = document.querySelector('.settings-panel');
+    const feedback = document.createElement('div');
+    feedback.className = 'settings-feedback';
+    feedback.textContent = 'Settings saved!';
+    feedback.style.color = '#4CAF50';
+    feedback.style.padding = '10px';
+    feedback.style.textAlign = 'center';
+    
+    settingsPanel.appendChild(feedback);
+    setTimeout(() => feedback.remove(), 2000);
 }
 
 // Function to resize images to deal with too large images
@@ -391,12 +429,18 @@ async function fetchChatResponse(messages, botMessage) {
             messageCount: messages.length
         });
 
+        // Get user settings
+        const maxTokens = parseInt(localStorage.getItem('maxTokens') || '4000');
+        const temperature = parseFloat(localStorage.getItem('temperature') || '0.7');
+        
         const response = await fetch('/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 messages: messages,
                 model: document.getElementById('modelSelect').value,
+                max_tokens: maxTokens,
+                temperature: temperature,
                 stream: true,
                 web_search: searchEnabled ? "on" : null
             })
@@ -624,7 +668,7 @@ function transferPrompt() {
 
 // Export functions for global access
 window.startStream = startStream;
-window.savePrompt = savePrompt;
+window.saveSettings = saveSettings;
 window.clearChatHistory = clearChatHistory;
 window.togglePromptComposer = togglePromptComposer;
 window.clearFields = clearFields;
@@ -638,7 +682,7 @@ function toggleWebSearch(button) {
 // Initialize global functions
 window.toggleWebSearch = toggleWebSearch;
 window.startStream = startStream;
-window.savePrompt = savePrompt;
+window.saveSettings = saveSettings;
 window.clearChatHistory = clearChatHistory;
 window.togglePromptComposer = togglePromptComposer;
 window.clearFields = clearFields;

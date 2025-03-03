@@ -57,9 +57,20 @@
                             </select>
                         </div>
                         <div class="field-group">
+                            <label for="maxTokens">Max Completion Tokens</label>
+                            <input type="number" id="maxTokens" min="100" max="8000" step="100" value="4000">
+                        </div>
+                        <div class="field-group">
+                            <label for="temperature">Temperature</label>
+                            <div class="slider-container">
+                                <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7">
+                                <span id="temperatureValue">0.7</span>
+                            </div>
+                        </div>
+                        <div class="field-group">
                             <label for="systemPrompt">System Prompt</label>
                             <textarea id="systemPrompt" placeholder="Enter system prompt..." wrap="soft">You are WugaBot, an AI assistant designed to provide precise and accurate information. To achieve this, you should: Understand the user's question fully. Provide specific, clear answers based on verified facts. Ask for clarification if needed. Avoid making assumptions. Admit uncertainty when you don't know something. Encourage users to verify important information. Your goal is to be a reliable source of knowledge.</textarea>
-                            <button onclick="savePrompt()">Update Prompt</button>
+                            <button onclick="saveSettings()">Save Settings</button>
                         </div>
                     </div>
                 </div>
