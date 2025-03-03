@@ -70,7 +70,7 @@ def chat_stream():
                 "venice_parameters": {
                     "include_venice_system_prompt": False
                 },
-                "max_completion_tokens": max_tokens,  # Using max_completion_tokens as per API spec
+                "max_completion_tokens": max_completion_tokens,  # Using max_completion_tokens as per API spec
                 "temperature": temperature,
                 "stream": True
             }
