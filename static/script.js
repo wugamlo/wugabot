@@ -470,7 +470,10 @@ async function fetchChatResponse(messages, botMessage) {
                     }
                     try {
                         const parsed = JSON.parse(data);
-                        console.log('Parsed response chunk:', parsed);
+                        // Only log substantial chunks or errors, not every tiny piece
+                        if (parsed.error || parsed.venice_parameters) {
+                            console.log('Parsed response chunk:', parsed);
+                        }
 
                         if (parsed.error) {
                             appendMessage(`Error: ${parsed.error}`, 'error');

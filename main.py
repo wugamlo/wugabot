@@ -54,8 +54,10 @@ def chat_stream():
     data = request.json
     search_enabled = data.get('web_search', False)
     messages = data.get('messages', [])
+    max_completion_tokens = data.get('max_tokens', 4000)  # Get max_tokens from request but use as max_completion_tokens
+    temperature = data.get('temperature', 0.7)  # Get temperature from request
 
-    def generate(model, messages, temperature, max_tokens, search_enabled):
+    def generate(model, messages, temperature, max_completion_tokens, search_enabled):
         try:
             logger.info(f"Generating response for model: {model}")
             logger.info(f"Web search setting: {search_enabled}")
@@ -68,7 +70,7 @@ def chat_stream():
                 "venice_parameters": {
                     "include_venice_system_prompt": False
                 },
-                "max_completion_tokens": max_tokens,  # Using max_completion_tokens instead of max_tokens
+                "max_completion_tokens": max_tokens,  # Using max_completion_tokens as per API spec
                 "temperature": temperature,
                 "stream": True
             }
@@ -131,8 +133,8 @@ def chat_stream():
         generate(
             model=data.get('model', 'llama-3.3-70b'),
             messages=data.get('messages', []),
-            temperature=data.get('temperature', 0.7),
-            max_tokens=data.get('max_tokens', 4000),
+            temperature=temperature,
+            max_completion_tokens=max_completion_tokens,
             search_enabled=search_enabled
         ), 
         mimetype='text/event-stream'
