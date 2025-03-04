@@ -463,6 +463,12 @@ async function fetchChatResponse(messages, botMessage) {
                     const data = line.slice(5).trim();
                     if (!data) continue;
                     if (data === '[DONE]') {
+                        // Final check to ensure citations are displayed before completing
+                        if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
+                            const finalContent = formatContent(botContentBuffer);
+                            botMessage.innerHTML = finalContent + formatCitations(lastCitations);
+                        }
+                        
                         showLoading(false);
                         chatHistory.push({ role: 'assistant', content: botContentBuffer });
                         Prism.highlightAll();
@@ -491,12 +497,13 @@ async function fetchChatResponse(messages, botMessage) {
                         if (citationsInResponse) {
                             console.log('Found citations:', citationsInResponse);
                             lastCitations = citationsInResponse;
-                            const updatedContent = formatContent(botContentBuffer) + formatCitations(lastCitations);
-                            console.log('Updating message with citations');
-                            botMessage.innerHTML = updatedContent;
-                        } else if (parsed.content) {
+                        }
+                        
+                        // Always update the entire message content with any available citations
+                        if (parsed.content || citationsInResponse) {
                             const updatedContent = formatContent(botContentBuffer);
                             if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
+                                console.log('Updating message with citations');
                                 botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
                             } else {
                                 botMessage.innerHTML = updatedContent;
