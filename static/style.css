@@ -611,10 +611,23 @@ input[type="number"] {
     justify-content: flex-end;
 }
 
-.composer-buttons button {
-    padding: 8px 12px;
-    border-radius: 4px;
+.composer-buttons .icon-button {
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    background-color: #808080;
+    color: white;
+    border: none;
+    transition: background-color 0.3s ease;
+}
+
+.composer-buttons .icon-button:hover {
+    background-color: var(--secondary-color);
 }
 
 /* Enhanced responsive styles for mobile devices */
