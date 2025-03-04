@@ -611,6 +611,12 @@ input[type="number"] {
     justify-content: flex-end;
 }
 
+.composer-buttons button {
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
 /* Enhanced responsive styles for mobile devices */
 @media (max-width: 600px) {
     .settings-panel, .prompt-composer {
