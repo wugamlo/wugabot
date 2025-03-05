@@ -125,7 +125,9 @@ def chat_stream():
                     if 'content' in json_data:
                         yield f"data: {json.dumps({'content': json_data['content']})}\n\n"
                     
+                    # Use standardized field for reasoning content
                     if 'reasoning_content' in json_data:
+                        logger.debug(f"Found reasoning_content at top level: {json_data['reasoning_content'][:100]}...")
                         yield f"data: {json.dumps({'reasoning_content': json_data['reasoning_content']})}\n\n"
 
                     # Process delta content for streaming
@@ -172,33 +174,48 @@ def extract_text_from_file(file_data, file_type):
             text = file_data.decode('utf-8')
             logger.debug("Text file decoded successfully")
         elif file_type == 'pdf':
-            import fitz  # PyMuPDF
-            pdf_file = io.BytesIO(file_data)
-            pdf_document = fitz.open(stream=pdf_file, filetype="pdf")
-            
-            logger.debug(f"PDF file loaded, pages: {len(pdf_document)}")
-            
-            # Process each page
-            for page_num in range(len(pdf_document)):
-                page = pdf_document[page_num]
+            try:
+                # Try using PyMuPDF first
+                import fitz  # PyMuPDF
+                pdf_file = io.BytesIO(file_data)
+                pdf_document = fitz.open(stream=pdf_file, filetype="pdf")
                 
-                # Extract text with better formatting preservation
-                page_text = page.get_text("text")
+                logger.debug(f"PDF file loaded, pages: {len(pdf_document)}")
                 
-                # Extract tables if present (simplified approach)
-                tables = page.find_tables()
-                if tables and tables.tables:
-                    for table in tables.tables:
-                        rows = []
-                        for cells in table.rows:
-                            row_text = " | ".join([page.get_text("text", clip=cell.rect) for cell in cells])
-                            rows.append(row_text)
-                        table_text = "\n".join(rows)
-                        page_text += f"\n\n--- Table ---\n{table_text}\n--- End Table ---\n"
+                # Process each page
+                for page_num in range(len(pdf_document)):
+                    page = pdf_document[page_num]
+                    
+                    # Extract text with better formatting preservation
+                    page_text = page.get_text("text")
+                    
+                    # Safer table extraction
+                    try:
+                        tables = page.find_tables()
+                        if tables and hasattr(tables, 'tables') and tables.tables:
+                            for table in tables.tables:
+                                rows = []
+                                for cells in table.rows:
+                                    row_text = " | ".join([page.get_text("text", clip=cell.rect) for cell in cells])
+                                    rows.append(row_text)
+                                table_text = "\n".join(rows)
+                                page_text += f"\n\n--- Table ---\n{table_text}\n--- End Table ---\n"
+                    except Exception as table_err:
+                        logger.warning(f"Table extraction error: {str(table_err)}")
+                    
+                    text += f"\n--- Page {page_num + 1} ---\n{page_text}"
                 
-                text += f"\n--- Page {page_num + 1} ---\n{page_text}"
-            
-            pdf_document.close()
+                pdf_document.close()
+            except Exception as fitz_err:
+                # Fallback to PyPDF2 if PyMuPDF fails
+                logger.warning(f"PyMuPDF failed: {str(fitz_err)}, falling back to PyPDF2")
+                pdf_file = io.BytesIO(file_data)
+                pdf_reader = PyPDF2.PdfReader(pdf_file)
+                
+                for page_num in range(len(pdf_reader.pages)):
+                    page = pdf_reader.pages[page_num]
+                    page_text = page.extract_text() or "No text extracted"
+                    text += f"\n--- Page {page_num + 1} ---\n{page_text}"
         elif file_type in ['doc', 'docx']:
             doc_file = io.BytesIO(file_data)
             doc = docx.Document(doc_file)

@@ -616,24 +616,28 @@ function toggleCitations(header) {
 window.toggleCitations = toggleCitations;
 
 function formatContent(content) {
-    // First preserve any reasoning content using the native API format or fallback to regex
+    // First handle reasoning content by directly using the API's reasoning_content field
+    // (this is handled separately in the fetchChatResponse function now)
     let formatted = content;
     
-    // Check if it contains the think tag pattern
+    // Fallback for any <think> tags that might still be in the content
     if (/<think>\n?([\s\S]+?)<\/think>/g.test(content)) {
         formatted = content.replace(/<think>\n?([\s\S]+?)<\/think>/g, (match, content) => {
             return `<div class="reasoning-content"><strong>Reasoning:</strong><br>${content.trim()}</div>`;
         });
     }
     
-    // Format code blocks
+    // Format code blocks - improved to handle language specification better
     formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
+        // Store the trimmed code
+        const trimmedCode = code.trim();
+        // Use Prism for highlighting if available for the language
         const highlightedCode = Prism.highlight(
-            code.trim(),
+            trimmedCode,
             Prism.languages[lang] || Prism.languages.plain,
             lang || 'plaintext'
         );
-        return `<pre class="code-block"><code class="language-${lang}">${highlightedCode}</code></pre>`;
+        return `<pre class="code-block"><code class="language-${lang || 'plaintext'}">${highlightedCode}</code></pre>`;
     });
 
     // Store code blocks to prevent them from being affected by markdown processing
@@ -641,22 +645,31 @@ function formatContent(content) {
     const codeBlocks = [];
     formatted = formatted.replace(codeBlockPattern, (match) => {
         codeBlocks.push(match);
-        return `<!-- placeholder:${codeBlocks.length - 1} -->`;
+        return `<!-- code-block-${codeBlocks.length - 1} -->`;
     });
 
-    // Process markdown elements
+    // Process standard markdown elements in more consistent way
     formatted = formatted
-        .replace(/\n#{3} (.*)/g, '<h3>$1</h3>') 
-        .replace(/\n#{2} (.*)/g, '<h2>$1</h2>')  
-        .replace(/\n# (.*)/g, '<h1>$1</h1>')  
-        .replace(/\n- (.*)/g, '<li>$1</li>')
+        // Headers - ensure they're properly matched at line start
+        .replace(/^# (.*?)$/gm, '<h1>$1</h1>') 
+        .replace(/^## (.*?)$/gm, '<h2>$1</h2>')  
+        .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
+        // Lists - better handling of nested lists
+        .replace(/^- (.*?)$/gm, '<li>$1</li>')
+        .replace(/^\d+\. (.*?)$/gm, '<li>$1</li>')
+        // Bold and italics
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>') // Better inline code handling
-        .split('\n').map(line => line.trim()).join('<br>');
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        // Inline code - improved to prevent nested matching
+        .replace(/`([^`]+)`/g, (match, code) => {
+            return `<code class="inline-code">${code}</code>`;
+        });
+    
+    // Handle line breaks in a more standard way
+    formatted = formatted.split('\n').map(line => line.trim()).join('<br>');
 
     // Restore code blocks
-    formatted = formatted.replace(/<!-- placeholder:(\d+) -->/g, (match, index) => {
+    formatted = formatted.replace(/<!-- code-block-(\d+) -->/g, (match, index) => {
         return codeBlocks[parseInt(index)];
     });
 
