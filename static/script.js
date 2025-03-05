@@ -632,7 +632,15 @@ async function fetchChatResponse(messages, botMessage) {
                     
                     // Log important parts of the response for debugging
                     if (parsed.error || parsed.venice_parameters) {
-                        console.log('Parsed response chunk:', parsed);
+                        // Only log a portion of potentially very large responses to avoid console errors
+                        const truncatedResponse = {...parsed};
+                        if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
+                            truncatedResponse.venice_parameters = {
+                                ...parsed.venice_parameters,
+                                web_search_citations: parsed.venice_parameters.web_search_citations.slice(0, 2)
+                            };
+                        }
+                        console.log('Parsed response chunk:', truncatedResponse);
                     }
                     
                     // Handle errors
@@ -698,7 +706,23 @@ async function fetchChatResponse(messages, botMessage) {
                     scrollToBottom();
                 } catch (e) {
                     if (data !== '[DONE]') {
-                        console.error('Error parsing chunk:', e, 'Data:', data);
+                        // Only log a portion of potentially large data to avoid console overflow
+                        const truncatedData = data.length > 500 ? data.substring(0, 500) + '...' : data;
+                        console.error('Error parsing chunk:', e, 'Data:', truncatedData);
+                        
+                        // Try to recover and continue - don't let a parsing error break the entire response
+                        if (data.includes('"content":')) {
+                            try {
+                                // Simple extraction of content if available
+                                const contentMatch = /"content":"([^"]*)"/.exec(data);
+                                if (contentMatch && contentMatch[1]) {
+                                    botContentBuffer += contentMatch[1];
+                                    botMessage.innerHTML = formatContent(botContentBuffer);
+                                }
+                            } catch (extractError) {
+                                // Silent fail for extraction attempt
+                            }
+                        }
                     }
                 }
             }
