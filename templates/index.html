@@ -68,6 +68,17 @@
                             </div>
                         </div>
                         <div class="field-group">
+                            <label for="ragEnabled">Enable Retrieval-Augmented Generation (RAG)</label>
+                            <div class="toggle-switch-container">
+                                <input type="checkbox" id="ragEnabled" class="toggle-switch">
+                                <label for="ragEnabled" class="toggle-label"></label>
+                            </div>
+                        </div>
+                        <div class="field-group" id="knowledgeBaseContainer" style="display: none;">
+                            <label for="knowledgeBase">Knowledge Base</label>
+                            <select id="knowledgeBase"></select>
+                        </div>
+                        <div class="field-group">
                             <label for="systemPrompt">System Prompt</label>
                             <textarea id="systemPrompt" placeholder="Enter system prompt..." wrap="soft">You are WugaBot, an AI assistant designed to provide precise and accurate information. To achieve this, you should: Understand the user's question fully. Provide specific, clear answers based on verified facts. Ask for clarification if needed. Avoid making assumptions. Admit uncertainty when you don't know something. Encourage users to verify important information. Your goal is to be a reliable source of knowledge.</textarea>
                             <button onclick="saveSettings()">Save Settings</button>

@@ -20,6 +20,53 @@ async function fetchModels() {
 // Import character options and system prompts
 import { characterOptions, systemPrompts } from './characters.js';
 
+// Vector Store Management API functions
+async function fetchCollections() {
+    try {
+        const response = await fetch('https://wugamlo-vector-store.replit.app/api/collections');
+        const data = await response.json();
+        return data.collections;
+    } catch (error) {
+        console.error('Error fetching collections:', error);
+        return [];
+    }
+}
+
+async function searchCollection(collectionName, query, limit = 5) {
+    try {
+        const response = await fetch(`https://wugamlo-vector-store.replit.app/api/collections/${collectionName}/search`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query, limit })
+        });
+        const data = await response.json();
+        return data.results;
+    } catch (error) {
+        console.error('Error searching collection:', error);
+        return [];
+    }
+}
+
+// Populate Knowledge Base dropdown
+async function populateKnowledgeBaseDropdown() {
+    const knowledgeBaseSelect = document.getElementById('knowledgeBase');
+    knowledgeBaseSelect.innerHTML = '<option value="">Select a collection...</option>';
+    
+    try {
+        const collections = await fetchCollections();
+        collections.forEach(collection => {
+            const option = document.createElement('option');
+            option.value = collection;
+            option.textContent = collection;
+            knowledgeBaseSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error populating knowledge base dropdown:', error);
+    }
+}
+
 // Load settings and populate character dropdown when the page loads
 window.addEventListener('load', () => {
     fetchModels();
@@ -29,6 +76,8 @@ window.addEventListener('load', () => {
     const savedPrompt = localStorage.getItem('systemPrompt');
     const savedMaxTokens = localStorage.getItem('maxTokens');
     const savedTemperature = localStorage.getItem('temperature');
+    const savedRagEnabled = localStorage.getItem('ragEnabled') === 'true';
+    const savedKnowledgeBase = localStorage.getItem('knowledgeBase');
     
     if (savedPrompt) {
         document.getElementById('systemPrompt').value = savedPrompt;
@@ -42,6 +91,39 @@ window.addEventListener('load', () => {
         document.getElementById('temperature').value = savedTemperature;
         document.getElementById('temperatureValue').textContent = savedTemperature;
     }
+    
+    // Setup RAG toggle
+    const ragEnabledToggle = document.getElementById('ragEnabled');
+    const knowledgeBaseContainer = document.getElementById('knowledgeBaseContainer');
+    
+    ragEnabledToggle.checked = savedRagEnabled;
+    knowledgeBaseContainer.style.display = savedRagEnabled ? 'block' : 'none';
+    
+    // Populate knowledge base dropdown if RAG is enabled
+    if (savedRagEnabled) {
+        populateKnowledgeBaseDropdown();
+        
+        if (savedKnowledgeBase) {
+            // Wait for dropdown to be populated
+            setTimeout(() => {
+                document.getElementById('knowledgeBase').value = savedKnowledgeBase;
+            }, 500);
+        }
+    }
+    
+    // Add event listener for RAG toggle
+    ragEnabledToggle.addEventListener('change', function() {
+        knowledgeBaseContainer.style.display = this.checked ? 'block' : 'none';
+        if (this.checked) {
+            populateKnowledgeBaseDropdown();
+        }
+        localStorage.setItem('ragEnabled', this.checked);
+    });
+    
+    // Add event listener for knowledge base selection
+    document.getElementById('knowledgeBase').addEventListener('change', function() {
+        localStorage.setItem('knowledgeBase', this.value);
+    });
     
     // Add event listener for temperature slider
     const temperatureSlider = document.getElementById('temperature');
@@ -75,6 +157,8 @@ function saveSettings() {
     const prompt = document.getElementById('systemPrompt').value.trim();
     const maxTokens = document.getElementById('maxTokens').value;
     const temperature = document.getElementById('temperature').value;
+    const ragEnabled = document.getElementById('ragEnabled').checked;
+    const knowledgeBase = document.getElementById('knowledgeBase').value;
     
     if (prompt) {
         localStorage.setItem('systemPrompt', prompt);
@@ -82,6 +166,8 @@ function saveSettings() {
     
     localStorage.setItem('maxTokens', maxTokens);
     localStorage.setItem('temperature', temperature);
+    localStorage.setItem('ragEnabled', ragEnabled);
+    localStorage.setItem('knowledgeBase', knowledgeBase);
     
     // Show feedback to user
     const settingsPanel = document.querySelector('.settings-panel');
@@ -378,7 +464,7 @@ async function startStream() {
 }
 
 // Submit chat message along with the image
-function submitChat(message, base64Image) {
+async function submitChat(message, base64Image) {
     if (!message && !base64Image) return;
     const systemPrompt = document.getElementById('systemPrompt').value.trim();
     // Clear lastCitations at the start of each new message
@@ -388,9 +474,54 @@ function submitChat(message, base64Image) {
         chatHistory.push({ role: 'user', content: message });
     }
 
+    // Check if RAG is enabled
+    const ragEnabled = document.getElementById('ragEnabled').checked;
+    const knowledgeBase = document.getElementById('knowledgeBase').value;
+    
+    let enhancedSystemPrompt = systemPrompt;
+    let retrievedContext = '';
+    
+    // If RAG is enabled and a knowledge base is selected, fetch context
+    if (ragEnabled && knowledgeBase && message) {
+        try {
+            // Show a temporary message to indicate retrieval is in progress
+            const retrievalMessage = appendMessage('Retrieving relevant context...', 'assistant', true);
+            
+            console.log(`Searching collection "${knowledgeBase}" for: ${message}`);
+            const results = await searchCollection(knowledgeBase, message);
+            
+            if (results && results.length > 0) {
+                // Format retrieved context
+                retrievedContext = 'CONTEXT:\n';
+                results.forEach((result, index) => {
+                    retrievedContext += `---\n[${index + 1}] ${result.text}\n`;
+                    if (result.metadata) {
+                        retrievedContext += `Source: ${result.metadata.source || 'Unknown'}\n`;
+                        if (result.metadata.filename) {
+                            retrievedContext += `File: ${result.metadata.filename}\n`;
+                        }
+                    }
+                    retrievedContext += `Relevance: ${(result.score * 100).toFixed(1)}%\n---\n\n`;
+                });
+                
+                // Format the enhanced system prompt
+                enhancedSystemPrompt = `${systemPrompt}\n\n${retrievedContext}\nUSER QUERY:\n${message}\n\nPlease use the context provided above to answer the user's query. If the context doesn't contain relevant information, rely on your general knowledge but acknowledge this fact.`;
+                
+                console.log('Enhanced prompt with context from Vector Store');
+            } else {
+                console.log('No relevant context found in Vector Store');
+            }
+            
+            // Remove the temporary retrieval message
+            retrievalMessage.remove();
+        } catch (error) {
+            console.error('Error retrieving context:', error);
+        }
+    }
+
     const messages = [
-        { role: 'system', content: systemPrompt },
-        ...chatHistory
+        { role: 'system', content: enhancedSystemPrompt },
+        ...chatHistory.slice(0, -1) // Exclude the last user message since we're using the enhanced prompt
     ];
 
     if (message) {
