@@ -7,7 +7,7 @@
   --background-color: #121212; /* Background Color */
   --text-color: #ffffff; /* Text Color */
   --code-bg: #1a1a1a; /* Code Background Color */
-  --inline-code-bg: #f3f3f3; /* Inline Code Background */
+  --inline-code-bg: #444444; /* Inline Code Background - Darker for contrast */
 }
 
 body {
@@ -221,6 +221,7 @@ button {
   border-radius: 4px;
   font-family: Monaco, Consolas, 'Courier New', monospace;
   font-size: 0.9em;
+  color: #ffffff; /* Ensuring text is white for contrast against the darker background */
 }
 
 .message h1, .message h2, .message h3 {
