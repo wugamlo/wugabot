@@ -54,33 +54,35 @@ def chat_stream():
     data = request.json
     search_enabled = data.get('web_search', False)
     messages = data.get('messages', [])
-    max_completion_tokens = data.get('max_tokens', 4000)  # Get max_tokens from request but use as max_completion_tokens
-    temperature = data.get('temperature', 0.7)  # Get temperature from request
+    
+    # Use max_completion_tokens as the primary parameter, but fall back to max_tokens for backward compatibility
+    max_completion_tokens = data.get('max_completion_tokens', data.get('max_tokens', 4000))
+    temperature = data.get('temperature', 0.7)
 
     def generate(model, messages, temperature, max_completion_tokens, search_enabled):
         try:
             logger.info(f"Generating response for model: {model}")
             logger.info(f"Web search setting: {search_enabled}")
+            logger.info(f"Max completion tokens: {max_completion_tokens}")
 
-            # Prepare the payload for Venice API
-            # Prepare payload following Venice API structure
+            # Prepare the payload for Venice API with proper parameter names
             payload = {
                 "model": model,
                 "messages": messages,
                 "venice_parameters": {
                     "include_venice_system_prompt": False
                 },
-                "max_completion_tokens": max_completion_tokens,  # Using max_completion_tokens as per API spec
+                "max_completion_tokens": max_completion_tokens,  # Using specified parameter name
                 "temperature": temperature,
                 "stream": True
             }
 
-            # Only add web search parameter for web-enabled models and when explicitly enabled
+            # Only add web search parameter when explicitly enabled
             if search_enabled == "on":
                 payload["venice_parameters"]["enable_web_search"] = "on"
 
             # Make request to Venice API
-            logger.debug("Sending request to Venice API with payload:", json.dumps(payload))
+            logger.debug(f"Sending request to Venice API with payload: {json.dumps(payload)}")
             response = requests.post(
                 "https://api.venice.ai/api/v1/chat/completions",
                 headers={
@@ -90,40 +92,62 @@ def chat_stream():
                 json=payload,
                 stream=True
             )
+            
             if not response.ok:
                 logger.error(f"Venice API error: Status {response.status_code}")
                 logger.error(f"Response content: {response.text}")
+                yield f"data: {json.dumps({'error': f'API error: {response.status_code}'})}\n\n"
+                return
 
-            # Stream the response
+            # Stream the response with improved handling
             for line in response.iter_lines():
-                if line:
-                    line = line.decode('utf-8')
-                    if line.startswith('data: '):
-                        data = line[6:]
-                        if data == '[DONE]':
-                            yield "data: [DONE]\n\n"
-                            break
-                        try:
-                            json_data = json.loads(data)
-                            logger.debug("Venice API response chunk:", json_data)
+                if not line:
+                    continue
+                    
+                line = line.decode('utf-8')
+                if not line.startswith('data: '):
+                    continue
+                    
+                data = line[6:]
+                if data == '[DONE]':
+                    yield "data: [DONE]\n\n"
+                    break
+                    
+                try:
+                    json_data = json.loads(data)
+                    
+                    # Forward venice_parameters at the top level
+                    if 'venice_parameters' in json_data:
+                        logger.debug(f"Venice parameters found at top level: {json_data['venice_parameters']}")
+                        yield f"data: {json.dumps(json_data)}\n\n"
 
-                            # Check for venice_parameters at top level first
-                            if 'venice_parameters' in json_data:
-                                logger.debug("Venice parameters found at top level:", json_data['venice_parameters'])
-                                yield f"data: {json.dumps(json_data)}\n\n"
+                    # Process content and reasoning_content if present
+                    if 'content' in json_data:
+                        yield f"data: {json.dumps({'content': json_data['content']})}\n\n"
+                    
+                    if 'reasoning_content' in json_data:
+                        yield f"data: {json.dumps({'reasoning_content': json_data['reasoning_content']})}\n\n"
 
-                            # Process content from delta as usual
-                            if 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0]:
-                                delta = json_data['choices'][0]['delta']
-                                if 'content' in delta:
-                                    content = delta['content']
-                                    if content:
-                                        yield f"data: {json.dumps({'content': content})}\n\n"
-                                if 'venice_parameters' in delta:
-                                    logger.debug("Venice parameters found in delta:", delta['venice_parameters'])
-                                    yield f"data: {json.dumps(json_data)}\n\n"
-                        except json.JSONDecodeError:
-                            continue
+                    # Process delta content for streaming
+                    if 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0]:
+                        delta = json_data['choices'][0]['delta']
+                        
+                        # Stream content
+                        if 'content' in delta and delta['content']:
+                            yield f"data: {json.dumps({'content': delta['content']})}\n\n"
+                        
+                        # Stream reasoning content
+                        if 'reasoning_content' in delta and delta['reasoning_content']:
+                            yield f"data: {json.dumps({'reasoning_content': delta['reasoning_content']})}\n\n"
+                        
+                        # Stream venice parameters
+                        if 'venice_parameters' in delta:
+                            logger.debug(f"Venice parameters found in delta: {delta['venice_parameters']}")
+                            yield f"data: {json.dumps(json_data)}\n\n"
+                            
+                except json.JSONDecodeError as e:
+                    logger.warning(f"JSON decode error: {str(e)}, data: {data[:100]}...")
+                    continue
 
         except Exception as e:
             logger.exception(f"Error in generate: {str(e)}")

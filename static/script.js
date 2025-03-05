@@ -423,96 +423,151 @@ async function fetchChatResponse(messages, botMessage) {
         const searchButton = document.getElementById('searchEnabled');
         const searchEnabled = searchButton && searchButton.classList.contains('active');
         console.log('Web search enabled:', searchEnabled);
-        console.log('Sending chat request:', {
-            model: document.getElementById('modelSelect').value,
-            web_search: searchEnabled ? "on" : null,
-            messageCount: messages.length
-        });
-
+        
         // Get user settings
         const maxTokens = parseInt(localStorage.getItem('maxTokens') || '4000');
         const temperature = parseFloat(localStorage.getItem('temperature') || '0.7');
         
+        // Build the request with updated parameter names
+        const requestBody = {
+            messages: messages,
+            model: document.getElementById('modelSelect').value,
+            max_completion_tokens: maxTokens, // Updated to use max_completion_tokens instead of max_tokens
+            temperature: temperature,
+            stream: true
+        };
+        
+        // Only add web search parameter when explicitly enabled
+        if (searchEnabled) {
+            requestBody.web_search = "on";
+        }
+        
+        console.log('Sending chat request:', {
+            model: requestBody.model,
+            web_search: requestBody.web_search,
+            messageCount: messages.length
+        });
+        
         const response = await fetch('/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                messages: messages,
-                model: document.getElementById('modelSelect').value,
-                max_tokens: maxTokens,
-                temperature: temperature,
-                stream: true,
-                web_search: searchEnabled ? "on" : null
-            })
+            body: JSON.stringify(requestBody)
         });
+        
         console.log('Response status:', response.status);
         if (!response.ok) {
             showLoading(false);
             console.error('Response error:', await response.text());
             throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        // Process streaming response
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let reasoningContent = null;
+        
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
+            
             const chunk = decoder.decode(value);
             const lines = chunk.split('\n');
+            
             for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const data = line.slice(5).trim();
-                    if (!data) continue;
-                    if (data === '[DONE]') {
-                        // Final check to ensure citations are displayed before completing
-                        if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
-                            const finalContent = formatContent(botContentBuffer);
-                            botMessage.innerHTML = finalContent + formatCitations(lastCitations);
-                        }
-                        
+                if (!line.startsWith('data: ')) continue;
+                
+                const data = line.slice(5).trim();
+                if (!data) continue;
+                
+                if (data === '[DONE]') {
+                    // Final check to ensure all content is displayed before completing
+                    if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
+                        const finalContent = formatContent(botContentBuffer);
+                        botMessage.innerHTML = finalContent + formatCitations(lastCitations);
+                    }
+                    
+                    showLoading(false);
+                    chatHistory.push({ 
+                        role: 'assistant', 
+                        content: botContentBuffer,
+                        reasoning_content: reasoningContent // Store reasoning content if available
+                    });
+                    Prism.highlightAll();
+                    return;
+                }
+                
+                try {
+                    const parsed = JSON.parse(data);
+                    
+                    // Log important parts of the response for debugging
+                    if (parsed.error || parsed.venice_parameters) {
+                        console.log('Parsed response chunk:', parsed);
+                    }
+                    
+                    // Handle errors
+                    if (parsed.error) {
+                        appendMessage(`Error: ${parsed.error}`, 'error');
                         showLoading(false);
-                        chatHistory.push({ role: 'assistant', content: botContentBuffer });
-                        Prism.highlightAll();
                         return;
                     }
-                    try {
-                        const parsed = JSON.parse(data);
-                        // Only log substantial chunks or errors, not every tiny piece
-                        if (parsed.error || parsed.venice_parameters) {
-                            console.log('Parsed response chunk:', parsed);
+                    
+                    // Handle content from different parts of the response
+                    if (parsed.content) {
+                        botContentBuffer += parsed.content;
+                    }
+                    
+                    // Handle delta if present (for streaming responses)
+                    if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                        const delta = parsed.choices[0].delta;
+                        
+                        // Append content from delta
+                        if (delta.content) {
+                            botContentBuffer += delta.content;
                         }
-
-                        if (parsed.error) {
-                            appendMessage(`Error: ${parsed.error}`, 'error');
-                            showLoading(false);
-                            return;
+                        
+                        // Check for reasoning content
+                        if (delta.reasoning_content) {
+                            reasoningContent = reasoningContent || '';
+                            reasoningContent += delta.reasoning_content;
                         }
-
-                        if (parsed.content) {
-                            botContentBuffer += parsed.content;
-                            botMessage.innerHTML = formatContent(botContentBuffer);
-                        }
-
-                        // Handle citations from response
-                        const citationsInResponse = parsed.venice_parameters?.web_search_citations;
+                    }
+                    
+                    // Handle citations and other venice parameters
+                    if (parsed.venice_parameters) {
+                        // Get citations if available
+                        const citationsInResponse = parsed.venice_parameters.web_search_citations;
                         if (citationsInResponse) {
                             console.log('Found citations:', citationsInResponse);
                             lastCitations = citationsInResponse;
                         }
                         
-                        // Always update the entire message content with any available citations
-                        if (parsed.content || citationsInResponse) {
-                            const updatedContent = formatContent(botContentBuffer);
-                            if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
-                                console.log('Updating message with citations');
-                                botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
-                            } else {
-                                botMessage.innerHTML = updatedContent;
-                            }
+                        // Check for reasoning content in venice_parameters
+                        if (parsed.venice_parameters.reasoning_content) {
+                            reasoningContent = parsed.venice_parameters.reasoning_content;
                         }
-                        Prism.highlightAll();
-                        scrollToBottom();
-                    } catch (e) {
-                        if (data !== '[DONE]') console.error('Error parsing chunk:', e);
+                    }
+                    
+                    // Update the message with all available content
+                    let updatedContent = formatContent(botContentBuffer);
+                    
+                    // Add reasoning content if available and not already in the content
+                    if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
+                        updatedContent = updatedContent + 
+                            `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
+                    }
+                    
+                    // Add citations if available
+                    if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
+                        botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
+                    } else {
+                        botMessage.innerHTML = updatedContent;
+                    }
+                    
+                    Prism.highlightAll();
+                    scrollToBottom();
+                } catch (e) {
+                    if (data !== '[DONE]') {
+                        console.error('Error parsing chunk:', e, 'Data:', data);
                     }
                 }
             }
@@ -561,9 +616,17 @@ function toggleCitations(header) {
 window.toggleCitations = toggleCitations;
 
 function formatContent(content) {
-    let formatted = content.replace(/<think>\n?([\s\S]+?)<\/think>/g, (match, content) => {
-        return `<div class="reasoning-content"><strong>Reasoning:</strong><br>${content.trim()}</div>`;
-    });
+    // First preserve any reasoning content using the native API format or fallback to regex
+    let formatted = content;
+    
+    // Check if it contains the think tag pattern
+    if (/<think>\n?([\s\S]+?)<\/think>/g.test(content)) {
+        formatted = content.replace(/<think>\n?([\s\S]+?)<\/think>/g, (match, content) => {
+            return `<div class="reasoning-content"><strong>Reasoning:</strong><br>${content.trim()}</div>`;
+        });
+    }
+    
+    // Format code blocks
     formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
         const highlightedCode = Prism.highlight(
             code.trim(),
@@ -573,6 +636,7 @@ function formatContent(content) {
         return `<pre class="code-block"><code class="language-${lang}">${highlightedCode}</code></pre>`;
     });
 
+    // Store code blocks to prevent them from being affected by markdown processing
     const codeBlockPattern = /<pre class="code-block">[\s\S]*?<\/pre>/g;
     const codeBlocks = [];
     formatted = formatted.replace(codeBlockPattern, (match) => {
@@ -580,15 +644,18 @@ function formatContent(content) {
         return `<!-- placeholder:${codeBlocks.length - 1} -->`;
     });
 
+    // Process markdown elements
     formatted = formatted
         .replace(/\n#{3} (.*)/g, '<h3>$1</h3>') 
         .replace(/\n#{2} (.*)/g, '<h2>$1</h2>')  
-        .replace(/\n# (.*)/g, '<h1>$1</h1>')     
-        .replace(/\n- (.*)/g, '<li>$1</li>')     
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')    
-        .split('\n').map(line => line.trim()).join('<br>'); 
+        .replace(/\n# (.*)/g, '<h1>$1</h1>')  
+        .replace(/\n- (.*)/g, '<li>$1</li>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>') // Better inline code handling
+        .split('\n').map(line => line.trim()).join('<br>');
 
+    // Restore code blocks
     formatted = formatted.replace(/<!-- placeholder:(\d+) -->/g, (match, index) => {
         return codeBlocks[parseInt(index)];
     });
