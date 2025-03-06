@@ -95,6 +95,24 @@ body {
   align-items: flex-start;
 }
 
+.message-wrapper {
+  display: flex;
+  margin-bottom: 15px;
+  position: relative;
+  width: 100%;
+}
+
+.user-wrapper {
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.assistant-wrapper {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .message {
   padding: 12px 18px;
   border-radius: 20px;
@@ -102,6 +120,58 @@ body {
   line-height: 1.5;
   transition: all 0.3s;
   font-size: 16px;
+}
+
+.copy-button {
+  background: transparent;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.user-copy {
+  margin-right: 8px;
+  align-self: center;
+}
+
+.assistant-copy {
+  margin-top: 8px;
+  align-self: flex-end;
+}
+
+.message-wrapper:hover .copy-button {
+  opacity: 1;
+}
+
+.copy-button:hover {
+  color: var(--secondary-color);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.copy-notification {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #323232;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  z-index: 1100;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.5s;
+}
+
+.copy-notification.fade-out {
+  opacity: 0;
 }
 
 .copy-button {

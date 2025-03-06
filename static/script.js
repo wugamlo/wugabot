@@ -833,6 +833,22 @@ function formatContent(content) {
 
 function appendMessage(content, role, returnElement = false) {
     const chatBox = document.getElementById('chatBox');
+    const messageWrapper = document.createElement('div');
+    messageWrapper.className = `message-wrapper ${role}-wrapper`;
+    
+    // Create copy button for user messages
+    if (role === 'user') {
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-button user-copy';
+        copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+        copyBtn.onclick = function() {
+            copyToClipboard(content);
+            showCopyNotification();
+        };
+        messageWrapper.appendChild(copyBtn);
+    }
+    
+    // Create message div
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
     if (typeof content === 'string') {
@@ -845,11 +861,49 @@ function appendMessage(content, role, returnElement = false) {
         }
     }
     messageDiv.innerHTML = content;
-    chatBox.appendChild(messageDiv);
+    messageWrapper.appendChild(messageDiv);
+    
+    // Create copy button for assistant messages
+    if (role === 'assistant') {
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-button assistant-copy';
+        copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+        copyBtn.onclick = function() {
+            copyToClipboard(content);
+            showCopyNotification();
+        };
+        messageWrapper.appendChild(copyBtn);
+    }
+    
+    chatBox.appendChild(messageWrapper);
     if (returnElement) {
         return messageDiv;
     }
     scrollToBottom();
+}
+
+function showCopyNotification() {
+    // Create or reuse existing notification
+    let notification = document.querySelector('.copy-notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.className = 'copy-notification';
+        notification.textContent = 'Copied to clipboard!';
+        document.body.appendChild(notification);
+    } else {
+        // Reset animation by removing and re-adding the element
+        notification.remove();
+        notification = document.createElement('div');
+        notification.className = 'copy-notification';
+        notification.textContent = 'Copied to clipboard!';
+        document.body.appendChild(notification);
+    }
+    
+    // Fade out after 2 seconds
+    setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => notification.remove(), 500);
+    }, 2000);
 }
 function showLoading(show) {
     const loading = document.getElementById('loading');
@@ -960,10 +1014,36 @@ window.addEventListener('load', () => {
 window.toggleTextSize = toggleTextSize;
 
 function copyToClipboard(text) {
+    // If text contains HTML, we need to extract the plain text
+    if (typeof text === 'string' && text.includes('<') && text.includes('>')) {
+        // Create a temporary div to extract text content
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = text;
+        text = tempDiv.textContent || tempDiv.innerText || '';
+    }
+    
     navigator.clipboard.writeText(text).then(function() {
-        // Optional: Show success message
         console.log('Text copied to clipboard');
     }, function(err) {
         console.error('Failed to copy: ', err);
+        
+        // Fallback method for browsers that don't support clipboard API
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            console.log('Fallback: Text copied to clipboard');
+        } catch (err) {
+            console.error('Fallback: Failed to copy', err);
+        }
+        
+        document.body.removeChild(textArea);
     });
 }
