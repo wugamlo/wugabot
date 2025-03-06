@@ -104,10 +104,20 @@ body {
   transition: opacity 0.3s ease;
   font-size: 12px;
   border: none;
+  z-index: 10;
 }
 
 .message:hover .copy-button {
   opacity: 0.8;
+}
+
+.message.assistant .copy-button {
+  background-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+.message.assistant:hover .copy-button {
+  opacity: 1;
 }
 
 .message .copy-button:hover {

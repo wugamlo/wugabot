@@ -855,26 +855,25 @@ function appendMessage(content, role, returnElement = false) {
         copyButton.innerHTML = '<i class="fas fa-copy"></i>';
         copyButton.title = 'Copy to clipboard';
         
-        // Use direct function reference with proper binding to ensure 'this' refers to the element
-        copyButton.onclick = function(e) {
+        // Add event listener properly
+        copyButton.addEventListener('click', function(e) {
             e.stopPropagation();
             copyMessageContent(messageDiv);
-            return false; // Prevent event bubbling
-        };
+        });
         
         messageDiv.appendChild(copyButton);
-        
-        // Make sure the button is visible on hover
-        messageDiv.onmouseover = function() {
-            const btn = this.querySelector('.copy-button');
-            if (btn) btn.style.opacity = "0.8";
-        };
-        
-        messageDiv.onmouseout = function() {
-            const btn = this.querySelector('.copy-button');
-            if (btn) btn.style.opacity = "0";
-        };
     }
+    
+    // Add hover effect for all messages
+    messageDiv.addEventListener('mouseenter', function() {
+        const btn = this.querySelector('.copy-button');
+        if (btn) btn.style.opacity = "0.8";
+    });
+    
+    messageDiv.addEventListener('mouseleave', function() {
+        const btn = this.querySelector('.copy-button');
+        if (btn) btn.style.opacity = "0";
+    });
     
     chatBox.appendChild(messageDiv);
     if (returnElement) {
