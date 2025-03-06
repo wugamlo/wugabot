@@ -612,18 +612,18 @@ async function fetchChatResponse(messages, botMessage) {
                 if (!data) continue;
                 
                 if (data === '[DONE]') {
-                    // Convert reasoning to collapsible format on completion
+                    // When streaming is complete, format the content and update the message
                     let finalContent = formatContent(botContentBuffer);
                     
-                    // If we have reasoning content, create a collapsible section at the top after completion
+                    // If we have reasoning content, create a collapsible section at the top
                     if (reasoningContent) {
-                        // Remove any existing reasoning content div
+                        // First remove any existing reasoning content that was shown during streaming
                         const reasoningDiv = botMessage.querySelector('.reasoning-content');
                         if (reasoningDiv) {
                             reasoningDiv.remove();
                         }
                         
-                        // Add collapsible reasoning at the top
+                        // Create a collapsible section at the top containing the reasoning
                         finalContent = `<div class="reasoning-section">
                             <div class="reasoning-header collapsed" onclick="toggleReasoning(this)">
                                 <span>AI Reasoning</span>
@@ -715,12 +715,19 @@ async function fetchChatResponse(messages, botMessage) {
                     // Update the message with all available content
                     let updatedContent = formatContent(botContentBuffer);
                     
-                    // Add reasoning content if available and not already in the content
-                    if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
+                    // Add reasoning content if available
+                    if (reasoningContent) {
                         // During streaming, show reasoning inline at the bottom
                         if (currentStream) {
-                            updatedContent = updatedContent + 
-                                `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
+                            // Replace any existing reasoning content with the updated one
+                            const existingReasoning = botMessage.querySelector('.reasoning-content');
+                            if (existingReasoning) {
+                                existingReasoning.innerHTML = `<strong>Reasoning:</strong><br>${reasoningContent}`;
+                            } else {
+                                // Add new reasoning content if it doesn't exist yet
+                                updatedContent = updatedContent + 
+                                    `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
+                            }
                         }
                     }
                     
