@@ -869,7 +869,9 @@ function appendMessage(content, role, returnElement = false) {
         copyBtn.className = 'copy-button assistant-copy';
         copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
         copyBtn.onclick = function() {
-            copyToClipboard(content);
+            // Get the innerHTML from the message div rather than using the content parameter
+            const messageText = messageDiv.textContent || messageDiv.innerText;
+            copyToClipboard(messageText);
             showCopyNotification();
         };
         messageWrapper.appendChild(copyBtn);

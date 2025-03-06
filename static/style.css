@@ -91,7 +91,7 @@ body {
 }
 
 .assistant-wrapper {
-  flex-direction: column;
+  flex-direction: row;
   align-items: flex-start;
 }
 
@@ -109,7 +109,7 @@ body {
 }
 
 .assistant-wrapper {
-  flex-direction: column;
+  flex-direction: row;
   align-items: flex-start;
 }
 
@@ -143,8 +143,9 @@ body {
 }
 
 .assistant-copy {
-  margin-top: 8px;
-  align-self: flex-end;
+  margin-right: 8px;
+  align-self: flex-start;
+  order: -1; /* Place button before the message */
 }
 
 .message-wrapper:hover .copy-button {
@@ -195,8 +196,9 @@ body {
 }
 
 .assistant-copy {
-  margin-top: 8px;
-  align-self: flex-end;
+  margin-right: 8px;
+  align-self: flex-start;
+  order: -1; /* Place button before the message */
 }
 
 .message-wrapper:hover .copy-button {
@@ -247,8 +249,8 @@ body {
 }
 
 .message.assistant {
-  background: #ecf0f1; /* Assistant Message Color */
-  color: #333; /* Text color for assistant */
+  background: #121212;
+  color: #ffffff;
   align-self: flex-start;
 }
 
@@ -830,17 +832,17 @@ input[type="number"] {
         display: flex;
         flex-direction: column;
     }
-    
+
     .copy-button {
         width: 28px;
         height: 28px;
         opacity: 0.6;
     }
-    
+
     .user-copy {
         margin-right: 5px;
     }
-    
+
     .assistant-copy {
         margin-top: 5px;
         align-self: flex-end;
