@@ -845,12 +845,69 @@ function appendMessage(content, role, returnElement = false) {
         }
     }
     messageDiv.innerHTML = content;
+    
+    // Add copy button for non-empty messages
+    if (content && content.trim() !== '') {
+        const copyButton = document.createElement('button');
+        copyButton.className = 'copy-button';
+        copyButton.innerHTML = '<i class="fas fa-copy"></i>';
+        copyButton.title = 'Copy to clipboard';
+        copyButton.addEventListener('click', function(e) {
+            e.stopPropagation();
+            copyMessageContent(messageDiv);
+        });
+        messageDiv.appendChild(copyButton);
+    }
+    
     chatBox.appendChild(messageDiv);
     if (returnElement) {
         return messageDiv;
     }
     scrollToBottom();
 }
+
+// Function to copy message content to clipboard
+function copyMessageContent(messageElement) {
+    // Create a cloned element without the copy button to extract content
+    const tempElement = messageElement.cloneNode(true);
+    const copyButton = tempElement.querySelector('.copy-button');
+    if (copyButton) {
+        copyButton.remove();
+    }
+    
+    // Get the text content, handling both HTML and plain text
+    let content = tempElement.innerText || tempElement.textContent;
+    
+    // For images, add a text description
+    if (tempElement.querySelector('img')) {
+        content += '\n[Image included in original message]';
+    }
+    
+    // Create a temporary textarea element to copy from
+    const textarea = document.createElement('textarea');
+    textarea.value = content;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    
+    // Select the content and copy
+    textarea.select();
+    document.execCommand('copy');
+    
+    // Remove the textarea
+    document.body.removeChild(textarea);
+    
+    // Show feedback
+    const originalText = copyButton.innerHTML;
+    copyButton.innerHTML = '<i class="fas fa-check"></i>';
+    setTimeout(() => {
+        copyButton.innerHTML = originalText;
+    }, 1500);
+}
+
+// Export the copyMessageContent function for global access
+window.copyMessageContent = copyMessageContent;
 function showLoading(show) {
     const loading = document.getElementById('loading');
     loading.classList.toggle('hidden', !show);
@@ -932,6 +989,7 @@ window.clearChatHistory = clearChatHistory;
 window.togglePromptComposer = togglePromptComposer;
 window.clearFields = clearFields;
 window.transferPrompt = transferPrompt;
+window.copyMessageContent = copyMessageContent;
 
 function toggleTextSize(size) {
     const container = document.querySelector('.container');

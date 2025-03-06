@@ -84,6 +84,35 @@ body {
   line-height: 1.5;
   transition: all 0.3s;
   font-size: 16px;
+  position: relative;
+}
+
+.message .copy-button {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  font-size: 12px;
+  border: none;
+}
+
+.message:hover .copy-button {
+  opacity: 0.8;
+}
+
+.message .copy-button:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
 .big-text .message {
