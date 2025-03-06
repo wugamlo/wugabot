@@ -835,8 +835,6 @@ function appendMessage(content, role, returnElement = false) {
     const chatBox = document.getElementById('chatBox');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
-    
-    // Process content
     if (typeof content === 'string') {
         if (!content.startsWith('<img')) {
             content = content
@@ -847,119 +845,12 @@ function appendMessage(content, role, returnElement = false) {
         }
     }
     messageDiv.innerHTML = content;
-    
-    // Add copy button for non-empty messages and all except error messages
-    if (content && content.trim() !== '' && role !== 'error') {
-        const copyButton = document.createElement('button');
-        copyButton.className = 'copy-button';
-        copyButton.innerHTML = '<i class="fas fa-copy"></i>';
-        copyButton.title = 'Copy to clipboard';
-        
-        // Add event listener properly
-        copyButton.addEventListener('click', function(e) {
-            e.stopPropagation();
-            copyMessageContent(messageDiv);
-        });
-        
-        messageDiv.appendChild(copyButton);
-    }
-    
-    // Add hover effect for all messages
-    messageDiv.addEventListener('mouseenter', function() {
-        const btn = this.querySelector('.copy-button');
-        if (btn) btn.style.opacity = "0.8";
-    });
-    
-    messageDiv.addEventListener('mouseleave', function() {
-        const btn = this.querySelector('.copy-button');
-        if (btn) btn.style.opacity = "0";
-    });
-    
     chatBox.appendChild(messageDiv);
     if (returnElement) {
         return messageDiv;
     }
     scrollToBottom();
 }
-
-// Function to copy message content to clipboard
-function copyMessageContent(messageElement) {
-    try {
-        // Create a cloned element without the copy button to extract content
-        const tempElement = messageElement.cloneNode(true);
-        const copyButton = tempElement.querySelector('.copy-button');
-        if (copyButton) {
-            copyButton.remove();
-        }
-        
-        // Get the text content, handling both HTML and plain text
-        let content = tempElement.innerText || tempElement.textContent;
-        
-        // For images, add a text description
-        if (tempElement.querySelector('img')) {
-            content += '\n[Image included in original message]';
-        }
-        
-        // Use modern clipboard API if available
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(content)
-                .then(() => {
-                    // Show feedback on the original button
-                    const origButton = messageElement.querySelector('.copy-button');
-                    if (origButton) {
-                        const originalText = origButton.innerHTML;
-                        origButton.innerHTML = '<i class="fas fa-check"></i>';
-                        setTimeout(() => {
-                            origButton.innerHTML = originalText;
-                        }, 1500);
-                    }
-                })
-                .catch(err => {
-                    console.error('Failed to copy: ', err);
-                    fallbackCopy();
-                });
-        } else {
-            fallbackCopy();
-        }
-        
-        // Fallback copy method using execCommand
-        function fallbackCopy() {
-            const textarea = document.createElement('textarea');
-            textarea.value = content;
-            textarea.setAttribute('readonly', '');
-            textarea.style.position = 'absolute';
-            textarea.style.left = '-9999px';
-            document.body.appendChild(textarea);
-            
-            textarea.select();
-            let success = false;
-            try {
-                success = document.execCommand('copy');
-            } catch (err) {
-                console.error('Error copying text: ', err);
-            }
-            
-            document.body.removeChild(textarea);
-            
-            // Show feedback
-            const origButton = messageElement.querySelector('.copy-button');
-            if (origButton) {
-                const originalText = origButton.innerHTML;
-                origButton.innerHTML = success ? 
-                    '<i class="fas fa-check"></i>' : 
-                    '<i class="fas fa-times"></i>';
-                setTimeout(() => {
-                    origButton.innerHTML = originalText;
-                }, 1500);
-            }
-        }
-    } catch (error) {
-        console.error('Copy function error:', error);
-    }
-}
-
-// Export the copyMessageContent function for global access
-window.copyMessageContent = copyMessageContent;
 function showLoading(show) {
     const loading = document.getElementById('loading');
     loading.classList.toggle('hidden', !show);
@@ -1041,7 +932,6 @@ window.clearChatHistory = clearChatHistory;
 window.togglePromptComposer = togglePromptComposer;
 window.clearFields = clearFields;
 window.transferPrompt = transferPrompt;
-window.copyMessageContent = copyMessageContent;
 
 function toggleTextSize(size) {
     const container = document.querySelector('.container');
