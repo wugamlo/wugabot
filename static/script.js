@@ -615,8 +615,15 @@ async function fetchChatResponse(messages, botMessage) {
                     // Convert reasoning to collapsible format on completion
                     let finalContent = formatContent(botContentBuffer);
                     
-                    // If we have reasoning content, format as collapsible after completion
+                    // If we have reasoning content, create a collapsible section at the top after completion
                     if (reasoningContent) {
+                        // Remove any existing reasoning content div
+                        const reasoningDiv = botMessage.querySelector('.reasoning-content');
+                        if (reasoningDiv) {
+                            reasoningDiv.remove();
+                        }
+                        
+                        // Add collapsible reasoning at the top
                         finalContent = `<div class="reasoning-section">
                             <div class="reasoning-header collapsed" onclick="toggleReasoning(this)">
                                 <span>AI Reasoning</span>
@@ -710,21 +717,10 @@ async function fetchChatResponse(messages, botMessage) {
                     
                     // Add reasoning content if available and not already in the content
                     if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
-                        // During streaming, show reasoning inline
+                        // During streaming, show reasoning inline at the bottom
                         if (currentStream) {
                             updatedContent = updatedContent + 
                                 `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
-                        } else {
-                            // After completion, format as collapsible section
-                            updatedContent = `<div class="reasoning-section">
-                                <div class="reasoning-header collapsed" onclick="toggleReasoning(this)">
-                                    <span>AI Reasoning</span>
-                                    <span class="toggle-icon"></span>
-                                </div>
-                                <div class="reasoning-body collapsed">
-                                    ${reasoningContent}
-                                </div>
-                            </div>` + updatedContent;
                         }
                     }
                     
