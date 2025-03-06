@@ -247,11 +247,58 @@ button {
     display: block;
     margin: 10px 0;
     padding: 12px;
-    background: #9e9e9e;
+    background: #2a2a2a;
     border-left: 4px solid #ffd700;
     border-radius: 4px;
-    color: #000000;
+    color: #cccccc;
     font-style: italic;
+}
+
+.reasoning-section {
+    margin: 10px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #333;
+}
+
+.reasoning-header {
+    padding: 10px 15px;
+    background: #2a2a2a;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    color: #ffd700;
+}
+
+.reasoning-header:hover {
+    background: #333333;
+}
+
+.reasoning-header .toggle-icon::after {
+    content: '▼';
+    font-size: 12px;
+    transition: transform 0.3s;
+}
+
+.reasoning-header.collapsed .toggle-icon::after {
+    transform: rotate(-90deg);
+}
+
+.reasoning-body {
+    padding: 15px;
+    background: #252525;
+    display: block;
+    transition: max-height 0.3s ease;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.reasoning-body.collapsed {
+    max-height: 0;
+    padding: 0 15px;
+    overflow: hidden;
 }
 
 #systemPrompt {
