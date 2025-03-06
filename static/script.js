@@ -550,7 +550,6 @@ async function submitChat(message, base64Image) {
 // Fetch response from chat
 async function fetchChatResponse(messages, botMessage) {
     showLoading(true);
-    currentStream = true; // Set currentStream to true when streaming starts
     try {
         const searchButton = document.getElementById('searchEnabled');
         const searchEnabled = searchButton && searchButton.classList.contains('active');
@@ -612,37 +611,12 @@ async function fetchChatResponse(messages, botMessage) {
                 if (!data) continue;
                 
                 if (data === '[DONE]') {
-                    // When streaming is complete, format the content and update the message
-                    let finalContent = formatContent(botContentBuffer);
-                    
-                    // If we have reasoning content, create a collapsible section at the top
-                    if (reasoningContent) {
-                        // First remove any existing reasoning content that was shown during streaming
-                        const reasoningDiv = botMessage.querySelector('.reasoning-content');
-                        if (reasoningDiv) {
-                            reasoningDiv.remove();
-                        }
-                        
-                        // Create a collapsible section at the top containing the reasoning
-                        finalContent = `<div class="reasoning-section">
-                            <div class="reasoning-header collapsed" onclick="toggleReasoning(this)">
-                                <span>AI Reasoning</span>
-                                <span class="toggle-icon"></span>
-                            </div>
-                            <div class="reasoning-body collapsed">
-                                ${reasoningContent}
-                            </div>
-                        </div>` + finalContent;
-                    }
-                    
-                    // Add citations if available
+                    // Final check to ensure all content is displayed before completing
                     if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
+                        const finalContent = formatContent(botContentBuffer);
                         botMessage.innerHTML = finalContent + formatCitations(lastCitations);
-                    } else {
-                        botMessage.innerHTML = finalContent;
                     }
                     
-                    currentStream = null;
                     showLoading(false);
                     chatHistory.push({ 
                         role: 'assistant', 
@@ -715,20 +689,10 @@ async function fetchChatResponse(messages, botMessage) {
                     // Update the message with all available content
                     let updatedContent = formatContent(botContentBuffer);
                     
-                    // Add reasoning content if available
-                    if (reasoningContent) {
-                        // During streaming, show reasoning inline at the bottom
-                        if (currentStream) {
-                            // Replace any existing reasoning content with the updated one
-                            const existingReasoning = botMessage.querySelector('.reasoning-content');
-                            if (existingReasoning) {
-                                existingReasoning.innerHTML = `<strong>Reasoning:</strong><br>${reasoningContent}`;
-                            } else {
-                                // Add new reasoning content if it doesn't exist yet
-                                updatedContent = updatedContent + 
-                                    `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
-                            }
-                        }
+                    // Add reasoning content if available and not already in the content
+                    if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
+                        updatedContent = updatedContent + 
+                            `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
                     }
                     
                     // Add citations if available
@@ -805,16 +769,6 @@ function toggleCitations(header) {
 
 // Export the toggle function for global access
 window.toggleCitations = toggleCitations;
-
-// Toggle function for reasoning sections
-function toggleReasoning(header) {
-    header.classList.toggle('collapsed');
-    const body = header.nextElementSibling;
-    body.classList.toggle('collapsed');
-}
-
-// Export reasoning toggle for global access
-window.toggleReasoning = toggleReasoning;
 
 function formatContent(content) {
     // First handle reasoning content by directly using the API's reasoning_content field
