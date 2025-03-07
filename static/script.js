@@ -691,10 +691,30 @@ async function fetchChatResponse(messages, botMessage) {
                     
                     // Add reasoning content if available and not already in the content
                     if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
-                        // Format the reasoning content to support code blocks and other formatting
-                        const formattedReasoningContent = formatContent(reasoningContent);
+                        // Process reasoning content separately to preserve code blocks
+                        // First handle code blocks before any other formatting
+                        let processedReasoningContent = reasoningContent.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
+                            // Store the trimmed code
+                            const trimmedCode = code.trim();
+                            // Use Prism for highlighting if available for the language
+                            const highlightedCode = Prism.highlight(
+                                trimmedCode,
+                                Prism.languages[lang] || Prism.languages.plain,
+                                lang || 'plaintext'
+                            );
+                            return `<pre class="code-block reasoning-code-block"><code class="language-${lang || 'plaintext'}">${highlightedCode}</code></pre>`;
+                        });
+                        
+                        // Now apply other formatting but exclude code blocks
+                        processedReasoningContent = processedReasoningContent
+                            .replace(/`([^`]+)`/g, '<code class="inline-code reasoning-inline-code">$1</code>') // Inline code
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+                            .replace(/\*([^*]+)\*/g, '<em>$1</em>') // Italics
+                            .replace(/^- (.*?)$/gm, '<li>$1</li>') // Lists
+                            .replace(/\n/g, '<br>'); // Line breaks
+                            
                         updatedContent = updatedContent + 
-                            `<div class="reasoning-content"><strong>Reasoning:</strong><br>${formattedReasoningContent}</div>`;
+                            `<div class="reasoning-content"><strong>Reasoning:</strong><br>${processedReasoningContent}</div>`;
                     }
                     
                     // Add citations if available
@@ -827,7 +847,7 @@ function formatContent(content) {
 
     // Restore code blocks
     formatted = formatted.replace(/<!-- code-block-(\d+) -->/g, (match, index) => {
-        return codeBlocks[parseInt(index)];
+        return codeBlocks[parseInt(index)] || '';
     });
 
     return formatted;

@@ -254,23 +254,37 @@ button {
     font-style: italic;
 }
 
-/* Ensure code blocks within reasoning content are properly styled */
-.reasoning-content .code-block,
-.reasoning-content pre {
-    background: var(--code-bg);
-    color: #fff;
-    font-style: normal;
-    margin: 8px 0;
+/* Specific styling for code blocks in reasoning content */
+.reasoning-content pre.code-block,
+.reasoning-content pre,
+.reasoning-code-block {
+    display: block;
+    background: var(--code-bg) !important;
+    color: #fff !important;
+    font-style: normal !important;
+    margin: 8px 0 !important;
+    padding: 12px !important;
+    border-radius: 6px !important;
+    font-family: Monaco, Consolas, 'Courier New', monospace !important;
+    overflow-x: auto !important;
+    white-space: pre !important;
+    border: 1px solid #444 !important;
 }
 
-.reasoning-content .inline-code {
-    background: var(--inline-code-bg);
-    color: #fff;
-    font-style: normal;
-    padding: 2px 4px;
-    border-radius: 4px;
-    font-family: Monaco, Consolas, 'Courier New', monospace;
-    font-size: 0.9em;
+.reasoning-content .inline-code,
+.reasoning-inline-code {
+    background: var(--inline-code-bg) !important;
+    color: #fff !important;
+    font-style: normal !important;
+    padding: 2px 4px !important;
+    border-radius: 4px !important;
+    font-family: Monaco, Consolas, 'Courier New', monospace !important;
+    font-size: 0.9em !important;
+}
+
+/* Ensure code inside reasoning content is selectable and copyable */
+.reasoning-content * {
+    user-select: text !important;
 }
 
 #systemPrompt {
