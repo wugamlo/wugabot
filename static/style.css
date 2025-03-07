@@ -254,6 +254,25 @@ button {
     font-style: italic;
 }
 
+/* Ensure code blocks within reasoning content are properly styled */
+.reasoning-content .code-block,
+.reasoning-content pre {
+    background: var(--code-bg);
+    color: #fff;
+    font-style: normal;
+    margin: 8px 0;
+}
+
+.reasoning-content .inline-code {
+    background: var(--inline-code-bg);
+    color: #fff;
+    font-style: normal;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: Monaco, Consolas, 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
 #systemPrompt {
     font-size: 14px;
     min-height: 120px;

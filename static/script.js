@@ -691,8 +691,10 @@ async function fetchChatResponse(messages, botMessage) {
                     
                     // Add reasoning content if available and not already in the content
                     if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
+                        // Format the reasoning content to support code blocks and other formatting
+                        const formattedReasoningContent = formatContent(reasoningContent);
                         updatedContent = updatedContent + 
-                            `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
+                            `<div class="reasoning-content"><strong>Reasoning:</strong><br>${formattedReasoningContent}</div>`;
                     }
                     
                     // Add citations if available
