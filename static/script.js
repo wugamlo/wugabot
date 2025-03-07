@@ -628,25 +628,20 @@ async function fetchChatResponse(messages, botMessage) {
                 }
                 
                 try {
-                    console.log("Processing data chunk:", data.substring(0, 50) + "...");
                     const parsed = JSON.parse(data);
                     
-                    // Log every chunk for debugging
-                    console.log('Parsed response type:', parsed.content ? 'content' : 
-                                           (parsed.reasoning_content ? 'reasoning' : 
-                                           (parsed.venice_parameters ? 'parameters' : 
-                                           (parsed.choices ? 'choices' : 'unknown'))));
-                    
-                    // More detailed logging to track exactly what's in each chunk
-                    const chunkInfo = {
-                        hasContent: !!parsed.content,
-                        contentLength: parsed.content?.length || 0,
-                        hasReasoningContent: !!parsed.reasoning_content,
-                        reasoningLength: parsed.reasoning_content?.length || 0,
-                        hasChoices: !!parsed.choices,
-                        hasError: !!parsed.error
-                    };
-                    console.log("Chunk info:", chunkInfo);
+                    // Log important parts of the response for debugging
+                    if (parsed.error || parsed.venice_parameters) {
+                        // Only log a portion of potentially very large responses to avoid console errors
+                        const truncatedResponse = {...parsed};
+                        if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
+                            truncatedResponse.venice_parameters = {
+                                ...parsed.venice_parameters,
+                                web_search_citations: parsed.venice_parameters.web_search_citations.slice(0, 2)
+                            };
+                        }
+                        console.log('Parsed response chunk:', truncatedResponse);
+                    }
                     
                     // Handle errors
                     if (parsed.error) {
@@ -691,30 +686,13 @@ async function fetchChatResponse(messages, botMessage) {
                         }
                     }
                     
-                    // DEBUG: Log the incoming content
-                    console.log("Content buffer length:", botContentBuffer.length);
-                    console.log("Content sample:", botContentBuffer.substring(0, 100));
-                    
                     // Update the message with all available content
                     let updatedContent = formatContent(botContentBuffer);
                     
-                    console.log("Formatted content length:", updatedContent.length);
-                    
-                    // Debug code block presence
-                    const hasCodeBlock = botContentBuffer.includes("```");
-                    const hasCodeBlockInFormatted = updatedContent.includes("<pre class=\"code-block\">");
-                    console.log("Content contains code blocks:", hasCodeBlock);
-                    console.log("Formatted content has code blocks:", hasCodeBlockInFormatted);
-                    
                     // Add reasoning content if available and not already in the content
                     if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
-                        // Use the same formatContent function that works for the main content
-                        const processedReasoningContent = formatContent(reasoningContent);
-                        console.log("Reasoning content length:", reasoningContent.length);
-                        
-                        // Add the processed reasoning content to the main content
                         updatedContent = updatedContent + 
-                            `<div class="reasoning-content"><strong>Reasoning:</strong><br>${processedReasoningContent}</div>`;
+                            `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
                     }
                     
                     // Add citations if available
@@ -723,11 +701,6 @@ async function fetchChatResponse(messages, botMessage) {
                     } else {
                         botMessage.innerHTML = updatedContent;
                     }
-                    
-                    // DEBUG: Check what's being set in the DOM and if there are code blocks
-                    console.log("Set innerHTML length:", botMessage.innerHTML.length);
-                    console.log("Bot message contains code blocks:", botMessage.innerHTML.includes("<pre class=\"code-block\">"));
-                    console.log("Bot message visibility:", getComputedStyle(botMessage).display);
                     
                     Prism.highlightAll();
                     scrollToBottom();
@@ -798,14 +771,6 @@ function toggleCitations(header) {
 window.toggleCitations = toggleCitations;
 
 function formatContent(content) {
-    // Debug: check the input content
-    console.log("Formatting content of length:", content?.length || 0);
-    
-    if (!content) {
-        console.warn("Empty content provided to formatContent");
-        return "";
-    }
-    
     // First handle reasoning content by directly using the API's reasoning_content field
     // (this is handled separately in the fetchChatResponse function now)
     let formatted = content;
@@ -813,112 +778,63 @@ function formatContent(content) {
     // Fallback for any <think> tags that might still be in the content
     if (/<think>\n?([\s\S]+?)<\/think>/g.test(content)) {
         formatted = content.replace(/<think>\n?([\s\S]+?)<\/think>/g, (match, content) => {
-            console.log("Found <think> tag, processing reasoning content");
             return `<div class="reasoning-content"><strong>Reasoning:</strong><br>${content.trim()}</div>`;
         });
     }
     
-    try {
-        // Enhanced code block processing with more detailed logging
-        // First check if there are any code blocks
-        const codeBlockCount = (formatted.match(/```(\w*)\n?([\s\S]+?)\n```/g) || []).length;
-        console.log(`Found ${codeBlockCount} code blocks in content`);
-        
-        if (codeBlockCount > 0) {
-            // Format code blocks with detailed debugging
-            formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
-                console.log(`Processing code block [${lang || "none"}], length: ${code.length}`);
-                const trimmedCode = code.trim();
-                
-                // Create a direct HTML structure for code block
-                const codeHtml = `<pre class="code-block"><code class="language-${lang || 'plaintext'}">${trimmedCode.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
-                
-                // Try to highlight with Prism if available
-                try {
-                    const highlightedCode = Prism.highlight(
-                        trimmedCode,
-                        Prism.languages[lang] || Prism.languages.plain,
-                        lang || 'plaintext'
-                    );
-                    return `<pre class="code-block"><code class="language-${lang || 'plaintext'}">${highlightedCode}</code></pre>`;
-                } catch (e) {
-                    console.error("Error highlighting code:", e);
-                    // Fallback to the direct HTML 
-                    return codeHtml;
-                }
-            });
-            console.log("Code blocks processed, new content length:", formatted.length);
-        }
-    } catch (e) {
-        console.error("Error processing code blocks:", e);
-    }
+    // Format code blocks - improved to handle language specification better
+    formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
+        // Store the trimmed code
+        const trimmedCode = code.trim();
+        // Use Prism for highlighting if available for the language
+        const highlightedCode = Prism.highlight(
+            trimmedCode,
+            Prism.languages[lang] || Prism.languages.plain,
+            lang || 'plaintext'
+        );
+        return `<pre class="code-block"><code class="language-${lang || 'plaintext'}">${highlightedCode}</code></pre>`;
+    });
 
-    try {
-        // Store code blocks to prevent them from being affected by markdown processing
-        const codeBlockPattern = /<pre class="code-block">[\s\S]*?<\/pre>/g;
-        const codeBlocks = [];
-        formatted = formatted.replace(codeBlockPattern, (match) => {
-            codeBlocks.push(match);
-            return `<!-- code-block-${codeBlocks.length - 1} -->`;
+    // Store code blocks to prevent them from being affected by markdown processing
+    const codeBlockPattern = /<pre class="code-block">[\s\S]*?<\/pre>/g;
+    const codeBlocks = [];
+    formatted = formatted.replace(codeBlockPattern, (match) => {
+        codeBlocks.push(match);
+        return `<!-- code-block-${codeBlocks.length - 1} -->`;
+    });
+
+    // Process standard markdown elements in more consistent way
+    formatted = formatted
+        // Headers - ensure they're properly matched at line start
+        .replace(/^# (.*?)$/gm, '<h1>$1</h1>') 
+        .replace(/^## (.*?)$/gm, '<h2>$1</h2>')  
+        .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
+        // Lists - better handling of nested lists
+        .replace(/^- (.*?)$/gm, '<li>$1</li>')
+        .replace(/^\d+\. (.*?)$/gm, '<li>$1</li>')
+        // Bold and italics
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        // Inline code - improved to prevent nested matching
+        .replace(/`([^`]+)`/g, (match, code) => {
+            return `<code class="inline-code">${code}</code>`;
         });
-        console.log("Extracted code blocks:", codeBlocks.length);
+    
+    // Handle line breaks in a more standard way
+    formatted = formatted.split('\n').map(line => line.trim()).join('<br>');
 
-        // Process standard markdown elements in more consistent way
-        formatted = formatted
-            // Headers - ensure they're properly matched at line start
-            .replace(/^# (.*?)$/gm, '<h1>$1</h1>') 
-            .replace(/^## (.*?)$/gm, '<h2>$1</h2>')  
-            .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
-            // Lists - better handling of nested lists
-            .replace(/^- (.*?)$/gm, '<li>$1</li>')
-            .replace(/^\d+\. (.*?)$/gm, '<li>$1</li>')
-            // Bold and italics
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-            // Inline code - improved to prevent nested matching
-            .replace(/`([^`]+)`/g, (match, code) => {
-                return `<code class="inline-code">${code}</code>`;
-            });
-        
-        // Handle line breaks in a more standard way
-        formatted = formatted.split('\n').map(line => line.trim()).join('<br>');
+    // Restore code blocks
+    formatted = formatted.replace(/<!-- code-block-(\d+) -->/g, (match, index) => {
+        return codeBlocks[parseInt(index)];
+    });
 
-        // Restore code blocks
-        formatted = formatted.replace(/<!-- code-block-(\d+) -->/g, (match, index) => {
-            return codeBlocks[parseInt(index)] || '';
-        });
-    } catch (e) {
-        console.error("Error in markdown processing:", e);
-        // If processing fails, at least return the original content with basic HTML escaping
-        return content
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/\n/g, '<br>');
-    }
-
-    console.log("Formatting complete, result length:", formatted.length);
     return formatted;
 }
 
 function appendMessage(content, role, returnElement = false) {
-    console.log(`Appending message, role: ${role}, content length: ${content?.length || 0}`);
-    
     const chatBox = document.getElementById('chatBox');
-    if (!chatBox) {
-        console.error("Chat box element not found!");
-        return null;
-    }
-    
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
-    messageDiv.setAttribute('data-timestamp', new Date().toISOString());
-    
-    // Add a debug ID for assistant messages
-    if (role === 'assistant') {
-        messageDiv.setAttribute('id', `assistant-msg-${Date.now()}`);
-    }
-    
     if (typeof content === 'string') {
         if (!content.startsWith('<img')) {
             content = content
@@ -927,21 +843,13 @@ function appendMessage(content, role, returnElement = false) {
                 .replace(/&lt;(\/?(?:instructions|format|context|examples|warnings))&gt;/g, '<span class="xml-tag">&lt;$1&gt;</span>')
                 .replace(/\n/g, '<br>');
         }
-    } else if (content === undefined || content === null) {
-        console.warn("Empty content provided to appendMessage");
-        content = '<span style="color: gray; font-style: italic;">Waiting for content...</span>';
     }
-    
     messageDiv.innerHTML = content;
     chatBox.appendChild(messageDiv);
-    console.log(`Message appended, element ID: ${messageDiv.id || 'none'}`);
-    
     if (returnElement) {
         return messageDiv;
     }
-    
     scrollToBottom();
-    return null;
 }
 function showLoading(show) {
     const loading = document.getElementById('loading');

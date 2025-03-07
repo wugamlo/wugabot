@@ -198,30 +198,21 @@ button {
   color: var(--text-color);
 }
 
-.message pre, 
-.message pre.code-block {
+.message pre {
   background: var(--code-bg);
   color: #fff;
   padding: 15px;
   border-radius: 8px;
   overflow-x: auto;
   margin: 10px 0;
-  display: block !important;
-  visibility: visible !important;
-  border: 1px solid #444;
-  width: 95%;
-  max-width: 95%;
 }
 
-.message pre code, 
-.message .code-block code {
+.message pre code {
   background: none;
   padding: 0;
   font-size: 14px;
   white-space: pre;
   display: block;
-  visibility: visible !important;
-  font-family: Monaco, Consolas, 'Courier New', monospace;
 }
 
 .inline-code {
@@ -254,57 +245,13 @@ button {
 
 .reasoning-content {
     display: block;
-    margin: 15px 0;
-    padding: 15px;
-    background: #2a2a2a;
-    border-left: 4px solid #ffd700;
-    border-radius: 4px;
-    color: #e0e0e0;
-    position: relative;
-}
-
-.reasoning-content::before {
-    content: 'Reasoning';
-    position: absolute;
-    top: -10px;
-    left: 10px;
-    background: #ffd700;
-    color: #000;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-/* Let code blocks inherit the same styling as main content */
-.reasoning-content pre.code-block,
-.reasoning-content pre {
-    display: block;
-    background: var(--code-bg);
-    color: #fff;
-    font-style: normal;
     margin: 10px 0;
     padding: 12px;
-    border-radius: 6px;
-    font-family: Monaco, Consolas, 'Courier New', monospace;
-    overflow-x: auto;
-    white-space: pre;
-    border: 1px solid #444;
-}
-
-.reasoning-content .inline-code {
-    background: var(--inline-code-bg);
-    color: #fff;
-    font-style: normal;
-    padding: 2px 4px;
+    background: #9e9e9e;
+    border-left: 4px solid #ffd700;
     border-radius: 4px;
-    font-family: Monaco, Consolas, 'Courier New', monospace;
-    font-size: 0.9em;
-}
-
-/* Ensure code inside reasoning content is selectable and copyable */
-.reasoning-content * {
-    user-select: text !important;
+    color: #000000;
+    font-style: italic;
 }
 
 #systemPrompt {
@@ -505,13 +452,6 @@ input[type="number"] {
     background: #121212;
     color: #ffffff;
     align-self: flex-start;
-    border: 1px solid #3498db;
-    min-height: 20px;
-    max-width: 90%;
-    overflow-wrap: break-word;
-    word-break: break-word;
-    height: auto;
-    overflow: visible;
 }
 
 .citations-section {
@@ -993,4 +933,34 @@ input[type="number"] {
 .input-area button:nth-of-type(5) {
     min-width: 80px;
     font-weight: bold;
+}
+
+.reasoning-content pre {
+  background: var(--code-bg) !important;
+  color: #fff !important;
+  padding: 15px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 10px 0;
+  font-style: normal;
+}
+
+.reasoning-content code {
+  background: none !important;
+  padding: 0 !important;
+  font-size: 14px;
+  white-space: pre;
+  display: block;
+  font-style: normal;
+  font-family: Monaco, Consolas, 'Courier New', monospace;
+}
+
+.reasoning-content .inline-code {
+  background: var(--inline-code-bg) !important;
+  padding: 2px 4px !important;
+  border-radius: 4px;
+  font-family: Monaco, Consolas, 'Courier New', monospace;
+  font-size: 0.9em;
+  color: #ffffff;
+  font-style: normal;
 }
