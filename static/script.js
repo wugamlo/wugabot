@@ -845,12 +845,94 @@ function appendMessage(content, role, returnElement = false) {
         }
     }
     messageDiv.innerHTML = content;
+    
+    // Don't add copy button to error messages or empty messages
+    if (role !== 'error' && content.trim() !== '') {
+        // Create copy button
+        const copyButton = document.createElement('div');
+        copyButton.className = 'copy-button';
+        copyButton.innerHTML = '<i class="fas fa-copy"></i>';
+        copyButton.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event bubbling
+            copyMessageContent(messageDiv, role);
+        });
+        messageDiv.appendChild(copyButton);
+    }
+    
     chatBox.appendChild(messageDiv);
     if (returnElement) {
         return messageDiv;
     }
     scrollToBottom();
 }
+
+// Function to copy message content
+function copyMessageContent(messageDiv, role) {
+    // Get the content without the copy button
+    const contentToCopy = messageDiv.innerHTML
+        .replace(/<div class="copy-button">.*?<\/div>/gs, '')
+        .replace(/<div class="citations-section">.*?<\/div><\/div>/gs, '') // Remove citations
+        .replace(/<div class="reasoning-content">.*?<\/div>/gs, '') // Remove reasoning content
+        .replace(/<br>/g, '\n')
+        .replace(/<[^>]*>/g, '') // Remove any HTML tags
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>');
+    
+    // Use the Clipboard API
+    navigator.clipboard.writeText(contentToCopy)
+        .then(() => showCopySuccess())
+        .catch(err => {
+            console.error('Could not copy text: ', err);
+            // Fallback method for older browsers
+            fallbackCopyTextToClipboard(contentToCopy);
+        });
+}
+
+// Fallback for browsers that don't support Clipboard API
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopySuccess();
+        }
+    } catch (err) {
+        console.error('Fallback: Could not copy text: ', err);
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+// Show success message
+function showCopySuccess() {
+    // Check if notification already exists
+    let notification = document.querySelector('.copy-success');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.className = 'copy-success';
+        notification.textContent = 'Copied to clipboard!';
+        document.body.appendChild(notification);
+    }
+    
+    // Show the notification
+    notification.classList.add('show');
+    
+    // Hide after 2 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 2000);
+}
+
+// Export the function for global access
+window.copyMessageContent = copyMessageContent;
 function showLoading(show) {
     const loading = document.getElementById('loading');
     loading.classList.toggle('hidden', !show);
