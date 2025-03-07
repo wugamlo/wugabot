@@ -198,21 +198,30 @@ button {
   color: var(--text-color);
 }
 
-.message pre {
+.message pre, 
+.message pre.code-block {
   background: var(--code-bg);
   color: #fff;
   padding: 15px;
   border-radius: 8px;
   overflow-x: auto;
   margin: 10px 0;
+  display: block !important;
+  visibility: visible !important;
+  border: 1px solid #444;
+  width: 95%;
+  max-width: 95%;
 }
 
-.message pre code {
+.message pre code, 
+.message .code-block code {
   background: none;
   padding: 0;
   font-size: 14px;
   white-space: pre;
   display: block;
+  visibility: visible !important;
+  font-family: Monaco, Consolas, 'Courier New', monospace;
 }
 
 .inline-code {
@@ -496,8 +505,13 @@ input[type="number"] {
     background: #121212;
     color: #ffffff;
     align-self: flex-start;
-    border: 1px solid #3498db; /* Debug border to ensure it's visible */
-    min-height: 20px; /* Ensure empty messages have some height */
+    border: 1px solid #3498db;
+    min-height: 20px;
+    max-width: 90%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    height: auto;
+    overflow: visible;
 }
 
 .citations-section {

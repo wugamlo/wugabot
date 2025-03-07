@@ -700,6 +700,12 @@ async function fetchChatResponse(messages, botMessage) {
                     
                     console.log("Formatted content length:", updatedContent.length);
                     
+                    // Debug code block presence
+                    const hasCodeBlock = botContentBuffer.includes("```");
+                    const hasCodeBlockInFormatted = updatedContent.includes("<pre class=\"code-block\">");
+                    console.log("Content contains code blocks:", hasCodeBlock);
+                    console.log("Formatted content has code blocks:", hasCodeBlockInFormatted);
+                    
                     // Add reasoning content if available and not already in the content
                     if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
                         // Use the same formatContent function that works for the main content
@@ -718,8 +724,9 @@ async function fetchChatResponse(messages, botMessage) {
                         botMessage.innerHTML = updatedContent;
                     }
                     
-                    // DEBUG: Check what's being set in the DOM
+                    // DEBUG: Check what's being set in the DOM and if there are code blocks
                     console.log("Set innerHTML length:", botMessage.innerHTML.length);
+                    console.log("Bot message contains code blocks:", botMessage.innerHTML.includes("<pre class=\"code-block\">"));
                     console.log("Bot message visibility:", getComputedStyle(botMessage).display);
                     
                     Prism.highlightAll();
@@ -812,25 +819,36 @@ function formatContent(content) {
     }
     
     try {
-        // Format code blocks - improved to handle language specification better
-        formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
-            console.log("Processing code block with lang:", lang || "none");
-            // Store the trimmed code
-            const trimmedCode = code.trim();
-            try {
-                // Use Prism for highlighting if available for the language
-                const highlightedCode = Prism.highlight(
-                    trimmedCode,
-                    Prism.languages[lang] || Prism.languages.plain,
-                    lang || 'plaintext'
-                );
-                return `<pre class="code-block"><code class="language-${lang || 'plaintext'}">${highlightedCode}</code></pre>`;
-            } catch (e) {
-                console.error("Error highlighting code:", e);
-                // Fallback if highlighting fails
-                return `<pre class="code-block"><code>${trimmedCode}</code></pre>`;
-            }
-        });
+        // Enhanced code block processing with more detailed logging
+        // First check if there are any code blocks
+        const codeBlockCount = (formatted.match(/```(\w*)\n?([\s\S]+?)\n```/g) || []).length;
+        console.log(`Found ${codeBlockCount} code blocks in content`);
+        
+        if (codeBlockCount > 0) {
+            // Format code blocks with detailed debugging
+            formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
+                console.log(`Processing code block [${lang || "none"}], length: ${code.length}`);
+                const trimmedCode = code.trim();
+                
+                // Create a direct HTML structure for code block
+                const codeHtml = `<pre class="code-block"><code class="language-${lang || 'plaintext'}">${trimmedCode.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+                
+                // Try to highlight with Prism if available
+                try {
+                    const highlightedCode = Prism.highlight(
+                        trimmedCode,
+                        Prism.languages[lang] || Prism.languages.plain,
+                        lang || 'plaintext'
+                    );
+                    return `<pre class="code-block"><code class="language-${lang || 'plaintext'}">${highlightedCode}</code></pre>`;
+                } catch (e) {
+                    console.error("Error highlighting code:", e);
+                    // Fallback to the direct HTML 
+                    return codeHtml;
+                }
+            });
+            console.log("Code blocks processed, new content length:", formatted.length);
+        }
     } catch (e) {
         console.error("Error processing code blocks:", e);
     }
