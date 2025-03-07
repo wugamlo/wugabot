@@ -691,45 +691,8 @@ async function fetchChatResponse(messages, botMessage) {
                     
                     // Add reasoning content if available and not already in the content
                     if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
-                        // Make sure code blocks are correctly identified and preserved
-                        // First, replace code blocks with special placeholders
-                        const codeBlocks = [];
-                        
-                        // Enhanced code block regex with robust pattern matching
-                        let processedReasoningContent = reasoningContent.replace(/```(\w*)\n?([\s\S]+?)```/g, (match, lang, code) => {
-                            // Store the code block
-                            const index = codeBlocks.length;
-                            const trimmedCode = code.trim();
-                            
-                            try {
-                                // Use Prism for highlighting if available for the language
-                                const highlightedCode = Prism.highlight(
-                                    trimmedCode,
-                                    Prism.languages[lang] || Prism.languages.plain,
-                                    lang || 'plaintext'
-                                );
-                                codeBlocks.push(`<pre class="code-block reasoning-code-block"><code class="language-${lang || 'plaintext'}">${highlightedCode}</code></pre>`);
-                            } catch (e) {
-                                // Fallback if Prism highlighting fails
-                                console.error('Prism highlighting error:', e);
-                                codeBlocks.push(`<pre class="code-block reasoning-code-block"><code>${trimmedCode}</code></pre>`);
-                            }
-                            
-                            return `CODE_BLOCK_PLACEHOLDER_${index}`;
-                        });
-                        
-                        // Now apply other formatting but exclude code blocks
-                        processedReasoningContent = processedReasoningContent
-                            .replace(/`([^`]+)`/g, '<code class="inline-code reasoning-inline-code">$1</code>') // Inline code
-                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
-                            .replace(/\*([^*]+)\*/g, '<em>$1</em>') // Italics
-                            .replace(/^- (.*?)$/gm, '<li>$1</li>') // Lists
-                            .replace(/\n/g, '<br>'); // Line breaks
-                        
-                        // Now restore the code blocks
-                        processedReasoningContent = processedReasoningContent.replace(/CODE_BLOCK_PLACEHOLDER_(\d+)/g, (match, index) => {
-                            return codeBlocks[parseInt(index)] || '<!-- Code block processing error -->';
-                        });
+                        // Use the same formatContent function that works for the main content
+                        const processedReasoningContent = formatContent(reasoningContent);
                         
                         // Add the processed reasoning content to the main content
                         updatedContent = updatedContent + 
