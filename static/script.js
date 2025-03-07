@@ -922,6 +922,12 @@ function showCopySuccess() {
         document.body.appendChild(notification);
     }
     
+    // Reset any existing animation
+    notification.classList.remove('show');
+    
+    // Force a reflow to restart the animation properly
+    void notification.offsetWidth;
+    
     // Show the notification
     notification.classList.add('show');
     
