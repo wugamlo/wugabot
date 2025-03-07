@@ -782,25 +782,17 @@ function formatContent(content) {
         });
     }
     
-    // Format code blocks - improved to handle language specification better, with special handling for SVG/XML
-    formatted = formatted.replace(/```(svg|xml|\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
+    // Format code blocks - improved to handle language specification better
+    formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
         // Store the trimmed code
         const trimmedCode = code.trim();
-        
-        // Special handling for SVG and XML
-        const languageToUse = lang === 'svg' ? 'xml' : lang || 'plaintext';
-        
-        // Log code block processing for debugging
-        console.log(`Processing code block [${lang}], length: ${trimmedCode.length}`);
-        
         // Use Prism for highlighting if available for the language
         const highlightedCode = Prism.highlight(
             trimmedCode,
-            Prism.languages[languageToUse] || Prism.languages.plain,
-            languageToUse
+            Prism.languages[lang] || Prism.languages.plain,
+            lang || 'plaintext'
         );
-        
-        return `<pre class="code-block"><code class="language-${languageToUse}">${highlightedCode}</code></pre>`;
+        return `<pre class="code-block"><code class="language-${lang || 'plaintext'}">${highlightedCode}</code></pre>`;
     });
 
     // Store code blocks to prevent them from being affected by markdown processing
@@ -810,9 +802,6 @@ function formatContent(content) {
         codeBlocks.push(match);
         return `<!-- code-block-${codeBlocks.length - 1} -->`;
     });
-    
-    // Log code blocks count for debugging
-    console.log("Extracted code blocks:", codeBlocks.length);
 
     // Process standard markdown elements in more consistent way
     formatted = formatted
@@ -838,12 +827,6 @@ function formatContent(content) {
     formatted = formatted.replace(/<!-- code-block-(\d+) -->/g, (match, index) => {
         return codeBlocks[parseInt(index)];
     });
-    
-    // Debug info
-    console.log("Formatting complete, result length:", formatted.length);
-    console.log("Formatted content length:", formatted.length);
-    console.log("Content contains code blocks:", content.includes('```'));
-    console.log("Formatted content has code blocks:", formatted.includes('<pre class="code-block">'));
 
     return formatted;
 }
@@ -853,16 +836,12 @@ function appendMessage(content, role, returnElement = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
     if (typeof content === 'string') {
-        // Only escape if NOT containing SVG or image tags or code blocks
-        if (!content.startsWith('<img') && !content.includes('<svg') && !content.includes('```')) {
+        if (!content.startsWith('<img')) {
             content = content
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
                 .replace(/&lt;(\/?(?:instructions|format|context|examples|warnings))&gt;/g, '<span class="xml-tag">&lt;$1&gt;</span>')
                 .replace(/\n/g, '<br>');
-        } else if (!content.startsWith('<img')) {
-            // Preserve code blocks but encode non-code content
-            content = content.replace(/\n/g, '<br>');
         }
     }
     messageDiv.innerHTML = content;
