@@ -496,6 +496,8 @@ input[type="number"] {
     background: #121212;
     color: #ffffff;
     align-self: flex-start;
+    border: 1px solid #3498db; /* Debug border to ensure it's visible */
+    min-height: 20px; /* Ensure empty messages have some height */
 }
 
 .citations-section {
