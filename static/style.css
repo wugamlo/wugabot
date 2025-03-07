@@ -258,7 +258,7 @@ button {
 .reasoning-content pre.code-block,
 .reasoning-content pre,
 .reasoning-code-block {
-    display: block;
+    display: block !important;
     background: var(--code-bg) !important;
     color: #fff !important;
     font-style: normal !important;
@@ -269,6 +269,10 @@ button {
     overflow-x: auto !important;
     white-space: pre !important;
     border: 1px solid #444 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 50px !important;
+    box-shadow: 0 0 5px rgba(0,0,0,0.3) !important;
 }
 
 .reasoning-content .inline-code,
