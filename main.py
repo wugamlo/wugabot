@@ -157,7 +157,7 @@ def chat_stream():
 
     return Response(
         generate(
-            model=data.get('model', 'llama-3.3-70b'),
+            model=data.get('model', 'qwen-2.5-qwq-32b'),
             messages=data.get('messages', []),
             temperature=temperature,
             max_completion_tokens=max_completion_tokens,
