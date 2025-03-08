@@ -370,20 +370,38 @@ function populateModelDropdown(models) {
     modelSelect.innerHTML = '';
     headerModelSelect.innerHTML = '';
 
-    // Populate both dropdowns with the same models
-    models.forEach(model => {
+    // Filter out offline models and populate both dropdowns with the same models
+    models.filter(model => {
+        // Filter out models where offline is true
+        return !(model.model_spec && model.model_spec.offline === true);
+    }).forEach(model => {
+        // Get reasoning capability
+        const supportsReasoning = model.model_spec && 
+                                 model.model_spec.capabilities && 
+                                 model.model_spec.capabilities.supportsReasoning === true;
+        
+        // Get web search capability
+        const supportsWebSearch = model.model_spec && 
+                                 model.model_spec.capabilities && 
+                                 model.model_spec.capabilities.supportsWebSearch === true;
+        
+        // Create display text with reasoning indicator
+        const displayText = supportsReasoning ? `${model.id} - Reasoning` : model.id;
+        
         // For settings dropdown
         const option = document.createElement('option');
         option.value = model.id;
-        option.text = model.id;
-        option.dataset.supportsWebSearch = model.supportsWebSearch || false;
+        option.text = displayText;
+        option.dataset.supportsWebSearch = supportsWebSearch || false;
+        option.dataset.supportsReasoning = supportsReasoning || false;
         modelSelect.appendChild(option);
         
         // For header dropdown
         const headerOption = document.createElement('option');
         headerOption.value = model.id;
-        headerOption.text = model.id;
-        headerOption.dataset.supportsWebSearch = model.supportsWebSearch || false;
+        headerOption.text = displayText;
+        headerOption.dataset.supportsWebSearch = supportsWebSearch || false;
+        headerOption.dataset.supportsReasoning = supportsReasoning || false;
         headerModelSelect.appendChild(headerOption);
     });
     

@@ -33,11 +33,9 @@ def get_models():
         models_data = response.json()
         models = []
         for model in models_data['data']:
-            model_info = {'id': model['id']}
-            if 'model_spec' in model and 'capabilities' in model['model_spec']:
-                if 'supportsWebSearch' in model['model_spec']['capabilities']:
-                    model_info['supportsWebSearch'] = model['model_spec']['capabilities']['supportsWebSearch']
-            models.append(model_info)
+            # Pass the entire model structure to the client
+            # This includes model_spec with offline status and all capabilities
+            models.append(model)
         return json.dumps({'models': models})
     except Exception as e:
         logger.error(f"Error fetching models: {str(e)}")
