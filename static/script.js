@@ -600,11 +600,12 @@ async function submitChat(message, base64Image) {
                 content: [{ type: 'text', text: msg.content }] 
             });
         } else if (msg.role === 'assistant') {
-            // Format assistant messages the same way as user messages
+            // Format assistant messages with content array format
             messages.push({ 
                 role: 'assistant', 
                 content: [{ type: 'text', text: msg.content }] 
             });
+            console.log("✓ Added assistant message to API request");
         }
     });
 
@@ -719,7 +720,9 @@ async function fetchChatResponse(messages, botMessage) {
 
                     // ALWAYS add the assistant's response to the chat history when streaming is done
                     if (botContentBuffer && botContentBuffer.trim() !== '') {
-                        // Add assistant message to chat history
+                        console.log("💬 Adding assistant message to history:", botContentBuffer.substring(0, 30) + "...");
+                        
+                        // Add assistant message to chat history - CRITICALLY IMPORTANT
                         chatHistory.push({
                             role: 'assistant',
                             content: botContentBuffer
@@ -1063,7 +1066,8 @@ function showChatContext() {
     };
     
     // Log the current chat history for debugging
-    console.log("Chat history when showChatContext called:", JSON.stringify(chatHistory.map(m => {
+    console.log("🔍 CONTEXT DEBUG - Chat history contains:", chatHistory.length, "messages");
+    console.log("🔍 CONTEXT DEBUG - Full details:", JSON.stringify(chatHistory.map(m => {
         roleCounts[m.role] = (roleCounts[m.role] || 0) + 1;
         return {
             role: m.role,
