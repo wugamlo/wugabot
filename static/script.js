@@ -652,12 +652,8 @@ async function fetchChatResponse(messages, botMessage) {
                         reasoning_content: reasoningContent // Store reasoning content if available
                     });
 
-                    // Debug chat history to console
-                    console.log('Updated chat history:', JSON.stringify(chatHistory.map(m => ({
-                        role: m.role,
-                        contentLength: m.content ? m.content.length : 0,
-                        preview: m.content ? m.content.substring(0, 20) + '...' : 'empty'
-                    }))));
+                    console.log("AFTER - Chat history updated, now contains:", chatHistory.length, "messages");
+                    console.log("Last assistant response stored:", botContentBuffer.substring(0, 50) + "...");
 
                     Prism.highlightAll();
                     return;
