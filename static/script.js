@@ -1,8 +1,9 @@
 let currentStream = null;
 const chatHistory = [];
 let botContentBuffer = "";
-let lastCitations = null;
+let lastCitations = null; // Added to store the latest citations
 
+// Fetch models from the server
 async function fetchModels() {
     try {
         const response = await fetch('/models');
@@ -16,9 +17,10 @@ async function fetchModels() {
         appendMessage('Failed to fetch models. Please try again.', 'error');
     }
 }
-
+// Import character options and system prompts
 import { characterOptions, systemPrompts } from './characters.js';
 
+// Vector Store Management API functions
 async function fetchCollections() {
     try {
         const response = await fetch('https://wugamlo-vector-store.replit.app/api/collections');
@@ -47,6 +49,7 @@ async function searchCollection(collectionName, query, limit = 5) {
     }
 }
 
+// Populate Knowledge Base dropdown
 async function populateKnowledgeBaseDropdown() {
     const knowledgeBaseSelect = document.getElementById('knowledgeBase');
     knowledgeBaseSelect.innerHTML = '<option value="">Select a collection...</option>';
@@ -64,19 +67,22 @@ async function populateKnowledgeBaseDropdown() {
     }
 }
 
+// Load settings and populate character dropdown when the page loads
 window.addEventListener('load', () => {
     fetchModels();
     populateCharacterDropdown();
 
+    // Load chat history from localStorage if available
     try {
         const savedChatHistory = localStorage.getItem('chatHistory');
         if (savedChatHistory) {
             const parsedHistory = JSON.parse(savedChatHistory);
             if (Array.isArray(parsedHistory)) {
-                chatHistory.length = 0;
+                chatHistory.length = 0; // Clear existing history
                 parsedHistory.forEach(msg => chatHistory.push(msg));
                 console.log("📂 Loaded chat history from localStorage with", chatHistory.length, "messages");
-
+                
+                // Restore chat display from history
                 chatHistory.forEach(msg => {
                     if (msg.role === 'user' || msg.role === 'assistant') {
                         appendMessage(msg.content, msg.role);
@@ -88,6 +94,7 @@ window.addEventListener('load', () => {
         console.warn("Could not load chat history from localStorage:", e);
     }
 
+    // Load saved settings
     const savedPrompt = localStorage.getItem('systemPrompt');
     const savedMaxTokens = localStorage.getItem('maxTokens');
     const savedTemperature = localStorage.getItem('temperature');
@@ -107,22 +114,26 @@ window.addEventListener('load', () => {
         document.getElementById('temperatureValue').textContent = savedTemperature;
     }
 
+    // Setup RAG toggle
     const ragEnabledToggle = document.getElementById('ragEnabled');
     const knowledgeBaseContainer = document.getElementById('knowledgeBaseContainer');
 
     ragEnabledToggle.checked = savedRagEnabled;
     knowledgeBaseContainer.style.display = savedRagEnabled ? 'block' : 'none';
 
+    // Populate knowledge base dropdown if RAG is enabled
     if (savedRagEnabled) {
         populateKnowledgeBaseDropdown();
 
         if (savedKnowledgeBase) {
+            // Wait for dropdown to be populated
             setTimeout(() => {
                 document.getElementById('knowledgeBase').value = savedKnowledgeBase;
             }, 500);
         }
     }
 
+    // Add event listener for RAG toggle
     ragEnabledToggle.addEventListener('change', function() {
         knowledgeBaseContainer.style.display = this.checked ? 'block' : 'none';
         if (this.checked) {
@@ -131,16 +142,19 @@ window.addEventListener('load', () => {
         localStorage.setItem('ragEnabled', this.checked);
     });
 
+    // Add event listener for knowledge base selection
     document.getElementById('knowledgeBase').addEventListener('change', function() {
         localStorage.setItem('knowledgeBase', this.value);
     });
 
+    // Add event listener for temperature slider
     const temperatureSlider = document.getElementById('temperature');
     temperatureSlider.addEventListener('input', function() {
         document.getElementById('temperatureValue').textContent = this.value;
     });
 });
 
+// Populate character dropdown
 function populateCharacterDropdown() {
     const characterSelect = document.getElementById('characterSelect');
     characterSelect.innerHTML = '<option value="">Select a character...</option>';
@@ -151,15 +165,16 @@ function populateCharacterDropdown() {
         characterSelect.appendChild(optionElement);
     });
 
+    // Add event listener for character selection
     characterSelect.addEventListener('change', function() {
         const selectedValue = this.value;
         if (selectedValue && systemPrompts[selectedValue]) {
             document.getElementById('systemPrompt').value = systemPrompts[selectedValue];
-            saveSettings();
+            saveSettings(); // Automatically save when character is selected
         }
     });
 }
-
+// Function to save all settings
 function saveSettings() {
     const prompt = document.getElementById('systemPrompt').value.trim();
     const maxTokens = document.getElementById('maxTokens').value;
@@ -176,6 +191,7 @@ function saveSettings() {
     localStorage.setItem('ragEnabled', ragEnabled);
     localStorage.setItem('knowledgeBase', knowledgeBase);
 
+    // Show feedback to user
     const settingsPanel = document.querySelector('.settings-panel');
     const feedback = document.createElement('div');
     feedback.className = 'settings-feedback';
@@ -188,6 +204,7 @@ function saveSettings() {
     setTimeout(() => feedback.remove(), 2000);
 }
 
+// Function to resize images to deal with too large images
 function resizeImage(file, maxWidth, maxHeight) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -202,6 +219,7 @@ function resizeImage(file, maxWidth, maxHeight) {
             let width = img.width;
             let height = img.height;
 
+            // Maintain the aspect ratio
             if (width > height) {
                 if (width > maxWidth) {
                     height *= maxWidth / width;
@@ -221,7 +239,7 @@ function resizeImage(file, maxWidth, maxHeight) {
             ctx.drawImage(img, 0, 0, width, height);
             canvas.toBlob((blob) => {
                 resolve(blob);
-            }, 'image/jpeg', 0.7);
+            }, 'image/jpeg', 0.7); // Adjust quality here if needed
         };
 
         reader.onerror = (e) => {
@@ -232,13 +250,17 @@ function resizeImage(file, maxWidth, maxHeight) {
     });
 }
 
+
+// Handle image upload and show preview
 function handleImageUpload(input) {
     const imagePreview = document.getElementById('imagePreview');
     if (input.files.length > 0) {
+        // Auto-switch to qwen-2.5-vl model for image analysis
         const modelSelect = document.getElementById('modelSelect');
         const headerModelSelect = document.getElementById('headerModelSelect');
         const previousModel = modelSelect.value;
 
+        // Update both model selectors to ensure consistency
         modelSelect.value = 'qwen-2.5-vl';
         headerModelSelect.value = 'qwen-2.5-vl';
 
@@ -253,7 +275,7 @@ function handleImageUpload(input) {
         reader.readAsDataURL(input.files[0]);
     }
 }
-
+// Event listeners for both inputs
 document.getElementById('galleryInput').addEventListener('change', () => handleImageUpload(document.getElementById('galleryInput')));
 document.getElementById('cameraInput').addEventListener('change', () => handleImageUpload(document.getElementById('cameraInput')));
 
@@ -314,6 +336,7 @@ async function handleFileUpload(event) {
             return;
         }
 
+        // Add success notification
         const imagePreview = document.getElementById('imagePreview');
         imagePreview.innerHTML = `
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -322,6 +345,7 @@ async function handleFileUpload(event) {
             </div>
         `;
 
+        // Update messages with the extracted text
         const userMessage = document.getElementById('userInput').value;
         const fileMessage = `📎 File: ${file.name}`;
 
@@ -330,9 +354,11 @@ async function handleFileUpload(event) {
             content: userMessage + '\n\nFile contents:\n' + data.text
         });
 
+        // Show the user message and file info in the chat
         appendMessage(userMessage, 'user');
         appendMessage(fileMessage, 'user-file');
 
+        // Start the stream with the current model
         startStream();
 
     } catch (error) {
@@ -352,30 +378,39 @@ async function handleFileUpload(event) {
         alert(`Error processing file: ${errorMessage}`);
     }
 
+    // Clear the file input
     event.target.value = '';
 }
 
+// Populate model dropdown
 function populateModelDropdown(models) {
     const modelSelect = document.getElementById('modelSelect');
     const headerModelSelect = document.getElementById('headerModelSelect');
     const searchButton = document.getElementById('searchEnabled');
 
+    // Clear both dropdowns
     modelSelect.innerHTML = '';
     headerModelSelect.innerHTML = '';
 
+    // Filter out offline models and populate both dropdowns with the same models
     models.filter(model => {
+        // Filter out models where offline is true
         return !(model.model_spec && model.model_spec.offline === true);
     }).forEach(model => {
-        const supportsReasoning = model.model_spec &&
-                                 model.model_spec.capabilities &&
+        // Get reasoning capability
+        const supportsReasoning = model.model_spec && 
+                                 model.model_spec.capabilities && 
                                  model.model_spec.capabilities.supportsReasoning === true;
 
-        const supportsWebSearch = model.model_spec &&
-                                 model.model_spec.capabilities &&
+        // Get web search capability
+        const supportsWebSearch = model.model_spec && 
+                                 model.model_spec.capabilities && 
                                  model.model_spec.capabilities.supportsWebSearch === true;
 
+        // Create display text with reasoning indicator
         const displayText = supportsReasoning ? `${model.id} - Reasoning` : model.id;
 
+        // For settings dropdown
         const option = document.createElement('option');
         option.value = model.id;
         option.text = displayText;
@@ -383,6 +418,7 @@ function populateModelDropdown(models) {
         option.dataset.supportsReasoning = supportsReasoning || false;
         modelSelect.appendChild(option);
 
+        // For header dropdown
         const headerOption = document.createElement('option');
         headerOption.value = model.id;
         headerOption.text = displayText;
@@ -391,9 +427,11 @@ function populateModelDropdown(models) {
         headerModelSelect.appendChild(headerOption);
     });
 
+    // Set the default value for both dropdowns
     modelSelect.value = 'qwen-2.5-qwq-32b';
     headerModelSelect.value = 'qwen-2.5-qwq-32b';
 
+    // Function to update search button visibility
     const updateSearchButtonVisibility = (dropdown) => {
         const selectedOption = dropdown.options[dropdown.selectedIndex];
         const supportsWebSearch = selectedOption.dataset.supportsWebSearch === 'true';
@@ -401,6 +439,7 @@ function populateModelDropdown(models) {
         searchButton.classList.remove('active');
     };
 
+    // Keep the dropdowns in sync
     modelSelect.addEventListener('change', function() {
         headerModelSelect.value = this.value;
         updateSearchButtonVisibility(this);
@@ -411,9 +450,11 @@ function populateModelDropdown(models) {
         updateSearchButtonVisibility(this);
     });
 
+    // Trigger initial visibility
     updateSearchButtonVisibility(modelSelect);
 }
 
+// Start streaming data to the chat
 async function startStream() {
     const userInput = document.getElementById('userInput');
     const message = userInput.value.trim();
@@ -421,6 +462,7 @@ async function startStream() {
     const cameraInput = document.getElementById('cameraInput');
     let base64Image = "";
 
+    // Log current chat history state before processing
     console.log("Current chat history BEFORE starting stream:", JSON.stringify(chatHistory.map(m => ({
         role: m.role,
         contentPreview: m.content.substring(0, 30) + '...'
@@ -430,10 +472,12 @@ async function startStream() {
         return;
     }
 
+    // Check for image uploads
     const processImage = async (file) => {
+        // Always resize camera photos, and resize any file larger than 2MB
         const isCameraPhoto = file.type.startsWith('image/') && file.name === 'image.jpg';
         if (isCameraPhoto || file.size > 2 * 1024 * 1024) {
-            const resizedBlob = await resizeImage(file, 800, 600);
+            const resizedBlob = await resizeImage(file, 800, 600); // Smaller max dimensions
             const resizedReader = new FileReader();
             resizedReader.onload = (event) => {
                 base64Image = event.target.result;
@@ -450,47 +494,61 @@ async function startStream() {
         }
     };
 
+    // Handle gallery input
     if (galleryInput.files.length > 0) {
         await processImage(galleryInput.files[0]);
-        galleryInput.value = '';
-    } else if (cameraInput.files.length > 0) {
+        galleryInput.value = ''; // Clear input after handling
+    } 
+    // Handle camera input
+    else if (cameraInput.files.length > 0) {
         await processImage(cameraInput.files[0]);
-        cameraInput.value = '';
+        cameraInput.value = ''; // Clear input after handling
     } else {
-        submitChat(message);
+        submitChat(message); // No images to submit
     }
-    userInput.value = '';
+    userInput.value = ''; // Clear input after sending
 }
 
+// Submit chat message along with the image
 async function submitChat(message, base64Image) {
     if (!message && !base64Image) return;
     const systemPrompt = document.getElementById('systemPrompt').value.trim();
+    // Clear lastCitations at the start of each new message
     lastCitations = null;
 
     console.log("BEFORE - Chat history contains:", chatHistory.length, "messages");
-
+    
+    // Store message without image in chat history
     if (message) {
-        console.log(`Adding user message to chat history: "${message.substring(0, 30)}${message.length > 30 ? '...' : ''}"`);
-        chatHistory.push({ role: 'user', content: message });
+        // Ensure consistent format for user messages
+        chatHistory.push({ 
+            role: 'user', 
+            content: message 
+        });
         console.log("Added user message to chat history");
     }
-
+    
+    // Reset botContentBuffer for the new message
     botContentBuffer = "";
 
+    // Check if RAG is enabled
     const ragEnabled = document.getElementById('ragEnabled').checked;
     const knowledgeBase = document.getElementById('knowledgeBase').value;
 
     let enhancedSystemPrompt = systemPrompt;
     let retrievedContext = '';
 
+    // If RAG is enabled and a knowledge base is selected, fetch context
     if (ragEnabled && knowledgeBase && message) {
         try {
+            // Show a temporary message to indicate retrieval is in progress
             const retrievalMessage = appendMessage('Retrieving relevant context...', 'assistant', true);
 
             console.log(`Searching collection "${knowledgeBase}" for: ${message}`);
             const results = await searchCollection(knowledgeBase, message);
 
             if (results && results.length > 0) {
+                // Format retrieved context
                 retrievedContext = 'CONTEXT:\n';
                 results.forEach((result, index) => {
                     retrievedContext += `---\n[${index + 1}] ${result.text}\n`;
@@ -503,6 +561,7 @@ async function submitChat(message, base64Image) {
                     retrievedContext += `Relevance: ${(result.score * 100).toFixed(1)}%\n---\n\n`;
                 });
 
+                // Format the enhanced system prompt
                 enhancedSystemPrompt = `${systemPrompt}\n\n${retrievedContext}\nUSER QUERY:\n${message}\n\nPlease use the context provided above to answer the user's query. If the context doesn't contain relevant information, rely on your general knowledge but acknowledge this fact. Maintain your existing personality and tone regardless of which knowledge source you use.`;
 
                 console.log('Enhanced prompt with context from Vector Store');
@@ -510,36 +569,52 @@ async function submitChat(message, base64Image) {
                 console.log('No relevant context found in Vector Store');
             }
 
+            // Remove the temporary retrieval message
             retrievalMessage.remove();
         } catch (error) {
             console.error('Error retrieving context:', error);
         }
     }
 
+    // Use only necessary history for message construction
+    // First create the system message
     const messages = [
         { role: 'system', content: enhancedSystemPrompt }
     ];
-
+    
+    // Then add all history with consistent formatting for the API
     chatHistory.forEach(msg => {
+        // Make sure we properly log what's happening in the history
         console.log(`Processing message for API: ${msg.role}`, msg.content.substring(0, 50) + '...');
-
+        
+        // Skip the current user message (it will be added separately)
         if (msg.role === 'user' && msg.content === message) {
             console.log("Skipping current user message (will add it separately)");
             return;
         }
-
+        
         if (msg.role === 'user') {
-            messages.push({ role: 'user', content: msg.content });
+            // Format user messages for the API
+            messages.push({ 
+                role: 'user', 
+                content: [{ type: 'text', text: msg.content }] 
+            });
         } else if (msg.role === 'assistant') {
-            messages.push({ role: 'assistant', content: msg.content });
+            // Format assistant messages with content array format
+            messages.push({ 
+                role: 'assistant', 
+                content: [{ type: 'text', text: msg.content }] 
+            });
             console.log("✓ Added assistant message to API request");
         }
     });
 
+    // Add current user message with proper formatting for the API
     if (message) {
-        messages.push({ role: 'user', content: message });
+        messages.push({ role: 'user', content: [{ type: 'text', text: message }] });
     }
 
+    // If image present, add it to the API request but NOT to chatHistory
     if (base64Image) {
         messages.push({
             role: 'user',
@@ -547,6 +622,7 @@ async function submitChat(message, base64Image) {
         });
     }
 
+    // Display in UI
     appendMessage(message, 'user');
     if (base64Image) {
         appendMessage(`<img src="${base64Image}" alt="User Uploaded Image" style="max-width: 80%; height: auto;" />`, 'user');
@@ -557,29 +633,34 @@ async function submitChat(message, base64Image) {
     botContentBuffer = "";
     fetchChatResponse(messages, botMessage);
 }
+// File input handlers are already set up for galleryInput and cameraInput
 
-
+// Fetch response from chat
 async function fetchChatResponse(messages, botMessage) {
     showLoading(true);
     try {
+        // Store the current model for debugging purposes
         const currentModel = document.getElementById('modelSelect').value;
         console.log('Current model:', currentModel);
-
+        
         const searchButton = document.getElementById('searchEnabled');
         const searchEnabled = searchButton && searchButton.classList.contains('active');
         console.log('Web search enabled:', searchEnabled);
 
+        // Get user settings
         const maxTokens = parseInt(localStorage.getItem('maxTokens') || '4000');
         const temperature = parseFloat(localStorage.getItem('temperature') || '0.7');
 
+        // Build the request with updated parameter names
         const requestBody = {
             messages: messages,
             model: currentModel,
-            max_completion_tokens: maxTokens,
+            max_completion_tokens: maxTokens, // Updated to use max_completion_tokens instead of max_tokens
             temperature: temperature,
             stream: true
         };
 
+        // Only add web search parameter when explicitly enabled
         if (searchEnabled) {
             requestBody.web_search = "on";
         }
@@ -589,7 +670,8 @@ async function fetchChatResponse(messages, botMessage) {
             web_search: requestBody.web_search,
             messageCount: messages.length
         });
-
+        
+        // DEBUG: Log the message history being sent
         console.log('BEFORE - Chat history contains:', chatHistory.length, 'messages');
         console.log('Chat history roles:', chatHistory.map(msg => msg.role));
 
@@ -606,10 +688,13 @@ async function fetchChatResponse(messages, botMessage) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        // Clear the buffer at the start of streaming
         botContentBuffer = "";
-
+        
+        // Process streaming response
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let reasoningContent = null;
 
         while (true) {
             const { value, done } = await reader.read();
@@ -625,21 +710,41 @@ async function fetchChatResponse(messages, botMessage) {
                 if (!data) continue;
 
                 if (data === '[DONE]') {
+                    // Final check to ensure all content is displayed before completing
+                    if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
+                        const finalContent = formatContent(botContentBuffer);
+                        botMessage.innerHTML = finalContent + formatCitations(lastCitations);
+                    }
+
                     showLoading(false);
 
+                    // ALWAYS add the assistant's response to the chat history when streaming is done
                     if (botContentBuffer && botContentBuffer.trim() !== '') {
                         console.log("💬 Adding assistant message to history:", botContentBuffer.substring(0, 30) + "...");
-
+                        
+                        // Add assistant message to chat history - CRITICALLY IMPORTANT
                         chatHistory.push({
                             role: 'assistant',
                             content: botContentBuffer
                         });
-
+                        
+                        // Save the updated chat history to localStorage
+                        try {
+                            localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                            console.log("✅ Chat history saved to localStorage with", chatHistory.length, "messages");
+                        } catch (e) {
+                            console.warn("Could not save chat history to localStorage:", e);
+                        }
+                        
                         console.log("✅ Assistant message added to chat history");
                         console.log("AFTER - Chat history updated, now contains:", chatHistory.length, "messages");
                         console.log("Roles in history:", chatHistory.map(msg => msg.role));
+                        
+                        // Debug - print what the next request will include
+                        let nextContextSummary = chatHistory.map((msg, i) => `[${i}] ${msg.role}: ${msg.content.substring(0, 20)}...`).join('\n');
+                        console.log("Next API request will include:\n", nextContextSummary);
                     }
-
+                    
                     Prism.highlightAll();
                     return;
                 }
@@ -647,21 +752,99 @@ async function fetchChatResponse(messages, botMessage) {
                 try {
                     const parsed = JSON.parse(data);
 
+                    // Log important parts of the response for debugging
+                    if (parsed.error || parsed.venice_parameters) {
+                        // Only log a portion of potentially very large responses to avoid console errors
+                        const truncatedResponse = {...parsed};
+                        if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
+                            truncatedResponse.venice_parameters = {
+                                ...parsed.venice_parameters,
+                                web_search_citations: parsed.venice_parameters.web_search_citations.slice(0, 2)
+                            };
+                        }
+                        console.log('Parsed response chunk:', truncatedResponse);
+                    }
+
+                    // Handle errors
                     if (parsed.error) {
                         appendMessage(`Error: ${parsed.error}`, 'error');
                         showLoading(false);
                         return;
                     }
 
+                    // Handle content from different parts of the response
                     if (parsed.content) {
                         botContentBuffer += parsed.content;
-                        botMessage.innerHTML = formatContent(botContentBuffer);
-                        Prism.highlightAll();
-                        scrollToBottom();
                     }
+
+                    // Handle delta if present (for streaming responses)
+                    if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                        const delta = parsed.choices[0].delta;
+
+                        // Append content from delta
+                        if (delta.content) {
+                            botContentBuffer += delta.content;
+                        }
+
+                        // Check for reasoning content
+                        if (delta.reasoning_content) {
+                            reasoningContent = reasoningContent || '';
+                            reasoningContent += delta.reasoning_content;
+                        }
+                    }
+
+                    // Handle citations and other venice parameters
+                    if (parsed.venice_parameters) {
+                        // Get citations if available
+                        const citationsInResponse = parsed.venice_parameters.web_search_citations;
+                        if (citationsInResponse) {
+                            console.log('Found citations:', citationsInResponse);
+                            lastCitations = citationsInResponse;
+                        }
+
+                        // Check for reasoning content in venice_parameters
+                        if (parsed.venice_parameters.reasoning_content) {
+                            reasoningContent = parsed.venice_parameters.reasoning_content;
+                        }
+                    }
+
+                    // Update the message with all available content
+                    let updatedContent = formatContent(botContentBuffer);
+
+                    // Add reasoning content if available and not already in the content
+                    if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
+                        updatedContent = updatedContent + 
+                            `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
+                    }
+
+                    // Add citations if available
+                    if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
+                        botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
+                    } else {
+                        botMessage.innerHTML = updatedContent;
+                    }
+
+                    Prism.highlightAll();
+                    scrollToBottom();
                 } catch (e) {
                     if (data !== '[DONE]') {
-                        console.error('Error parsing chunk:', e);
+                        // Only log a portion of potentially large data to avoid console overflow
+                        const truncatedData = data.length > 500 ? data.substring(0, 500) + '...' : data;
+                        console.error('Error parsing chunk:', e, 'Data:', truncatedData);
+
+                        // Try to recover and continue - don't let a parsing error break the entire response
+                        if (data.includes('"content":')) {
+                            try {
+                                // Simple extraction of content if available
+                                const contentMatch = /"content":"([^"]*)"/.exec(data);
+                                if (contentMatch && contentMatch[1]) {
+                                    botContentBuffer += contentMatch[1];
+                                    botMessage.innerHTML = formatContent(botContentBuffer);
+                                }
+                            } catch (extractError) {
+                                // Silent fail for extraction attempt
+                            }
+                        }
                     }
                 }
             }
@@ -669,7 +852,21 @@ async function fetchChatResponse(messages, botMessage) {
     } catch (error) {
         console.error('Stream error:', error);
         appendMessage('Failed to connect to chat service. Please try again.', 'error');
+        
+        // Even on error, add whatever assistant content we received
+        if (botContentBuffer && botContentBuffer.trim() !== '') {
+            chatHistory.push({
+                role: 'assistant',
+                content: botContentBuffer
+            });
+            console.log("✅ Assistant message added during error recovery");
+        }
+    } finally {
         showLoading(false);
+        
+        // Log the final chat history state
+        console.log("FINAL chat history contains:", chatHistory.length, "messages");
+        console.log("FINAL chat history roles:", chatHistory.map(msg => msg.role));
     }
 }
 
@@ -704,19 +901,26 @@ function toggleCitations(header) {
     header.nextElementSibling.classList.toggle('expanded');
 }
 
+// Export the toggle function for global access
 window.toggleCitations = toggleCitations;
 
 function formatContent(content) {
+    // First handle reasoning content by directly using the API's reasoning_content field
+    // (this is handled separately in the fetchChatResponse function now)
     let formatted = content;
 
+    // Fallback for any <think> tags that might still be in the content
     if (/<think>\n?([\s\S]+?)<\/think>/g.test(content)) {
         formatted = content.replace(/<think>\n?([\s\S]+?)<\/think>/g, (match, content) => {
             return `<div class="reasoning-content"><strong>Reasoning:</strong><br>${content.trim()}</div>`;
         });
     }
 
+    // Format code blocks - improved to handle language specification better
     formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
+        // Store the trimmed code
         const trimmedCode = code.trim();
+        // Use Prism for highlighting if available for the language
         const highlightedCode = Prism.highlight(
             trimmedCode,
             Prism.languages[lang] || Prism.languages.plain,
@@ -725,6 +929,7 @@ function formatContent(content) {
         return `<pre class="code-block"><code class="language-${lang || 'plaintext'}">${highlightedCode}</code></pre>`;
     });
 
+    // Store code blocks to prevent them from being affected by markdown processing
     const codeBlockPattern = /<pre class="code-block">[\s\S]*?<\/pre>/g;
     const codeBlocks = [];
     formatted = formatted.replace(codeBlockPattern, (match) => {
@@ -732,20 +937,27 @@ function formatContent(content) {
         return `<!-- code-block-${codeBlocks.length - 1} -->`;
     });
 
+    // Process standard markdown elements in more consistent way
     formatted = formatted
-        .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
-        .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
+        // Headers - ensure they're properly matched at line start
+        .replace(/^# (.*?)$/gm, '<h1>$1</h1>') 
+        .replace(/^## (.*?)$/gm, '<h2>$1</h2>')  
         .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
+        // Lists - better handling of nested lists
         .replace(/^- (.*?)$/gm, '<li>$1</li>')
         .replace(/^\d+\. (.*?)$/gm, '<li>$1</li>')
+        // Bold and italics
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        // Inline code - improved to prevent nested matching
         .replace(/`([^`]+)`/g, (match, code) => {
             return `<code class="inline-code">${code}</code>`;
         });
 
+    // Handle line breaks in a more standard way
     formatted = formatted.split('\n').map(line => line.trim()).join('<br>');
 
+    // Restore code blocks
     formatted = formatted.replace(/<!-- code-block-(\d+) -->/g, (match, index) => {
         return codeBlocks[parseInt(index)];
     });
@@ -773,17 +985,15 @@ function appendMessage(content, role, returnElement = false) {
     }
     scrollToBottom();
 }
-
 function showLoading(show) {
     const loading = document.getElementById('loading');
     loading.classList.toggle('hidden', !show);
 }
-
 function scrollToBottom() {
     const chatBox = document.getElementById('chatBox');
     chatBox.scrollTop = chatBox.scrollHeight;
 }
-
+// Settings panel functionality
 function initSettingsPanel() {
     const settingsToggle = document.getElementById('settingsToggle');
     const settingsPanel = document.querySelector('.settings-panel');
@@ -794,9 +1004,10 @@ function initSettingsPanel() {
 }
 
 function clearChatHistory() {
-    chatHistory.length = 0;
-    document.getElementById('chatBox').innerHTML = '';
-
+    chatHistory.length = 0; // Clear the chat history
+    document.getElementById('chatBox').innerHTML = ''; // Clear chat display
+    
+    // Also clear chat history from localStorage
     try {
         localStorage.removeItem('chatHistory');
         console.log("🧹 Chat history cleared from localStorage");
@@ -805,6 +1016,7 @@ function clearChatHistory() {
     }
 }
 
+// Event listener for window load
 function togglePromptComposer() {
     const composer = document.querySelector('.prompt-composer');
     composer.classList.toggle('visible');
@@ -831,6 +1043,7 @@ function transferPrompt() {
     for (const [field, tag] of Object.entries(fields)) {
         const content = document.getElementById(field).value.trim();
         if (content) {
+            // Preserve line breaks by replacing them with actual newlines
             const formattedContent = content.replace(/\r\n|\r|\n/g, '\n');
             finalPrompt += `<${tag}>\n${formattedContent}\n</${tag}>\n`;
         }
@@ -840,15 +1053,19 @@ function transferPrompt() {
     togglePromptComposer();
 }
 
+// Function to display chat context (for debugging)
 function showChatContext() {
+    // Create a message showing the current context
     let contextInfo = "In the context window, I can see the following messages:\n\n";
-
+    
+    // Count roles for diagnostic info
     const roleCounts = {
         user: 0,
         assistant: 0,
         system: 0
     };
-
+    
+    // Log the current chat history for debugging
     console.log("🔍 CONTEXT DEBUG - Chat history contains:", chatHistory.length, "messages");
     console.log("🔍 CONTEXT DEBUG - Full details:", JSON.stringify(chatHistory.map(m => {
         roleCounts[m.role] = (roleCounts[m.role] || 0) + 1;
@@ -858,10 +1075,12 @@ function showChatContext() {
         };
     })));
 
+    // Skip system message and just show user/assistant exchanges
     chatHistory.forEach((msg, index) => {
         if (msg.role !== 'system') {
-            const preview = typeof msg.content === 'string'
-                ? msg.content.substring(0, 100)
+            // For better debugging, include the message index
+            const preview = typeof msg.content === 'string' 
+                ? msg.content.substring(0, 100) 
                 : JSON.stringify(msg.content).substring(0, 100);
             contextInfo += `[${index}] ${msg.role}: ${preview}${preview.length > 99 ? '...' : ''}\n\n`;
         }
@@ -870,23 +1089,27 @@ function showChatContext() {
     if (chatHistory.length <= 1) {
         contextInfo += "No conversation history found. Try sending a few messages first.";
     }
-
+    
+    // Add role count summary
     contextInfo += `\n--- Summary ---\nTotal messages: ${chatHistory.length}\n`;
     contextInfo += `User messages: ${roleCounts.user || 0}\n`;
     contextInfo += `Assistant messages: ${roleCounts.assistant || 0}\n`;
     contextInfo += `System messages: ${roleCounts.system || 0}\n`;
 
+    // Add this message to the chat
     appendMessage(contextInfo, 'system');
-
+    
+    // Also output to console
     console.table(chatHistory.map((msg, i) => ({
         index: i,
         role: msg.role,
-        preview: typeof msg.content === 'string' ?
-            msg.content.substring(0, 30) + '...' :
+        preview: typeof msg.content === 'string' ? 
+            msg.content.substring(0, 30) + '...' : 
             JSON.stringify(msg.content).substring(0, 30) + '...'
     })));
 }
 
+// Export functions for global access
 window.toggleWebSearch = toggleWebSearch;
 window.startStream = startStream;
 window.saveSettings = saveSettings;
@@ -901,6 +1124,7 @@ function toggleWebSearch(button) {
     console.log('Search toggled:', button.classList.contains('active'));
 }
 
+// Initialize global functions
 window.toggleWebSearch = toggleWebSearch;
 window.startStream = startStream;
 window.saveSettings = saveSettings;
@@ -924,11 +1148,13 @@ window.addEventListener('load', () => {
     initSettingsPanel();
     initEventListeners();
 
+    // Restore text size preference
     const savedSize = localStorage.getItem('textSize') || 'small';
     document.getElementById('textSize').value = savedSize;
     toggleTextSize(savedSize);
 });
 
+// Export the function for global access
 window.toggleTextSize = toggleTextSize;
 
 function displayFullChatHistory() {
@@ -936,24 +1162,28 @@ function displayFullChatHistory() {
         index,
         role: msg.role,
         contentType: typeof msg.content,
-        preview: typeof msg.content === 'string'
+        preview: typeof msg.content === 'string' 
             ? (msg.content.length > 50 ? msg.content.substring(0, 50) + '...' : msg.content)
             : JSON.stringify(msg.content).substring(0, 50) + '...'
     })));
-
+    
+    // Add this to the global window object for console access
     window.currentChatHistory = [...chatHistory];
-
+    
+    // Create a formatted message showing all content
     let historyText = "## COMPLETE CHAT HISTORY ##\n\n";
-
+    
     chatHistory.forEach((msg, index) => {
-        const content = typeof msg.content === 'string'
-            ? msg.content
+        const content = typeof msg.content === 'string' 
+            ? msg.content 
             : JSON.stringify(msg.content, null, 2);
-
+            
         historyText += `[${index}] ${msg.role.toUpperCase()}:\n${content}\n\n---\n\n`;
     });
-
+    
+    // Add to chat as system message
     appendMessage(historyText, 'system');
 }
 
+// Add to window object for global access
 window.displayFullChatHistory = displayFullChatHistory;
