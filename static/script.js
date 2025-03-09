@@ -549,10 +549,27 @@ async function submitChat(message, base64Image) {
     }
 
     // Use only necessary history for message construction
+    // First create the system message
     const messages = [
-        { role: 'system', content: enhancedSystemPrompt },
-        ...chatHistory.filter(msg => msg.role !== 'user' || msg.content !== message) // Include all history except duplicate of current message
+        { role: 'system', content: enhancedSystemPrompt }
     ];
+    
+    // Then add all history with consistent formatting for the API
+    chatHistory.filter(msg => msg.role !== 'user' || msg.content !== message).forEach(msg => {
+        if (msg.role === 'user') {
+            // Format user messages for the API
+            messages.push({ 
+                role: 'user', 
+                content: [{ type: 'text', text: msg.content }] 
+            });
+        } else if (msg.role === 'assistant') {
+            // Keep assistant messages in regular text format
+            messages.push({ 
+                role: 'assistant', 
+                content: msg.content 
+            });
+        }
+    });
 
     // Add current user message with proper formatting for the API
     if (message) {
