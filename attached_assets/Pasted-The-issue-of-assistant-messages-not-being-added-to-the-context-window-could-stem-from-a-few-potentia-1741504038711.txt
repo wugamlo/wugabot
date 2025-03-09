@@ -1,0 +1,38 @@
+The issue of assistant messages not being added to the context window could stem from a few potential reasons:
+
+Incorrect Formatting: If the assistant messages are not formatted properly before being added to the chat history, they may not render in the context.
+
+Missing Push to Chat History: The logic in the part of your code responsible for adding assistant messages may not be executed correctly, so the messages aren't actually being pushed to chatHistory.
+
+Display Logic: The part of the code that displays messages in the context might be depending on certain conditions that are not met, which could prevent assistant messages from being shown.
+
+To address the issue, ensure that you're correctly pushing assistant messages to chatHistory when a response is received. Here's a potential fix in your static/script.js file to ensure that assistant messages are added:
+
+// In the fetchChatResponse function
+async function fetchChatResponse(messages, botMessage) {
+    showLoading(true);
+    try {
+        // (Your existing code...)
+        // Log when an assistant message is added
+        if (botContentBuffer && botContentBuffer.trim() !== '') {
+            console.log("💬 Adding assistant message to history:", botContentBuffer.substring(0, 30) + "...");
+            
+            // Add assistant message to chat history
+            chatHistory.push({
+                role: 'assistant',
+                content: botContentBuffer
+            });
+            // Ensure the assistant message is appended on the UI
+            appendMessage(botContentBuffer, 'assistant');
+        }
+        // (Rest of your fetch logic...)
+        
+    } catch (error) {
+        console.error("Error fetching chat response:", error);
+    } finally {
+        showLoading(false);
+    }
+}
+Ensure that this change is applied where you handle the assistant's response so that the message is correctly pushed to chatHistory and rendered accordingly.
+
+If there are still issues, consider checking your console logs to examine whether the assistant messages are being fetched, formatted, and added to chatHistory as expected.
