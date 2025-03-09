@@ -53,7 +53,7 @@ async function searchCollection(collectionName, query, limit = 5) {
 async function populateKnowledgeBaseDropdown() {
     const knowledgeBaseSelect = document.getElementById('knowledgeBase');
     knowledgeBaseSelect.innerHTML = '<option value="">Select a collection...</option>';
-    
+
     try {
         const collections = await fetchCollections();
         collections.forEach(collection => {
@@ -71,38 +71,38 @@ async function populateKnowledgeBaseDropdown() {
 window.addEventListener('load', () => {
     fetchModels();
     populateCharacterDropdown();
-    
+
     // Load saved settings
     const savedPrompt = localStorage.getItem('systemPrompt');
     const savedMaxTokens = localStorage.getItem('maxTokens');
     const savedTemperature = localStorage.getItem('temperature');
     const savedRagEnabled = localStorage.getItem('ragEnabled') === 'true';
     const savedKnowledgeBase = localStorage.getItem('knowledgeBase');
-    
+
     if (savedPrompt) {
         document.getElementById('systemPrompt').value = savedPrompt;
     }
-    
+
     if (savedMaxTokens) {
         document.getElementById('maxTokens').value = savedMaxTokens;
     }
-    
+
     if (savedTemperature) {
         document.getElementById('temperature').value = savedTemperature;
         document.getElementById('temperatureValue').textContent = savedTemperature;
     }
-    
+
     // Setup RAG toggle
     const ragEnabledToggle = document.getElementById('ragEnabled');
     const knowledgeBaseContainer = document.getElementById('knowledgeBaseContainer');
-    
+
     ragEnabledToggle.checked = savedRagEnabled;
     knowledgeBaseContainer.style.display = savedRagEnabled ? 'block' : 'none';
-    
+
     // Populate knowledge base dropdown if RAG is enabled
     if (savedRagEnabled) {
         populateKnowledgeBaseDropdown();
-        
+
         if (savedKnowledgeBase) {
             // Wait for dropdown to be populated
             setTimeout(() => {
@@ -110,7 +110,7 @@ window.addEventListener('load', () => {
             }, 500);
         }
     }
-    
+
     // Add event listener for RAG toggle
     ragEnabledToggle.addEventListener('change', function() {
         knowledgeBaseContainer.style.display = this.checked ? 'block' : 'none';
@@ -119,12 +119,12 @@ window.addEventListener('load', () => {
         }
         localStorage.setItem('ragEnabled', this.checked);
     });
-    
+
     // Add event listener for knowledge base selection
     document.getElementById('knowledgeBase').addEventListener('change', function() {
         localStorage.setItem('knowledgeBase', this.value);
     });
-    
+
     // Add event listener for temperature slider
     const temperatureSlider = document.getElementById('temperature');
     temperatureSlider.addEventListener('input', function() {
@@ -159,16 +159,16 @@ function saveSettings() {
     const temperature = document.getElementById('temperature').value;
     const ragEnabled = document.getElementById('ragEnabled').checked;
     const knowledgeBase = document.getElementById('knowledgeBase').value;
-    
+
     if (prompt) {
         localStorage.setItem('systemPrompt', prompt);
     }
-    
+
     localStorage.setItem('maxTokens', maxTokens);
     localStorage.setItem('temperature', temperature);
     localStorage.setItem('ragEnabled', ragEnabled);
     localStorage.setItem('knowledgeBase', knowledgeBase);
-    
+
     // Show feedback to user
     const settingsPanel = document.querySelector('.settings-panel');
     const feedback = document.createElement('div');
@@ -177,7 +177,7 @@ function saveSettings() {
     feedback.style.color = '#4CAF50';
     feedback.style.padding = '10px';
     feedback.style.textAlign = 'center';
-    
+
     settingsPanel.appendChild(feedback);
     setTimeout(() => feedback.remove(), 2000);
 }
@@ -237,7 +237,7 @@ function handleImageUpload(input) {
         const modelSelect = document.getElementById('modelSelect');
         const headerModelSelect = document.getElementById('headerModelSelect');
         const previousModel = modelSelect.value;
-        
+
         // Update both model selectors to ensure consistency
         modelSelect.value = 'qwen-2.5-vl';
         headerModelSelect.value = 'qwen-2.5-vl';
@@ -365,7 +365,7 @@ function populateModelDropdown(models) {
     const modelSelect = document.getElementById('modelSelect');
     const headerModelSelect = document.getElementById('headerModelSelect');
     const searchButton = document.getElementById('searchEnabled');
-    
+
     // Clear both dropdowns
     modelSelect.innerHTML = '';
     headerModelSelect.innerHTML = '';
@@ -379,15 +379,15 @@ function populateModelDropdown(models) {
         const supportsReasoning = model.model_spec && 
                                  model.model_spec.capabilities && 
                                  model.model_spec.capabilities.supportsReasoning === true;
-        
+
         // Get web search capability
         const supportsWebSearch = model.model_spec && 
                                  model.model_spec.capabilities && 
                                  model.model_spec.capabilities.supportsWebSearch === true;
-        
+
         // Create display text with reasoning indicator
         const displayText = supportsReasoning ? `${model.id} - Reasoning` : model.id;
-        
+
         // For settings dropdown
         const option = document.createElement('option');
         option.value = model.id;
@@ -395,7 +395,7 @@ function populateModelDropdown(models) {
         option.dataset.supportsWebSearch = supportsWebSearch || false;
         option.dataset.supportsReasoning = supportsReasoning || false;
         modelSelect.appendChild(option);
-        
+
         // For header dropdown
         const headerOption = document.createElement('option');
         headerOption.value = model.id;
@@ -404,7 +404,7 @@ function populateModelDropdown(models) {
         headerOption.dataset.supportsReasoning = supportsReasoning || false;
         headerModelSelect.appendChild(headerOption);
     });
-    
+
     // Set the default value for both dropdowns
     modelSelect.value = 'qwen-2.5-qwq-32b';
     headerModelSelect.value = 'qwen-2.5-qwq-32b';
@@ -496,19 +496,19 @@ async function submitChat(message, base64Image) {
     // Check if RAG is enabled
     const ragEnabled = document.getElementById('ragEnabled').checked;
     const knowledgeBase = document.getElementById('knowledgeBase').value;
-    
+
     let enhancedSystemPrompt = systemPrompt;
     let retrievedContext = '';
-    
+
     // If RAG is enabled and a knowledge base is selected, fetch context
     if (ragEnabled && knowledgeBase && message) {
         try {
             // Show a temporary message to indicate retrieval is in progress
             const retrievalMessage = appendMessage('Retrieving relevant context...', 'assistant', true);
-            
+
             console.log(`Searching collection "${knowledgeBase}" for: ${message}`);
             const results = await searchCollection(knowledgeBase, message);
-            
+
             if (results && results.length > 0) {
                 // Format retrieved context
                 retrievedContext = 'CONTEXT:\n';
@@ -522,15 +522,15 @@ async function submitChat(message, base64Image) {
                     }
                     retrievedContext += `Relevance: ${(result.score * 100).toFixed(1)}%\n---\n\n`;
                 });
-                
+
                 // Format the enhanced system prompt
                 enhancedSystemPrompt = `${systemPrompt}\n\n${retrievedContext}\nUSER QUERY:\n${message}\n\nPlease use the context provided above to answer the user's query. If the context doesn't contain relevant information, rely on your general knowledge but acknowledge this fact. Maintain your existing personality and tone regardless of which knowledge source you use.`;
-                
+
                 console.log('Enhanced prompt with context from Vector Store');
             } else {
                 console.log('No relevant context found in Vector Store');
             }
-            
+
             // Remove the temporary retrieval message
             retrievalMessage.remove();
         } catch (error) {
@@ -577,11 +577,11 @@ async function fetchChatResponse(messages, botMessage) {
         const searchButton = document.getElementById('searchEnabled');
         const searchEnabled = searchButton && searchButton.classList.contains('active');
         console.log('Web search enabled:', searchEnabled);
-        
+
         // Get user settings
         const maxTokens = parseInt(localStorage.getItem('maxTokens') || '4000');
         const temperature = parseFloat(localStorage.getItem('temperature') || '0.7');
-        
+
         // Build the request with updated parameter names
         const requestBody = {
             messages: messages,
@@ -590,72 +590,82 @@ async function fetchChatResponse(messages, botMessage) {
             temperature: temperature,
             stream: true
         };
-        
+
         // Only add web search parameter when explicitly enabled
         if (searchEnabled) {
             requestBody.web_search = "on";
         }
-        
+
         console.log('Sending chat request:', {
             model: requestBody.model,
             web_search: requestBody.web_search,
             messageCount: messages.length
         });
-        
+
         const response = await fetch('/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
         });
-        
+
         console.log('Response status:', response.status);
         if (!response.ok) {
             showLoading(false);
             console.error('Response error:', await response.text());
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         // Process streaming response
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let reasoningContent = null;
-        
+
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
-            
+
             const chunk = decoder.decode(value);
             const lines = chunk.split('\n');
-            
+
             for (const line of lines) {
                 if (!line.startsWith('data: ')) continue;
-                
+
                 const data = line.slice(5).trim();
                 if (!data) continue;
-                
+
                 if (data === '[DONE]') {
                     // Final check to ensure all content is displayed before completing
                     if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
                         const finalContent = formatContent(botContentBuffer);
                         botMessage.innerHTML = finalContent + formatCitations(lastCitations);
                     }
-                    
+
                     showLoading(false);
-                    
-                    // Always store text response in chat history - fixed for image analysis
+
+                    // Always store text response in chat history in a standard format
+                    // Using consistent format regardless of content source (text or image analysis)
+                    const standardContent = botContentBuffer;
+
                     chatHistory.push({ 
                         role: 'assistant', 
-                        content: botContentBuffer,
+                        content: standardContent,
                         reasoning_content: reasoningContent // Store reasoning content if available
                     });
-                    
+
+                    // Debug chat history to console
+                    console.log('Updated chat history:', JSON.stringify(chatHistory.map(m => ({
+                        role: m.role,
+                        contentLength: m.content ? m.content.length : 0,
+                        preview: m.content ? m.content.substring(0, 20) + '...' : 'empty'
+                    }))));
+
                     Prism.highlightAll();
                     return;
                 }
-                
+
                 try {
                     const parsed = JSON.parse(data);
-                    
+
                     // Log important parts of the response for debugging
                     if (parsed.error || parsed.venice_parameters) {
                         // Only log a portion of potentially very large responses to avoid console errors
@@ -668,35 +678,35 @@ async function fetchChatResponse(messages, botMessage) {
                         }
                         console.log('Parsed response chunk:', truncatedResponse);
                     }
-                    
+
                     // Handle errors
                     if (parsed.error) {
                         appendMessage(`Error: ${parsed.error}`, 'error');
                         showLoading(false);
                         return;
                     }
-                    
+
                     // Handle content from different parts of the response
                     if (parsed.content) {
                         botContentBuffer += parsed.content;
                     }
-                    
+
                     // Handle delta if present (for streaming responses)
                     if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
                         const delta = parsed.choices[0].delta;
-                        
+
                         // Append content from delta
                         if (delta.content) {
                             botContentBuffer += delta.content;
                         }
-                        
+
                         // Check for reasoning content
                         if (delta.reasoning_content) {
                             reasoningContent = reasoningContent || '';
                             reasoningContent += delta.reasoning_content;
                         }
                     }
-                    
+
                     // Handle citations and other venice parameters
                     if (parsed.venice_parameters) {
                         // Get citations if available
@@ -705,29 +715,29 @@ async function fetchChatResponse(messages, botMessage) {
                             console.log('Found citations:', citationsInResponse);
                             lastCitations = citationsInResponse;
                         }
-                        
+
                         // Check for reasoning content in venice_parameters
                         if (parsed.venice_parameters.reasoning_content) {
                             reasoningContent = parsed.venice_parameters.reasoning_content;
                         }
                     }
-                    
+
                     // Update the message with all available content
                     let updatedContent = formatContent(botContentBuffer);
-                    
+
                     // Add reasoning content if available and not already in the content
                     if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
                         updatedContent = updatedContent + 
                             `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
                     }
-                    
+
                     // Add citations if available
                     if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
                         botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
                     } else {
                         botMessage.innerHTML = updatedContent;
                     }
-                    
+
                     Prism.highlightAll();
                     scrollToBottom();
                 } catch (e) {
@@ -735,7 +745,7 @@ async function fetchChatResponse(messages, botMessage) {
                         // Only log a portion of potentially large data to avoid console overflow
                         const truncatedData = data.length > 500 ? data.substring(0, 500) + '...' : data;
                         console.error('Error parsing chunk:', e, 'Data:', truncatedData);
-                        
+
                         // Try to recover and continue - don't let a parsing error break the entire response
                         if (data.includes('"content":')) {
                             try {
@@ -800,14 +810,14 @@ function formatContent(content) {
     // First handle reasoning content by directly using the API's reasoning_content field
     // (this is handled separately in the fetchChatResponse function now)
     let formatted = content;
-    
+
     // Fallback for any <think> tags that might still be in the content
     if (/<think>\n?([\s\S]+?)<\/think>/g.test(content)) {
         formatted = content.replace(/<think>\n?([\s\S]+?)<\/think>/g, (match, content) => {
             return `<div class="reasoning-content"><strong>Reasoning:</strong><br>${content.trim()}</div>`;
         });
     }
-    
+
     // Format code blocks - improved to handle language specification better
     formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
         // Store the trimmed code
@@ -845,7 +855,7 @@ function formatContent(content) {
         .replace(/`([^`]+)`/g, (match, code) => {
             return `<code class="inline-code">${code}</code>`;
         });
-    
+
     // Handle line breaks in a more standard way
     formatted = formatted.split('\n').map(line => line.trim()).join('<br>');
 

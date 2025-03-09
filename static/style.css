@@ -118,6 +118,17 @@ body {
   align-self: center;
 }
 
+.message.system {
+  background: #2d3436;
+  color: #74b9ff;
+  align-self: center;
+  font-family: monospace;
+  white-space: pre-wrap;
+  width: 90%;
+  max-width: 90%;
+  border: 1px dashed #74b9ff;
+}
+
 .input-area {
   display: flex;
   padding: 20px;
