@@ -499,6 +499,9 @@ async function submitChat(message, base64Image) {
         });
         console.log("Added user message to chat history");
     }
+    
+    // Reset botContentBuffer for the new message
+    botContentBuffer = "";
 
     // Check if RAG is enabled
     const ragEnabled = document.getElementById('ragEnabled').checked;
@@ -630,6 +633,9 @@ async function fetchChatResponse(messages, botMessage) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        // Clear the buffer at the start of streaming
+        botContentBuffer = "";
+        
         // Process streaming response
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -657,29 +663,18 @@ async function fetchChatResponse(messages, botMessage) {
 
                     showLoading(false);
 
-                    // CRITICAL FIX: Ensure the assistant message is added to the chat history
-                    // only if we have actual content to store
+                    // SIMPLIFIED FIX: Always add the assistant's response to the chat history when streaming is done
                     if (botContentBuffer && botContentBuffer.trim() !== '') {
-                        // Make sure the response is always stored as a string
-                        const assistantResponse = {
+                        // Add assistant message to chat history
+                        chatHistory.push({
                             role: 'assistant',
-                            content: botContentBuffer // Store the full text response
-                        };
+                            content: botContentBuffer
+                        });
                         
-                        // Check if the message is already in the history to prevent duplicates
-                        const isDuplicate = chatHistory.some(msg => 
-                            msg.role === 'assistant' && msg.content === botContentBuffer
-                        );
-                        
-                        if (!isDuplicate) {
-                            chatHistory.push(assistantResponse);
-                            console.log("✅ Assistant message ADDED to chat history:", 
-                                        assistantResponse.content.substring(0, 50) + "...");
-                        }
+                        console.log("✅ Assistant message added to chat history");
+                        console.log("AFTER - Chat history updated, now contains:", chatHistory.length, "messages");
+                        console.log("Roles in history:", chatHistory.map(msg => msg.role));
                     }
-
-                    console.log("AFTER - Chat history updated, now contains:", chatHistory.length, "messages");
-                    console.log("Roles in history:", chatHistory.map(msg => msg.role));
                     
                     Prism.highlightAll();
                     return;
@@ -789,22 +784,13 @@ async function fetchChatResponse(messages, botMessage) {
         console.error('Stream error:', error);
         appendMessage('Failed to connect to chat service. Please try again.', 'error');
         
-        // Ensure we save whatever content we received even during errors
+        // Even on error, add whatever assistant content we received
         if (botContentBuffer && botContentBuffer.trim() !== '') {
-            const assistantResponse = {
+            chatHistory.push({
                 role: 'assistant',
                 content: botContentBuffer
-            };
-            
-            // Add to chat history if not already present
-            const isDuplicate = chatHistory.some(msg => 
-                msg.role === 'assistant' && msg.content === botContentBuffer
-            );
-            
-            if (!isDuplicate) {
-                chatHistory.push(assistantResponse);
-                console.log("✅ Assistant message ADDED during error recovery");
-            }
+            });
+            console.log("✅ Assistant message added during error recovery");
         }
     } finally {
         showLoading(false);
