@@ -657,17 +657,30 @@ async function fetchChatResponse(messages, botMessage) {
 
                     showLoading(false);
 
-                    // Store assistant response in chat history
-                    // Make sure we're using a clean string format for content
-                    chatHistory.push({
-                        role: 'assistant',
-                        content: botContentBuffer // Store the full text response
-                    });
+                    // CRITICAL FIX: Ensure the assistant message is added to the chat history
+                    // only if we have actual content to store
+                    if (botContentBuffer && botContentBuffer.trim() !== '') {
+                        // Make sure the response is always stored as a string
+                        const assistantResponse = {
+                            role: 'assistant',
+                            content: botContentBuffer // Store the full text response
+                        };
+                        
+                        // Check if the message is already in the history to prevent duplicates
+                        const isDuplicate = chatHistory.some(msg => 
+                            msg.role === 'assistant' && msg.content === botContentBuffer
+                        );
+                        
+                        if (!isDuplicate) {
+                            chatHistory.push(assistantResponse);
+                            console.log("✅ Assistant message ADDED to chat history:", 
+                                        assistantResponse.content.substring(0, 50) + "...");
+                        }
+                    }
 
                     console.log("AFTER - Chat history updated, now contains:", chatHistory.length, "messages");
                     console.log("Roles in history:", chatHistory.map(msg => msg.role));
-                    console.log("Last assistant response stored:", botContentBuffer.substring(0, 50) + "...");
-
+                    
                     Prism.highlightAll();
                     return;
                 }
@@ -775,9 +788,30 @@ async function fetchChatResponse(messages, botMessage) {
     } catch (error) {
         console.error('Stream error:', error);
         appendMessage('Failed to connect to chat service. Please try again.', 'error');
-        chatHistory.push({ role: 'assistant', content: botContentBuffer });
+        
+        // Ensure we save whatever content we received even during errors
+        if (botContentBuffer && botContentBuffer.trim() !== '') {
+            const assistantResponse = {
+                role: 'assistant',
+                content: botContentBuffer
+            };
+            
+            // Add to chat history if not already present
+            const isDuplicate = chatHistory.some(msg => 
+                msg.role === 'assistant' && msg.content === botContentBuffer
+            );
+            
+            if (!isDuplicate) {
+                chatHistory.push(assistantResponse);
+                console.log("✅ Assistant message ADDED during error recovery");
+            }
+        }
     } finally {
         showLoading(false);
+        
+        // Log the final chat history state
+        console.log("FINAL chat history contains:", chatHistory.length, "messages");
+        console.log("FINAL chat history roles:", chatHistory.map(msg => msg.role));
     }
 }
 
@@ -961,11 +995,21 @@ function showChatContext() {
     // Create a message showing the current context
     let contextInfo = "In the context window, I can see the following messages:\n\n";
     
+    // Count roles for diagnostic info
+    const roleCounts = {
+        user: 0,
+        assistant: 0,
+        system: 0
+    };
+    
     // Log the current chat history for debugging
-    console.log("Chat history when showChatContext called:", JSON.stringify(chatHistory.map(m => ({
-        role: m.role,
-        contentPreview: typeof m.content === 'string' ? m.content.substring(0, 30) + '...' : '[complex content]'
-    }))));
+    console.log("Chat history when showChatContext called:", JSON.stringify(chatHistory.map(m => {
+        roleCounts[m.role] = (roleCounts[m.role] || 0) + 1;
+        return {
+            role: m.role,
+            contentPreview: typeof m.content === 'string' ? m.content.substring(0, 30) + '...' : '[complex content]'
+        };
+    })));
 
     // Skip system message and just show user/assistant exchanges
     chatHistory.forEach((msg, index) => {
@@ -981,9 +1025,24 @@ function showChatContext() {
     if (chatHistory.length <= 1) {
         contextInfo += "No conversation history found. Try sending a few messages first.";
     }
+    
+    // Add role count summary
+    contextInfo += `\n--- Summary ---\nTotal messages: ${chatHistory.length}\n`;
+    contextInfo += `User messages: ${roleCounts.user || 0}\n`;
+    contextInfo += `Assistant messages: ${roleCounts.assistant || 0}\n`;
+    contextInfo += `System messages: ${roleCounts.system || 0}\n`;
 
     // Add this message to the chat
     appendMessage(contextInfo, 'system');
+    
+    // Also output to console
+    console.table(chatHistory.map((msg, i) => ({
+        index: i,
+        role: msg.role,
+        preview: typeof msg.content === 'string' ? 
+            msg.content.substring(0, 30) + '...' : 
+            JSON.stringify(msg.content).substring(0, 30) + '...'
+    })));
 }
 
 // Export functions for global access
