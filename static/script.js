@@ -563,10 +563,10 @@ async function submitChat(message, base64Image) {
                 content: [{ type: 'text', text: msg.content }] 
             });
         } else if (msg.role === 'assistant') {
-            // Keep assistant messages in regular text format
+            // Format assistant messages the same way as user messages
             messages.push({ 
                 role: 'assistant', 
-                content: msg.content 
+                content: [{ type: 'text', text: msg.content }] 
             });
         }
     });
