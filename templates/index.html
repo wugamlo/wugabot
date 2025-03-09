@@ -29,8 +29,12 @@
                 <button id="headerClearChat" class="icon-button" onclick="clearChatHistory()">
                     <i class="fas fa-trash"></i>
                 </button>
-                <button id="headerDebug" class="icon-button" onclick="showChatContext()" title="Debug Chat Context">
+                <!-- Debug buttons -->
+                <button onclick="showChatContext()" class="icon-button" title="Debug Context">
                     <i class="fas fa-bug"></i>
+                </button>
+                <button onclick="displayFullChatHistory()" class="icon-button" title="Full Chat History">
+                    <i class="fas fa-history"></i>
                 </button>
             </div>
         </div>

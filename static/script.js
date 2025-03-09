@@ -488,9 +488,16 @@ async function submitChat(message, base64Image) {
     // Clear lastCitations at the start of each new message
     lastCitations = null;
 
+    console.log("BEFORE - Chat history contains:", chatHistory.length, "messages");
+    
     // Store message without image in chat history
     if (message) {
-        chatHistory.push({ role: 'user', content: message });
+        // Ensure consistent format for user messages
+        chatHistory.push({ 
+            role: 'user', 
+            content: message 
+        });
+        console.log("Added user message to chat history");
     }
 
     // Check if RAG is enabled
@@ -574,6 +581,10 @@ async function submitChat(message, base64Image) {
 async function fetchChatResponse(messages, botMessage) {
     showLoading(true);
     try {
+        // Store the current model for debugging purposes
+        const currentModel = document.getElementById('modelSelect').value;
+        console.log('Current model:', currentModel);
+        
         const searchButton = document.getElementById('searchEnabled');
         const searchEnabled = searchButton && searchButton.classList.contains('active');
         console.log('Web search enabled:', searchEnabled);
@@ -585,7 +596,7 @@ async function fetchChatResponse(messages, botMessage) {
         // Build the request with updated parameter names
         const requestBody = {
             messages: messages,
-            model: document.getElementById('modelSelect').value,
+            model: currentModel,
             max_completion_tokens: maxTokens, // Updated to use max_completion_tokens instead of max_tokens
             temperature: temperature,
             stream: true
@@ -601,6 +612,10 @@ async function fetchChatResponse(messages, botMessage) {
             web_search: requestBody.web_search,
             messageCount: messages.length
         });
+        
+        // DEBUG: Log the message history being sent
+        console.log('BEFORE - Chat history contains:', chatHistory.length, 'messages');
+        console.log('Chat history roles:', chatHistory.map(msg => msg.role));
 
         const response = await fetch('/chat/stream', {
             method: 'POST',
@@ -642,17 +657,15 @@ async function fetchChatResponse(messages, botMessage) {
 
                     showLoading(false);
 
-                    // Always store text response in chat history in a standard format
-                    // Using consistent format regardless of content source (text or image analysis)
-                    const standardContent = botContentBuffer;
-
-                    chatHistory.push({ 
-                        role: 'assistant', 
-                        content: standardContent,
-                        reasoning_content: reasoningContent // Store reasoning content if available
+                    // Store assistant response in chat history
+                    // Make sure we're using a clean string format for content
+                    chatHistory.push({
+                        role: 'assistant',
+                        content: botContentBuffer // Store the full text response
                     });
 
                     console.log("AFTER - Chat history updated, now contains:", chatHistory.length, "messages");
+                    console.log("Roles in history:", chatHistory.map(msg => msg.role));
                     console.log("Last assistant response stored:", botContentBuffer.substring(0, 50) + "...");
 
                     Prism.highlightAll();
@@ -947,16 +960,27 @@ function transferPrompt() {
 function showChatContext() {
     // Create a message showing the current context
     let contextInfo = "In the context window, I can see the following messages:\n\n";
+    
+    // Log the current chat history for debugging
+    console.log("Chat history when showChatContext called:", JSON.stringify(chatHistory.map(m => ({
+        role: m.role,
+        contentPreview: typeof m.content === 'string' ? m.content.substring(0, 30) + '...' : '[complex content]'
+    }))));
 
     // Skip system message and just show user/assistant exchanges
-    chatHistory.forEach(msg => {
+    chatHistory.forEach((msg, index) => {
         if (msg.role !== 'system') {
+            // For better debugging, include the message index
             const preview = typeof msg.content === 'string' 
                 ? msg.content.substring(0, 100) 
                 : JSON.stringify(msg.content).substring(0, 100);
-            contextInfo += `${msg.role}: ${preview}${preview.length > 99 ? '...' : ''}\n\n`;
+            contextInfo += `[${index}] ${msg.role}: ${preview}${preview.length > 99 ? '...' : ''}\n\n`;
         }
     });
+
+    if (chatHistory.length <= 1) {
+        contextInfo += "No conversation history found. Try sending a few messages first.";
+    }
 
     // Add this message to the chat
     appendMessage(contextInfo, 'system');
@@ -1009,3 +1033,34 @@ window.addEventListener('load', () => {
 
 // Export the function for global access
 window.toggleTextSize = toggleTextSize;
+
+function displayFullChatHistory() {
+    console.table(chatHistory.map((msg, index) => ({
+        index,
+        role: msg.role,
+        contentType: typeof msg.content,
+        preview: typeof msg.content === 'string' 
+            ? (msg.content.length > 50 ? msg.content.substring(0, 50) + '...' : msg.content)
+            : JSON.stringify(msg.content).substring(0, 50) + '...'
+    })));
+    
+    // Add this to the global window object for console access
+    window.currentChatHistory = [...chatHistory];
+    
+    // Create a formatted message showing all content
+    let historyText = "## COMPLETE CHAT HISTORY ##\n\n";
+    
+    chatHistory.forEach((msg, index) => {
+        const content = typeof msg.content === 'string' 
+            ? msg.content 
+            : JSON.stringify(msg.content, null, 2);
+            
+        historyText += `[${index}] ${msg.role.toUpperCase()}:\n${content}\n\n---\n\n`;
+    });
+    
+    // Add to chat as system message
+    appendMessage(historyText, 'system');
+}
+
+// Add to window object for global access
+window.displayFullChatHistory = displayFullChatHistory;
