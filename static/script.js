@@ -72,6 +72,28 @@ window.addEventListener('load', () => {
     fetchModels();
     populateCharacterDropdown();
 
+    // Load chat history from localStorage if available
+    try {
+        const savedChatHistory = localStorage.getItem('chatHistory');
+        if (savedChatHistory) {
+            const parsedHistory = JSON.parse(savedChatHistory);
+            if (Array.isArray(parsedHistory)) {
+                chatHistory.length = 0; // Clear existing history
+                parsedHistory.forEach(msg => chatHistory.push(msg));
+                console.log("📂 Loaded chat history from localStorage with", chatHistory.length, "messages");
+                
+                // Restore chat display from history
+                chatHistory.forEach(msg => {
+                    if (msg.role === 'user' || msg.role === 'assistant') {
+                        appendMessage(msg.content, msg.role);
+                    }
+                });
+            }
+        }
+    } catch (e) {
+        console.warn("Could not load chat history from localStorage:", e);
+    }
+
     // Load saved settings
     const savedPrompt = localStorage.getItem('systemPrompt');
     const savedMaxTokens = localStorage.getItem('maxTokens');
@@ -561,9 +583,15 @@ async function submitChat(message, base64Image) {
     ];
     
     // Then add all history with consistent formatting for the API
-    chatHistory.filter(msg => msg.role !== 'user' || msg.content !== message).forEach(msg => {
+    chatHistory.forEach(msg => {
         // Make sure we properly log what's happening in the history
         console.log(`Processing message for API: ${msg.role}`, msg.content.substring(0, 50) + '...');
+        
+        // Skip the current user message (it will be added separately)
+        if (msg.role === 'user' && msg.content === message) {
+            console.log("Skipping current user message (will add it separately)");
+            return;
+        }
         
         if (msg.role === 'user') {
             // Format user messages for the API
@@ -691,15 +719,27 @@ async function fetchChatResponse(messages, botMessage) {
 
                     // ALWAYS add the assistant's response to the chat history when streaming is done
                     if (botContentBuffer && botContentBuffer.trim() !== '') {
-                        // Add assistant message to chat history with the SAME FORMAT as we add user messages
+                        // Add assistant message to chat history
                         chatHistory.push({
                             role: 'assistant',
                             content: botContentBuffer
                         });
                         
+                        // Save the updated chat history to localStorage
+                        try {
+                            localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                            console.log("✅ Chat history saved to localStorage with", chatHistory.length, "messages");
+                        } catch (e) {
+                            console.warn("Could not save chat history to localStorage:", e);
+                        }
+                        
                         console.log("✅ Assistant message added to chat history");
                         console.log("AFTER - Chat history updated, now contains:", chatHistory.length, "messages");
                         console.log("Roles in history:", chatHistory.map(msg => msg.role));
+                        
+                        // Debug - print what the next request will include
+                        let nextContextSummary = chatHistory.map((msg, i) => `[${i}] ${msg.role}: ${msg.content.substring(0, 20)}...`).join('\n');
+                        console.log("Next API request will include:\n", nextContextSummary);
                     }
                     
                     Prism.highlightAll();
@@ -963,6 +1003,14 @@ function initSettingsPanel() {
 function clearChatHistory() {
     chatHistory.length = 0; // Clear the chat history
     document.getElementById('chatBox').innerHTML = ''; // Clear chat display
+    
+    // Also clear chat history from localStorage
+    try {
+        localStorage.removeItem('chatHistory');
+        console.log("🧹 Chat history cleared from localStorage");
+    } catch (e) {
+        console.warn("Could not clear chat history from localStorage:", e);
+    }
 }
 
 // Event listener for window load
