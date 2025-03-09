@@ -947,13 +947,34 @@ function transferPrompt() {
     togglePromptComposer();
 }
 
+// Function to display chat context (for debugging)
+function showChatContext() {
+    // Create a message showing the current context
+    let contextInfo = "In the context window, I can see the following messages:\n\n";
+
+    // Skip system message and just show user/assistant exchanges
+    chatHistory.forEach(msg => {
+        if (msg.role !== 'system') {
+            const preview = typeof msg.content === 'string' 
+                ? msg.content.substring(0, 100) 
+                : JSON.stringify(msg.content).substring(0, 100);
+            contextInfo += `${msg.role}: ${preview}${preview.length > 99 ? '...' : ''}\n\n`;
+        }
+    });
+
+    // Add this message to the chat
+    appendMessage(contextInfo, 'system');
+}
+
 // Export functions for global access
+window.toggleWebSearch = toggleWebSearch;
 window.startStream = startStream;
 window.saveSettings = saveSettings;
 window.clearChatHistory = clearChatHistory;
 window.togglePromptComposer = togglePromptComposer;
 window.clearFields = clearFields;
 window.transferPrompt = transferPrompt;
+window.showChatContext = showChatContext;
 
 function toggleWebSearch(button) {
     button.classList.toggle('active');
