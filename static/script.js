@@ -440,6 +440,12 @@ async function startStream() {
     const cameraInput = document.getElementById('cameraInput');
     let base64Image = "";
 
+    // Log current chat history state before processing
+    console.log("Current chat history BEFORE starting stream:", JSON.stringify(chatHistory.map(m => ({
+        role: m.role,
+        contentPreview: m.content.substring(0, 30) + '...'
+    }))));
+
     if (!message && !galleryInput.files.length && !cameraInput.files.length) {
         return;
     }
@@ -556,6 +562,9 @@ async function submitChat(message, base64Image) {
     
     // Then add all history with consistent formatting for the API
     chatHistory.filter(msg => msg.role !== 'user' || msg.content !== message).forEach(msg => {
+        // Make sure we properly log what's happening in the history
+        console.log(`Processing message for API: ${msg.role}`, msg.content.substring(0, 50) + '...');
+        
         if (msg.role === 'user') {
             // Format user messages for the API
             messages.push({ 
@@ -680,9 +689,9 @@ async function fetchChatResponse(messages, botMessage) {
 
                     showLoading(false);
 
-                    // SIMPLIFIED FIX: Always add the assistant's response to the chat history when streaming is done
+                    // ALWAYS add the assistant's response to the chat history when streaming is done
                     if (botContentBuffer && botContentBuffer.trim() !== '') {
-                        // Add assistant message to chat history
+                        // Add assistant message to chat history with the SAME FORMAT as we add user messages
                         chatHistory.push({
                             role: 'assistant',
                             content: botContentBuffer
