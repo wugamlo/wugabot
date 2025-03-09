@@ -488,6 +488,7 @@ async function submitChat(message, base64Image) {
     // Clear lastCitations at the start of each new message
     lastCitations = null;
 
+    // Store message without image in chat history
     if (message) {
         chatHistory.push({ role: 'user', content: message });
     }
@@ -537,15 +538,18 @@ async function submitChat(message, base64Image) {
         }
     }
 
+    // Use only necessary history for message construction
     const messages = [
         { role: 'system', content: enhancedSystemPrompt },
-        ...chatHistory.slice(0, -1) // Exclude the last user message since we're using the enhanced prompt
+        ...chatHistory.filter(msg => msg.role !== 'user' || msg.content !== message) // Include all history except duplicate of current message
     ];
 
+    // Add current user message with proper formatting for the API
     if (message) {
         messages.push({ role: 'user', content: [{ type: 'text', text: message }] });
     }
 
+    // If image present, add it to the API request but NOT to chatHistory
     if (base64Image) {
         messages.push({
             role: 'user',
@@ -553,6 +557,7 @@ async function submitChat(message, base64Image) {
         });
     }
 
+    // Display in UI
     appendMessage(message, 'user');
     if (base64Image) {
         appendMessage(`<img src="${base64Image}" alt="User Uploaded Image" style="max-width: 80%; height: auto;" />`, 'user');
@@ -636,11 +641,14 @@ async function fetchChatResponse(messages, botMessage) {
                     }
                     
                     showLoading(false);
+                    
+                    // Always store text response in chat history - fixed for image analysis
                     chatHistory.push({ 
                         role: 'assistant', 
                         content: botContentBuffer,
                         reasoning_content: reasoningContent // Store reasoning content if available
                     });
+                    
                     Prism.highlightAll();
                     return;
                 }
