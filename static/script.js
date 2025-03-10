@@ -864,6 +864,27 @@ async function fetchChatResponse(messages, botMessage) {
     } finally {
         showLoading(false);
         
+        // ALWAYS add the assistant's response to the chat history when streaming is done
+        if (botContentBuffer && botContentBuffer.trim() !== '') {
+            console.log("💬 Adding assistant message to history:", botContentBuffer.substring(0, 30) + "...");
+            
+            // Add assistant message to chat history - CRITICALLY IMPORTANT
+            chatHistory.push({
+                role: 'assistant',
+                content: botContentBuffer
+            });
+            
+            // Save the updated chat history to localStorage
+            try {
+                localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                console.log("✅ Chat history saved to localStorage with", chatHistory.length, "messages");
+            } catch (e) {
+                console.warn("Could not save chat history to localStorage:", e);
+            }
+            
+            console.log("✅ Assistant message added to chat history");
+        }
+        
         // Log the final chat history state
         console.log("FINAL chat history contains:", chatHistory.length, "messages");
         console.log("FINAL chat history roles:", chatHistory.map(msg => msg.role));
