@@ -419,25 +419,96 @@ def generate_visualization():
             diagram_type = viz_data.get('diagram_type', 'flowchart')
             elements = viz_data.get('elements', [])
             
-            # Create a simple SVG drawing
+            # Create a simple SVG drawing with white background for visibility
             dwg = svgwrite.Drawing('diagram.svg', profile='tiny', size=('800px', '600px'))
+            # Add a background rectangle
+            dwg.add(dwg.rect((0, 0), ('100%', '100%'), fill='#ffffff'))
+            
+            # Default elements for a simple flowchart if none provided
+            if not elements and diagram_type == 'flowchart':
+                elements = [
+                    {'text': 'Start'},
+                    {'text': 'Decision\n(Yes or No?)'},
+                    {'text': 'Yes', 'branch': 'left'},
+                    {'text': 'No', 'branch': 'right'},
+                    {'text': 'End', 'branch': 'left'},
+                    {'text': 'End', 'branch': 'right'}
+                ]
             
             if diagram_type == 'flowchart':
-                # Simple flowchart implementation
-                y_pos = 50
-                for i, element in enumerate(elements):
-                    # Add a box for each element
-                    dwg.add(dwg.rect((50, y_pos), (150, 80), fill='#f0f0f0', stroke='#000000'))
-                    dwg.add(dwg.text(element.get('text', ''), insert=(125, y_pos + 40), 
-                                     text_anchor="middle", font_size=14))
-                    
-                    # Add arrow if not the last element
-                    if i < len(elements) - 1:
-                        dwg.add(dwg.line((125, y_pos + 80), (125, y_pos + 120), stroke='#000000'))
-                        dwg.add(dwg.polygon([(120, y_pos + 110), (125, y_pos + 120), (130, y_pos + 110)], 
-                                          fill='#000000'))
-                    
-                    y_pos += 150
+                # Improved flowchart implementation
+                main_y_pos = 50
+                
+                # Draw the start node
+                dwg.add(dwg.rect((325, main_y_pos), (150, 80), fill='#f0f0f0', stroke='#000000', rx=5, ry=5))
+                dwg.add(dwg.text(elements[0].get('text', 'Start'), insert=(400, main_y_pos + 45), 
+                                text_anchor="middle", font_size=16))
+                
+                # Draw connector
+                main_y_pos += 100
+                dwg.add(dwg.line((400, main_y_pos - 20), (400, main_y_pos + 20), stroke='#000000', stroke_width=2))
+                dwg.add(dwg.polygon([(395, main_y_pos + 10), (400, main_y_pos + 20), (405, main_y_pos + 10)], 
+                                  fill='#000000'))
+                
+                # Draw decision node
+                main_y_pos += 50
+                dwg.add(dwg.polygon([(400, main_y_pos), (475, main_y_pos + 50), (400, main_y_pos + 100), (325, main_y_pos + 50)], 
+                                  fill='#f0f0f0', stroke='#000000'))
+                
+                # Multi-line text for decision
+                decision_text = elements[1].get('text', 'Decision?').split("\n")
+                for i, line in enumerate(decision_text):
+                    y_offset = main_y_pos + 50 + (i - len(decision_text)/2) * 20
+                    dwg.add(dwg.text(line, insert=(400, y_offset), text_anchor="middle", font_size=14))
+                
+                # Draw Yes/No paths
+                main_y_pos += 120
+                
+                # Yes branch (left)
+                dwg.add(dwg.line((350, main_y_pos - 20), (250, main_y_pos + 50), stroke='#000000', stroke_width=2))
+                dwg.add(dwg.polygon([(260, main_y_pos + 45), (250, main_y_pos + 50), (255, main_y_pos + 35)], 
+                                  fill='#000000'))
+                dwg.add(dwg.text("Yes", insert=(290, main_y_pos + 10), text_anchor="middle", font_size=14))
+                
+                # No branch (right)
+                dwg.add(dwg.line((450, main_y_pos - 20), (550, main_y_pos + 50), stroke='#000000', stroke_width=2))
+                dwg.add(dwg.polygon([(545, main_y_pos + 45), (550, main_y_pos + 50), (540, main_y_pos + 40)], 
+                                  fill='#000000'))
+                dwg.add(dwg.text("No", insert=(510, main_y_pos + 10), text_anchor="middle", font_size=14))
+                
+                # Left node (Yes result)
+                left_y = main_y_pos + 70
+                dwg.add(dwg.rect((175, left_y), (150, 80), fill='#f0f0f0', stroke='#000000', rx=5, ry=5))
+                dwg.add(dwg.text(elements[2].get('text', 'Yes'), insert=(250, left_y + 45), 
+                                text_anchor="middle", font_size=16))
+                
+                # Right node (No result)
+                dwg.add(dwg.rect((475, left_y), (150, 80), fill='#f0f0f0', stroke='#000000', rx=5, ry=5))
+                dwg.add(dwg.text(elements[3].get('text', 'No'), insert=(550, left_y + 45), 
+                                text_anchor="middle", font_size=16))
+                
+                # Draw connectors to End nodes
+                left_y += 100
+                
+                # Left End connector
+                dwg.add(dwg.line((250, left_y - 20), (250, left_y + 20), stroke='#000000', stroke_width=2))
+                dwg.add(dwg.polygon([(245, left_y + 10), (250, left_y + 20), (255, left_y + 10)], 
+                                  fill='#000000'))
+                
+                # Right End connector
+                dwg.add(dwg.line((550, left_y - 20), (550, left_y + 20), stroke='#000000', stroke_width=2))
+                dwg.add(dwg.polygon([(545, left_y + 10), (550, left_y + 20), (555, left_y + 10)], 
+                                  fill='#000000'))
+                
+                # Left End node
+                dwg.add(dwg.rect((175, left_y + 40), (150, 80), fill='#f0f0f0', stroke='#000000', rx=5, ry=5))
+                dwg.add(dwg.text(elements[4].get('text', 'End'), insert=(250, left_y + 85), 
+                                text_anchor="middle", font_size=16))
+                
+                # Right End node
+                dwg.add(dwg.rect((475, left_y + 40), (150, 80), fill='#f0f0f0', stroke='#000000', rx=5, ry=5))
+                dwg.add(dwg.text(elements[5].get('text', 'End'), insert=(550, left_y + 85), 
+                                text_anchor="middle", font_size=16))
             
             svg_string = dwg.tostring()
             return json.dumps({
