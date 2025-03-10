@@ -1023,7 +1023,8 @@ function formatContent(content) {
     }
 
     // Check for visualization requests and process them
-    formatted = formatted.replace(/<generate_visualization[\s\S]+?type="([^"]+)"[\s\S]+?data="([\s\S]+?)"[\s\S]+?<\/generate_visualization>/g, 
+    // Fix regex pattern to better detect visualization tags with JSON data
+    formatted = formatted.replace(/<generate_visualization[\s\S]+?type="([^"]+)"[\s\S]+?data="([\s\S]+?(?="><\/generate_visualization>)|[\s\S]+?(?="\s*><\/generate_visualization>)|[\s\S]+?(?="\s*<\/generate_visualization>))"[\s\S]*?<\/generate_visualization>/g, 
         (match, type, dataStr) => {
             try {
                 console.log("Visualization request detected:", type);
@@ -1054,7 +1055,24 @@ function formatContent(content) {
                     };
                 }
                 
-                // Try to parse the provided data
+                // Also look for direct JSON in the data attribute
+                if (dataStr.trim().startsWith('{') && dataStr.trim().endsWith('}')) {
+                    try {
+                        const parsedData = JSON.parse(dataStr);
+                        // Only update properties that exist in parsedData
+                        Object.keys(parsedData).forEach(key => {
+                            if (parsedData[key] !== undefined) {
+                                data[key] = parsedData[key];
+                            }
+                        });
+                        console.log("Successfully parsed direct JSON data");
+                    } catch (directParseError) {
+                        console.warn("Direct JSON parse error:", directParseError.message);
+                        // Continue with cleaning and attempting to parse
+                    }
+                }
+                
+                // Try to parse the provided data with additional cleaning
                 try {
                     // First, replace escaped quotes and other problematic characters
                     let cleanedDataStr = dataStr

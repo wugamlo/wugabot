@@ -624,27 +624,78 @@ def generate_visualization():
 
         elif visualization_type == 'drawing':
             # Generate a simple drawing based on text description
-            from PIL import Image, ImageDraw
+            from PIL import Image, ImageDraw, ImageFont
             import io
             import base64
 
             description = viz_data.get('description', '')
+            logger.info(f"Drawing description: {description}")
 
             # Create a blank canvas
             img = Image.new('RGB', (500, 500), color='white')
             draw = ImageDraw.Draw(img)
 
-            # Very basic drawing based on keywords in description
-            if 'circle' in description.lower():
-                draw.ellipse((100, 100, 400, 400), outline='black')
+            # More detailed drawing based on keywords
+            if 'cat' in description.lower():
+                # Draw cat face
+                draw.ellipse((100, 100, 400, 400), outline='black', width=3)  # Face
+                
+                # Draw cat ears
+                draw.polygon([(150, 150), (200, 50), (250, 150)], fill='white', outline='black', width=3)  # Left ear
+                draw.polygon([(350, 150), (300, 50), (250, 150)], fill='white', outline='black', width=3)  # Right ear
+                
+                # Draw cat eyes
+                draw.ellipse((175, 200, 225, 250), fill='white', outline='black', width=2)  # Left eye
+                draw.ellipse((275, 200, 325, 250), fill='white', outline='black', width=2)  # Right eye
+                
+                # Draw pupils
+                draw.ellipse((190, 215, 210, 235), fill='black')  # Left pupil
+                draw.ellipse((290, 215, 310, 235), fill='black')  # Right pupil
+                
+                # Draw nose
+                draw.polygon([(250, 270), (230, 290), (270, 290)], fill='pink', outline='black')
+                
+                # Draw whiskers
+                for i in range(3):
+                    # Left whiskers
+                    draw.line((170, 290 + i*15, 70, 270 + i*15), fill='black', width=2)
+                    # Right whiskers
+                    draw.line((330, 290 + i*15, 430, 270 + i*15), fill='black', width=2)
+                
+                # Draw smile
+                draw.arc((200, 280, 300, 350), 0, 180, fill='black', width=3)
+            
+            elif 'circle' in description.lower():
+                draw.ellipse((100, 100, 400, 400), outline='black', width=3, fill='#FFEEEE')
             elif 'square' in description.lower():
-                draw.rectangle((100, 100, 400, 400), outline='black')
+                draw.rectangle((100, 100, 400, 400), outline='black', width=3, fill='#EEEEFF')
             elif 'triangle' in description.lower():
-                draw.polygon([(250, 100), (100, 400), (400, 400)], outline='black')
+                draw.polygon([(250, 100), (100, 400), (400, 400)], outline='black', width=3, fill='#EEFFEE')
+            elif 'smiley' in description.lower() or 'face' in description.lower():
+                draw.ellipse((100, 100, 400, 400), outline='black', width=3, fill='#FFFFEE')  # Face
+                draw.ellipse((160, 180, 210, 230), fill='black')  # Left eye
+                draw.ellipse((290, 180, 340, 230), fill='black')  # Right eye
+                draw.arc((150, 200, 350, 350), 0, 180, fill='black', width=5)  # Smile
             else:
-                # Default drawing
-                draw.line((100, 100, 400, 400), fill='black', width=2)
-                draw.line((400, 100, 100, 400), fill='black', width=2)
+                # Default drawing - simple cartoon character
+                draw.ellipse((150, 100, 350, 300), outline='black', width=3, fill='#FFFFEE')  # Head
+                draw.ellipse((200, 150, 230, 180), fill='black')  # Left eye
+                draw.ellipse((270, 150, 300, 180), fill='black')  # Right eye
+                draw.arc((200, 200, 300, 250), 0, 180, fill='black', width=3)  # Smile
+                
+                # Add a label with the description
+                try:
+                    # Try to load a font, but don't fail if not available
+                    try:
+                        font = ImageFont.truetype("Arial", 20)
+                    except:
+                        # Fall back to default font
+                        font = ImageFont.load_default()
+                    
+                    # Add description text at the bottom
+                    draw.text((250, 450), description, fill="black", anchor="ms", font=font)
+                except Exception as font_error:
+                    logger.warning(f"Font error: {str(font_error)}")
 
             # Convert to base64
             buf = io.BytesIO()
