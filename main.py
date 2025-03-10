@@ -21,22 +21,11 @@ import requests
 
 @app.route('/models')
 def get_models():
-    api_key = os.getenv('VENICE_API_KEY')
-    if not api_key:
-        logger.error("VENICE_API_KEY not found in environment variables")
-        return json.dumps({
-            'models': [
-                {'id': 'llama-3.2-3b', 'model_spec': {'capabilities': {'supportsWebSearch': True}}},
-                {'id': 'qwen-2.5-qwq-32b', 'model_spec': {'capabilities': {'supportsWebSearch': True}}},
-                {'id': 'qwen-2.5-vl', 'model_spec': {'capabilities': {'supportsWebSearch': True}}}
-            ]
-        })
-    
     try:
         response = requests.get(
             "https://api.venice.ai/api/v1/models",
             headers={
-                "Authorization": f"Bearer {api_key}",
+                "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
                 "Content-Type": "application/json"
             }
         )
@@ -44,17 +33,13 @@ def get_models():
         models_data = response.json()
         models = []
         for model in models_data['data']:
+            # Pass the entire model structure to the client
+            # This includes model_spec with offline status and all capabilities
             models.append(model)
         return json.dumps({'models': models})
     except Exception as e:
         logger.error(f"Error fetching models: {str(e)}")
-        return json.dumps({
-            'models': [
-                {'id': 'llama-3.2-3b', 'model_spec': {'capabilities': {'supportsWebSearch': True}}},
-                {'id': 'qwen-2.5-qwq-32b', 'model_spec': {'capabilities': {'supportsWebSearch': True}}},
-                {'id': 'qwen-2.5-vl', 'model_spec': {'capabilities': {'supportsWebSearch': True}}}
-            ]
-        })
+        return json.dumps({'error': str(e)}), 500
 
 @app.route('/')
 def index():
