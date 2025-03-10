@@ -1219,20 +1219,44 @@ async function generateVisualization(type, data, placeholderId) {
         console.error('Error generating visualization:', error);
         const placeholder = document.getElementById(placeholderId);
         if (placeholder) {
+            // Try to extract more detailed error message from the response if available
+            let errorDetails = error.message;
+            
+            if (error.message && error.message.includes('Server responded with')) {
+                try {
+                    // Extract the detailed error message from the HTML response if possible
+                    const match = error.message.match(/Server responded with \d+: ([\s\S]+)/);
+                    if (match && match[1]) {
+                        errorDetails = match[1];
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse error details:', e);
+                }
+            }
+            
             // Display a more detailed error message
             placeholder.innerHTML = `
                 <div class="error-message">
                     <h3>Visualization Error</h3>
-                    <p>${error.message}</p>
+                    <p>${errorDetails}</p>
                     ${error.stack ? `<details><pre>${error.stack}</pre></details>` : ''}
                 </div>
             `;
             
-            // Add a retry button
+            // Add a retry button with simpler data
             const retryButton = document.createElement('button');
-            retryButton.textContent = 'Retry Visualization';
+            retryButton.textContent = 'Retry with Simple Data';
             retryButton.className = 'retry-button';
-            retryButton.onclick = () => generateVisualization(type, data, placeholderId);
+            retryButton.onclick = () => {
+                // Use simpler data for retry
+                const simpleData = type === 'chart' 
+                    ? { chart_type: 'bar', title: 'Simple Chart', labels: ['A', 'B'], values: [10, 20] }
+                    : type === 'diagram' 
+                    ? { diagram_type: 'flowchart', elements: [{ text: 'Start' }, { text: 'End' }] }
+                    : { description: 'A simple circle' };
+                
+                generateVisualization(type, simpleData, placeholderId);
+            };
             placeholder.appendChild(retryButton);
         }
     }

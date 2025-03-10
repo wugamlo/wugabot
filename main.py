@@ -672,7 +672,7 @@ def generate_visualization():
         error_details = {
             'error': str(e),
             'traceback': str(import_traceback().format_exc()),
-            'visualization_type': visualization_type,
+            'visualization_type': type if 'type' in locals() else 'unknown',
             'data_summary': str(viz_data)[:200] if 'viz_data' in locals() else 'No data'
         }
         
@@ -724,8 +724,15 @@ def generate_visualization():
 
 # Helper function to import traceback module
 def import_traceback():
-    import traceback
-    return traceback
+    try:
+        import traceback
+        return traceback
+    except ImportError:
+        # Define a minimal fallback if traceback is not available
+        class MinimalTraceback:
+            def format_exc(self):
+                return "Traceback information not available"
+        return MinimalTraceback()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
