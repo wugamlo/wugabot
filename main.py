@@ -381,6 +381,11 @@ def generate_visualization():
             logger.error("Missing visualization_type in request")
             return json.dumps({'error': 'Missing visualization_type parameter'}), 400
 
+        # Validate visualization type is one of the supported types
+        if visualization_type not in ['chart', 'diagram', 'drawing']:
+            logger.error(f"Unsupported visualization type: {visualization_type}")
+            return json.dumps({'error': f'Unsupported visualization type: {visualization_type}'}), 400
+
         # Simplified handling of visualization data
         viz_data = data.get('data', {})
         logger.info(f"Raw visualization data type: {type(viz_data)}")
@@ -413,19 +418,54 @@ def generate_visualization():
 
             logger.info(f"Using default data for {visualization_type}")
 
+        # Create a deep copy to avoid modifying the original
+        sanitized_data = {}
+        
         # Validate key structure and fill in missing fields with defaults
         if visualization_type == 'chart':
             # Ensure required fields exist with proper defaults
-            if "chart_type" not in viz_data or not isinstance(viz_data["chart_type"], str):
-                viz_data["chart_type"] = "bar"
-            if "title" not in viz_data or not isinstance(viz_data["title"], str):
-                viz_data["title"] = "Chart"
-            if "labels" not in viz_data or not isinstance(viz_data["labels"], list):
-                viz_data["labels"] = ["A", "B", "C"]
-            if "values" not in viz_data or not isinstance(viz_data["values"], list):
-                viz_data["values"] = [10, 20, 30]
-
+            sanitized_data["chart_type"] = viz_data.get("chart_type", "bar")
+            if not isinstance(sanitized_data["chart_type"], str):
+                sanitized_data["chart_type"] = "bar"
+                
+            sanitized_data["title"] = viz_data.get("title", "Chart")
+            if not isinstance(sanitized_data["title"], str):
+                sanitized_data["title"] = "Chart"
+                
+            sanitized_data["labels"] = viz_data.get("labels", ["A", "B", "C"])
+            if not isinstance(sanitized_data["labels"], list):
+                sanitized_data["labels"] = ["A", "B", "C"]
+                
+            sanitized_data["values"] = viz_data.get("values", [10, 20, 30])
+            if not isinstance(sanitized_data["values"], list):
+                sanitized_data["values"] = [10, 20, 30]
+            
+            # Ensure values are numeric
+            sanitized_data["values"] = [float(v) if isinstance(v, (int, float, str)) and str(v).replace('.', '', 1).isdigit() else 0 for v in sanitized_data["values"]]
+            
+            # Use sanitized data
+            viz_data = sanitized_data
             logger.info(f"Validated chart data: {viz_data}")
+            
+        elif visualization_type == 'diagram':
+            sanitized_data["diagram_type"] = viz_data.get("diagram_type", "flowchart")
+            if not isinstance(sanitized_data["diagram_type"], str):
+                sanitized_data["diagram_type"] = "flowchart"
+                
+            sanitized_data["elements"] = viz_data.get("elements", [{"text": "Start"}, {"text": "Process"}, {"text": "End"}])
+            if not isinstance(sanitized_data["elements"], list):
+                sanitized_data["elements"] = [{"text": "Start"}, {"text": "Process"}, {"text": "End"}]
+                
+            # Use sanitized data
+            viz_data = sanitized_data
+            
+        elif visualization_type == 'drawing':
+            sanitized_data["description"] = viz_data.get("description", "A simple drawing")
+            if not isinstance(sanitized_data["description"], str):
+                sanitized_data["description"] = "A simple drawing"
+                
+            # Use sanitized data
+            viz_data = sanitized_data
 
         # Log the final data being used
         logger.info(f"Using data for visualization: {str(viz_data)[:200]}")

@@ -1023,8 +1023,8 @@ function formatContent(content) {
     }
 
     // Check for visualization requests and process them
-    // Fix regex pattern to better detect visualization tags with JSON data
-    formatted = formatted.replace(/<generate_visualization[\s\S]+?type="([^"]+)"[\s\S]+?data="([\s\S]+?(?="><\/generate_visualization>)|[\s\S]+?(?="\s*><\/generate_visualization>)|[\s\S]+?(?="\s*<\/generate_visualization>))"[\s\S]*?<\/generate_visualization>/g, 
+    // Improved regex pattern to more reliably detect visualization tags with JSON data
+    formatted = formatted.replace(/<generate_visualization\s+type="([^"]+)"\s+data="(.*?)"\s*><\/generate_visualization>/g, 
         (match, type, dataStr) => {
             try {
                 console.log("Visualization request detected:", type);
@@ -1055,63 +1055,49 @@ function formatContent(content) {
                     };
                 }
                 
-                // Also look for direct JSON in the data attribute
-                if (dataStr.trim().startsWith('{') && dataStr.trim().endsWith('}')) {
-                    try {
-                        const parsedData = JSON.parse(dataStr);
-                        // Only update properties that exist in parsedData
-                        Object.keys(parsedData).forEach(key => {
-                            if (parsedData[key] !== undefined) {
-                                data[key] = parsedData[key];
-                            }
-                        });
-                        console.log("Successfully parsed direct JSON data");
-                    } catch (directParseError) {
-                        console.warn("Direct JSON parse error:", directParseError.message);
-                        // Continue with cleaning and attempting to parse
-                    }
-                }
+                // Deep clean the data string first
+                // First, unescape all special characters and HTML entities
+                let cleanedDataStr = dataStr
+                    .replace(/\\"/g, '"')
+                    .replace(/\\\\"/g, '\\"')
+                    .replace(/&quot;/g, '"')
+                    .replace(/\\\\/g, '\\')
+                    .replace(/\\n/g, ' ')
+                    .replace(/\\r/g, '')
+                    .replace(/\n/g, ' ')
+                    .replace(/\r/g, '')
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&amp;/g, '&');
                 
-                // Try to parse the provided data with additional cleaning
+                // Remove any escape sequences that would break JSON
+                cleanedDataStr = cleanedDataStr.trim();
+                
+                console.log("Cleaned data string:", cleanedDataStr.substring(0, 100));
+                
+                // Try to parse the JSON data string
                 try {
-                    // First, replace escaped quotes and other problematic characters
-                    let cleanedDataStr = dataStr
-                        .replace(/\\"/g, '"')
-                        .replace(/\\\\"/g, '\\"')
-                        .replace(/&quot;/g, '"')
-                        .replace(/\\\\/g, '\\')
-                        .replace(/\\n/g, ' ')
-                        .replace(/\\r/g, '')
-                        .replace(/\n/g, ' ')
-                        .replace(/\r/g, '');
-                    
-                    // Additional cleanup for malformed JSON
-                    cleanedDataStr = cleanedDataStr.trim();
-                    
-                    // Remove any HTML entities that might have been added
-                    cleanedDataStr = cleanedDataStr
-                        .replace(/&lt;/g, '<')
-                        .replace(/&gt;/g, '>')
-                        .replace(/&amp;/g, '&');
-                    
-                    console.log("Cleaned data string:", cleanedDataStr.substring(0, 100));
-                    
-                    // Try parsing if it looks like JSON
+                    // Handle the case when the data is already valid JSON
                     if (cleanedDataStr.startsWith('{') && cleanedDataStr.endsWith('}')) {
-                        try {
-                            const parsedData = JSON.parse(cleanedDataStr);
-                            // Only update properties that exist in parsedData
-                            Object.keys(parsedData).forEach(key => {
-                                if (parsedData[key] !== undefined) {
-                                    data[key] = parsedData[key];
-                                }
-                            });
-                            console.log("Successfully parsed and merged JSON data");
-                        } catch (innerError) {
-                            console.warn("JSON parse error, using default data:", innerError.message);
+                        const parsedData = JSON.parse(cleanedDataStr);
+                        // Merge with defaults
+                        data = { ...data, ...parsedData };
+                        console.log("Successfully parsed JSON data");
+                    } 
+                    // For cases with escaped JSON
+                    else if (cleanedDataStr.includes('{') && cleanedDataStr.includes('}')) {
+                        // Extract the JSON part
+                        const jsonMatch = cleanedDataStr.match(/{.*}/);
+                        if (jsonMatch) {
+                            const jsonPart = jsonMatch[0];
+                            try {
+                                const parsedData = JSON.parse(jsonPart);
+                                data = { ...data, ...parsedData };
+                                console.log("Successfully extracted and parsed JSON part");
+                            } catch (e) {
+                                console.warn("Could not parse extracted JSON:", e.message);
+                            }
                         }
-                    } else {
-                        console.warn("Data string doesn't look like valid JSON, using defaults");
                     }
                 } catch (parseError) {
                     console.warn("Using default data due to parsing error:", parseError.message);
@@ -1200,7 +1186,7 @@ async function generateVisualization(type, data, placeholderId) {
             throw new Error('Invalid visualization data');
         }
         
-        // Ensure data is properly formatted
+        // Ensure data is properly formatted with robust defaults
         let sanitizedData = {};
         
         // Create appropriate defaults based on visualization type
@@ -1209,7 +1195,7 @@ async function generateVisualization(type, data, placeholderId) {
                 chart_type: data.chart_type || 'bar',
                 title: data.title || 'Chart',
                 labels: Array.isArray(data.labels) ? data.labels : ['A', 'B', 'C'],
-                values: Array.isArray(data.values) ? data.values : [10, 20, 30]
+                values: Array.isArray(data.values) ? data.values.map(v => Number(v) || 0) : [10, 20, 30]
             };
         } else if (type === 'diagram') {
             sanitizedData = {
@@ -1232,75 +1218,99 @@ async function generateVisualization(type, data, placeholderId) {
         
         console.log("Sending visualization request:", JSON.stringify(requestBody).substring(0, 200));
         
-        const response = await fetch('/generate_visualization', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
-        });
+        // Add timeout to fetch request to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Server error (${response.status}):`, errorText);
-            throw new Error(`Server responded with ${response.status}: ${errorText}`);
-        }
-        
-        const result = await response.json();
-        console.log("Visualization response received:", Object.keys(result));
-        
-        // Check for error in the response
-        if (result.error) {
-            throw new Error(result.error);
-        }
-        
-        const placeholder = document.getElementById(placeholderId);
-        
-        if (!placeholder) {
-            console.error('Placeholder element not found:', placeholderId);
-            return;
-        }
-        
-        // Clear the placeholder
-        placeholder.innerHTML = '';
-        placeholder.classList.remove('visualization-placeholder');
-        placeholder.classList.add('visualization-container');
-        
-        // Add the visualization based on the type
-        if (result.type === 'chart' || result.type === 'drawing') {
-            if (!result.image) {
-                throw new Error('Visualization response is missing image data');
-            }
-            const img = document.createElement('img');
-            img.src = result.image;
-            img.alt = `${type} visualization`;
-            img.classList.add('visualization-image');
-            placeholder.appendChild(img);
-        } else if (result.type === 'diagram') {
-            if (!result.svg) {
-                throw new Error('Visualization response is missing SVG data');
+        try {
+            const response = await fetch('/generate_visualization', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody),
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Server error (${response.status}):`, errorText);
+                throw new Error(`Server responded with ${response.status}: ${errorText}`);
             }
             
-            // For SVG, sanitize the content before inserting
-            let cleanSvg = result.svg;
-            // Ensure SVG has proper XML declaration and namespaces
-            if (!cleanSvg.includes('<svg')) {
-                cleanSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"></svg>';
+            const result = await response.json();
+            console.log("Visualization response received:", Object.keys(result));
+            
+            // Check for error in the response
+            if (result.error) {
+                throw new Error(result.error);
             }
             
-            // Insert the SVG into the DOM
-            placeholder.innerHTML = cleanSvg;
+            const placeholder = document.getElementById(placeholderId);
             
-            // Add classes to the svg element for styling
-            const svg = placeholder.querySelector('svg');
-            if (svg) {
-                svg.classList.add('visualization-svg');
-                // Ensure SVG has width and height attributes
-                if (!svg.hasAttribute('width')) svg.setAttribute('width', '800');
-                if (!svg.hasAttribute('height')) svg.setAttribute('height', '600');
+            if (!placeholder) {
+                console.error('Placeholder element not found:', placeholderId);
+                return;
             }
-        } else {
-            throw new Error(`Unknown visualization type: ${result.type}`);
+            
+            // Clear the placeholder
+            placeholder.innerHTML = '';
+            placeholder.classList.remove('visualization-placeholder');
+            placeholder.classList.add('visualization-container');
+            
+            // Add the visualization based on the type
+            if (result.type === 'chart' || result.type === 'drawing' || result.type === 'error') {
+                if (!result.image) {
+                    throw new Error('Visualization response is missing image data');
+                }
+                const img = document.createElement('img');
+                img.src = result.image;
+                img.alt = `${type} visualization`;
+                img.classList.add('visualization-image');
+                placeholder.appendChild(img);
+                
+                // Add error message if present
+                if (result.error && result.type === 'error') {
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'error-message';
+                    errorMsg.textContent = result.error;
+                    placeholder.appendChild(errorMsg);
+                }
+            } else if (result.type === 'diagram') {
+                if (!result.svg) {
+                    throw new Error('Visualization response is missing SVG data');
+                }
+                
+                // For SVG, sanitize the content before inserting
+                let cleanSvg = result.svg;
+                
+                // Ensure SVG has proper XML declaration and namespaces
+                if (!cleanSvg.includes('<svg')) {
+                    cleanSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"></svg>';
+                }
+                
+                // Insert the SVG into the DOM using a safer approach
+                const svgContainer = document.createElement('div');
+                svgContainer.innerHTML = cleanSvg;
+                
+                // Get the SVG element and ensure it has proper attributes
+                const svg = svgContainer.querySelector('svg');
+                if (svg) {
+                    svg.classList.add('visualization-svg');
+                    if (!svg.hasAttribute('width')) svg.setAttribute('width', '800');
+                    if (!svg.hasAttribute('height')) svg.setAttribute('height', '600');
+                    placeholder.appendChild(svg);
+                } else {
+                    placeholder.innerHTML = cleanSvg; // Fallback to direct insertion
+                }
+            } else {
+                throw new Error(`Unknown visualization type: ${result.type}`);
+            }
+        } catch (fetchError) {
+            clearTimeout(timeoutId);
+            throw fetchError;
         }
     } catch (error) {
         console.error('Error generating visualization:', error);
