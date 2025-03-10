@@ -368,14 +368,27 @@ def generate_visualization():
         JSON with the generated visualization as SVG or base64 image
     """
     try:
+        # Make sure we have a valid JSON request
+        if not request.is_json:
+            logger.error("Invalid request: Not JSON")
+            return json.dumps({'error': 'Invalid request format. Expected JSON.'}), 400
+            
         data = request.json
+        logger.info(f"Visualization request received: {data.keys()}")
+        
         visualization_type = data.get('visualization_type')
+        if not visualization_type:
+            logger.error("Missing visualization_type in request")
+            return json.dumps({'error': 'Missing visualization_type parameter'}), 400
         
         # Improved handling of visualization data
         viz_data = data.get('data', {})
+        logger.info(f"Raw visualization data type: {type(viz_data)}")
+        
         if isinstance(viz_data, str):
             try:
                 import json
+                logger.info(f"Attempting to parse JSON string: {viz_data[:100]}...")
                 viz_data = json.loads(viz_data)
             except json.JSONDecodeError as e:
                 logger.error(f"JSON decode error in visualization data: {e}")
@@ -386,41 +399,80 @@ def generate_visualization():
                     # Try to fix common JSON issues
                     fixed_data = viz_data.replace('\\"', '"').replace('\\\\', '\\')
                     viz_data = json.loads(fixed_data)
+                    logger.info("Successfully fixed and parsed JSON data")
                 except Exception as fix_error:
                     logger.error(f"Could not fix JSON: {fix_error}")
                     viz_data = {}
         
         if visualization_type == 'chart':
             # Generate chart using matplotlib
-            import matplotlib.pyplot as plt
-            import matplotlib
-            matplotlib.use('Agg')
-            import io
-            import base64
-            
-            chart_type = viz_data.get('chart_type', 'bar')
-            title = viz_data.get('title', 'Chart')
-            labels = viz_data.get('labels', [])
-            values = viz_data.get('values', [])
-            
-            plt.figure(figsize=(10, 6))
-            
-            if chart_type == 'bar':
-                plt.bar(labels, values)
-            elif chart_type == 'line':
-                plt.plot(labels, values)
-            elif chart_type == 'pie':
-                plt.pie(values, labels=labels, autopct='%1.1f%%')
-            
-            plt.title(title)
-            plt.tight_layout()
-            
-            # Convert plot to base64 image
-            buf = io.BytesIO()
-            plt.savefig(buf, format='png')
-            buf.seek(0)
-            img_str = base64.b64encode(buf.read()).decode('utf-8')
-            plt.close()
+            try:
+                import matplotlib.pyplot as plt
+                import matplotlib
+                matplotlib.use('Agg')
+                import io
+                import base64
+                
+                chart_type = viz_data.get('chart_type', 'bar')
+                title = viz_data.get('title', 'Chart')
+                labels = viz_data.get('labels', [])
+                values = viz_data.get('values', [])
+                
+                # Validate input data
+                if not labels or not values:
+                    logger.warning(f"Missing data for chart generation - Labels: {labels}, Values: {values}")
+                    # Use default data if missing
+                    if not labels:
+                        labels = ["No Data"] if not values else [f"Item {i+1}" for i in range(len(values))]
+                    if not values:
+                        values = [0] if not labels else [10 for _ in range(len(labels))]
+                
+                # Ensure values are numeric
+                values = [float(v) if isinstance(v, (int, float, str)) else 0 for v in values]
+                
+                plt.figure(figsize=(10, 6))
+                
+                logger.info(f"Generating {chart_type} chart with {len(labels)} labels and {len(values)} values")
+                
+                if chart_type == 'bar':
+                    plt.bar(labels, values)
+                elif chart_type == 'line':
+                    plt.plot(labels, values)
+                elif chart_type == 'pie':
+                    # Ensure no negative values for pie charts
+                    pie_values = [max(0, v) for v in values]
+                    # If all values are 0, use default values
+                    if sum(pie_values) == 0:
+                        pie_values = [1 for _ in range(len(labels))]
+                    plt.pie(pie_values, labels=labels, autopct='%1.1f%%')
+                else:
+                    # Default to bar chart for unknown types
+                    logger.warning(f"Unknown chart type: {chart_type}, defaulting to bar")
+                    plt.bar(labels, values)
+                
+                plt.title(title)
+                plt.tight_layout()
+                
+                # Convert plot to base64 image
+                buf = io.BytesIO()
+                plt.savefig(buf, format='png')
+                buf.seek(0)
+                img_str = base64.b64encode(buf.read()).decode('utf-8')
+                plt.close()
+            except Exception as chart_error:
+                logger.exception(f"Error generating chart: {chart_error}")
+                # Return a simple error chart
+                import numpy as np
+                plt.figure(figsize=(10, 6))
+                plt.text(0.5, 0.5, f"Error generating chart: {str(chart_error)}", 
+                        horizontalalignment='center', verticalalignment='center',
+                        transform=plt.gca().transAxes, color='red')
+                plt.tight_layout()
+                buf = io.BytesIO()
+                plt.savefig(buf, format='png')
+                buf.seek(0)
+                img_str = base64.b64encode(buf.read()).decode('utf-8')
+                plt.close()
             
             return json.dumps({
                 'image': f'data:image/png;base64,{img_str}',
@@ -429,15 +481,28 @@ def generate_visualization():
             
         elif visualization_type == 'diagram':
             # Generate SVG diagram
-            import svgwrite
-            
-            diagram_type = viz_data.get('diagram_type', 'flowchart')
-            elements = viz_data.get('elements', [])
-            
-            # Create a simple SVG drawing with white background for visibility
-            dwg = svgwrite.Drawing('diagram.svg', profile='tiny', size=('800px', '600px'))
-            # Add a background rectangle
-            dwg.add(dwg.rect((0, 0), ('100%', '100%'), fill='#ffffff'))
+            try:
+                # First make sure svgwrite is installed
+                try:
+                    import svgwrite
+                except ImportError:
+                    logger.error("svgwrite module not found, installing...")
+                    import subprocess
+                    subprocess.check_call(["pip", "install", "svgwrite"])
+                    import svgwrite
+                
+                diagram_type = viz_data.get('diagram_type', 'flowchart')
+                elements = viz_data.get('elements', [])
+                
+                logger.info(f"Generating {diagram_type} diagram with {len(elements) if elements else 0} elements")
+                
+                # Create a simple SVG drawing with white background for visibility
+                dwg = svgwrite.Drawing('diagram.svg', profile='tiny', size=('800px', '600px'))
+                # Add a background rectangle
+                dwg.add(dwg.rect((0, 0), ('100%', '100%'), fill='#ffffff'))
+            except Exception as diagram_setup_error:
+                logger.exception(f"Error setting up diagram: {diagram_setup_error}")
+                return json.dumps({'error': f'Error setting up diagram: {str(diagram_setup_error)}'}), 500
             
             # Default elements for a simple flowchart if none provided
             if not elements and diagram_type == 'flowchart':
@@ -571,7 +636,38 @@ def generate_visualization():
             
     except Exception as e:
         logger.exception(f"Visualization generation error: {str(e)}")
-        return json.dumps({'error': f'Visualization error: {str(e)}'}), 500
+        # Create a fallback error image with the error message
+        try:
+            import matplotlib.pyplot as plt
+            import matplotlib
+            matplotlib.use('Agg')
+            import io
+            import base64
+            
+            # Create a simple error visualization
+            plt.figure(figsize=(10, 6))
+            plt.text(0.5, 0.5, f"Error: {str(e)}", 
+                    horizontalalignment='center', verticalalignment='center',
+                    transform=plt.gca().transAxes, color='red', fontsize=14)
+            plt.tight_layout()
+            
+            # Convert to base64
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png')
+            buf.seek(0)
+            img_str = base64.b64encode(buf.read()).decode('utf-8')
+            plt.close()
+            
+            # Return the error image
+            return json.dumps({
+                'image': f'data:image/png;base64,{img_str}',
+                'type': 'error',
+                'error': str(e)
+            })
+        except Exception as fallback_error:
+            # If even the fallback fails, just return a plain error
+            logger.exception(f"Fallback error visualization failed: {fallback_error}")
+            return json.dumps({'error': f'Visualization error: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)

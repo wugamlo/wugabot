@@ -1188,7 +1188,21 @@ async function generateVisualization(type, data, placeholderId) {
         console.error('Error generating visualization:', error);
         const placeholder = document.getElementById(placeholderId);
         if (placeholder) {
-            placeholder.innerHTML = `<div class="error-message">Failed to generate visualization: ${error.message}</div>`;
+            // Display a more detailed error message
+            placeholder.innerHTML = `
+                <div class="error-message">
+                    <h3>Visualization Error</h3>
+                    <p>${error.message}</p>
+                    ${error.stack ? `<details><pre>${error.stack}</pre></details>` : ''}
+                </div>
+            `;
+            
+            // Add a retry button
+            const retryButton = document.createElement('button');
+            retryButton.textContent = 'Retry Visualization';
+            retryButton.className = 'retry-button';
+            retryButton.onclick = () => generateVisualization(type, data, placeholderId);
+            placeholder.appendChild(retryButton);
         }
     }
 }
