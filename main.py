@@ -373,7 +373,17 @@ def generate_visualization():
     try:
         data = request.json
         visualization_type = data.get('visualization_type')
+        
+        # Improved handling of visualization data
         viz_data = data.get('data', {})
+        if isinstance(viz_data, str):
+            try:
+                import json
+                viz_data = json.loads(viz_data)
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON decode error in visualization data: {e}")
+                logger.error(f"Raw data: {viz_data[:100]}")
+                viz_data = {}
         
         if visualization_type == 'chart':
             # Generate chart using matplotlib

@@ -1026,8 +1026,15 @@ function formatContent(content) {
     formatted = formatted.replace(/<generate_visualization[\s\S]+?type="([^"]+)"[\s\S]+?data="([^"]+)"[\s\S]+?<\/generate_visualization>/g, 
         (match, type, dataStr) => {
             try {
+                // Fix JSON string before parsing
+                // Replace escaped quotes with actual quotes and fix any malformed JSON
+                const cleanedDataStr = dataStr
+                    .replace(/\\"/g, '"')
+                    .replace(/\\\\"/g, '\\"')
+                    .replace(/&quot;/g, '"');
+                
                 // Parse the data from the tag
-                const data = JSON.parse(decodeURIComponent(dataStr));
+                const data = JSON.parse(cleanedDataStr);
                 // Create a placeholder for the visualization with a loading indicator
                 const placeholderId = `viz-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
                 
@@ -1040,7 +1047,7 @@ function formatContent(content) {
                     <div>Generating ${type} visualization...</div>
                 </div>`;
             } catch (e) {
-                console.error('Error processing visualization tag:', e);
+                console.error('Error processing visualization tag:', e, 'Data:', dataStr.substring(0, 100));
                 return `<div class="error-message">Error generating visualization: ${e.message}</div>`;
             }
         });
