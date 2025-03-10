@@ -1218,9 +1218,19 @@ async function generateVisualization(type, data, placeholderId) {
         
         console.log("Sending visualization request:", JSON.stringify(requestBody).substring(0, 200));
         
+        // Update placeholder to show loading state
+        const placeholder = document.getElementById(placeholderId);
+        if (!placeholder) {
+            console.error('Placeholder element not found:', placeholderId);
+            return;
+        }
+        
         // Add timeout to fetch request to prevent hanging
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+            throw new Error("Visualization request timed out after 10 seconds");
+        }, 10000); // 10 second timeout
         
         try {
             const response = await fetch('/generate_visualization', {
@@ -1246,13 +1256,6 @@ async function generateVisualization(type, data, placeholderId) {
             // Check for error in the response
             if (result.error) {
                 throw new Error(result.error);
-            }
-            
-            const placeholder = document.getElementById(placeholderId);
-            
-            if (!placeholder) {
-                console.error('Placeholder element not found:', placeholderId);
-                return;
             }
             
             // Clear the placeholder
@@ -1283,27 +1286,48 @@ async function generateVisualization(type, data, placeholderId) {
                     throw new Error('Visualization response is missing SVG data');
                 }
                 
-                // For SVG, sanitize the content before inserting
-                let cleanSvg = result.svg;
-                
-                // Ensure SVG has proper XML declaration and namespaces
-                if (!cleanSvg.includes('<svg')) {
-                    cleanSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"></svg>';
-                }
-                
-                // Insert the SVG into the DOM using a safer approach
-                const svgContainer = document.createElement('div');
-                svgContainer.innerHTML = cleanSvg;
-                
-                // Get the SVG element and ensure it has proper attributes
-                const svg = svgContainer.querySelector('svg');
-                if (svg) {
-                    svg.classList.add('visualization-svg');
-                    if (!svg.hasAttribute('width')) svg.setAttribute('width', '800');
-                    if (!svg.hasAttribute('height')) svg.setAttribute('height', '600');
-                    placeholder.appendChild(svg);
-                } else {
-                    placeholder.innerHTML = cleanSvg; // Fallback to direct insertion
+                try {
+                    // For SVG, create a properly sanitized element
+                    const parser = new DOMParser();
+                    const svgDoc = parser.parseFromString(result.svg, "image/svg+xml");
+                    
+                    // Check for parsing errors
+                    const parserError = svgDoc.querySelector("parsererror");
+                    if (parserError) {
+                        console.error("SVG parsing error:", parserError.textContent);
+                        throw new Error("Invalid SVG format");
+                    }
+                    
+                    // Get the SVG element and ensure it has proper attributes
+                    const svg = svgDoc.querySelector('svg');
+                    if (svg) {
+                        // Clone the SVG node to avoid any potential issues
+                        const safeSvg = svg.cloneNode(true);
+                        safeSvg.classList.add('visualization-svg');
+                        
+                        // Ensure dimensions are set
+                        if (!safeSvg.hasAttribute('width')) safeSvg.setAttribute('width', '800');
+                        if (!safeSvg.hasAttribute('height')) safeSvg.setAttribute('height', '600');
+                        
+                        // Clear any existing content and add the SVG
+                        placeholder.innerHTML = '';
+                        placeholder.appendChild(safeSvg);
+                    } else {
+                        throw new Error("No SVG element found in the response");
+                    }
+                } catch (svgError) {
+                    console.error("SVG processing error:", svgError);
+                    // Create a fallback image with error message
+                    const errorSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                    errorSvg.setAttribute("width", "800");
+                    errorSvg.setAttribute("height", "300");
+                    errorSvg.innerHTML = `
+                        <rect width="100%" height="100%" fill="#f8f9fa" />
+                        <text x="50%" y="30%" text-anchor="middle" font-size="20" fill="#dc3545">SVG Error</text>
+                        <text x="50%" y="50%" text-anchor="middle" font-size="16" fill="#495057">${svgError.message}</text>
+                        <text x="50%" y="70%" text-anchor="middle" font-size="14" fill="#6c757d">Using fallback diagram</text>
+                    `;
+                    placeholder.appendChild(errorSvg);
                 }
             } else {
                 throw new Error(`Unknown visualization type: ${result.type}`);
@@ -1316,7 +1340,7 @@ async function generateVisualization(type, data, placeholderId) {
         console.error('Error generating visualization:', error);
         const placeholder = document.getElementById(placeholderId);
         if (placeholder) {
-            // Create a fallback visualization
+            // Create a more robust fallback visualization
             const fallbackMessage = document.createElement('div');
             fallbackMessage.className = 'error-message';
             fallbackMessage.innerHTML = `
@@ -1360,7 +1384,13 @@ async function generateVisualization(type, data, placeholderId) {
                     simpleData = { description: 'A simple circle' };
                 }
                 
-                generateVisualization(type, simpleData, placeholderId);
+                // Try again with simpler data
+                try {
+                    generateVisualization(type, simpleData, placeholderId);
+                } catch (retryError) {
+                    console.error("Retry failed:", retryError);
+                    placeholder.innerHTML = `<div class="error-message">Visualization could not be generated.</div>`;
+                }
             };
             
             placeholder.appendChild(retryButton);
