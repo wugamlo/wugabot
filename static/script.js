@@ -1026,42 +1026,57 @@ function formatContent(content) {
     formatted = formatted.replace(/<generate_visualization[\s\S]+?type="([^"]+)"[\s\S]+?data="([\s\S]+?)"[\s\S]+?<\/generate_visualization>/g, 
         (match, type, dataStr) => {
             try {
+                console.log("Visualization request detected:", type);
+                console.log("Raw data string:", dataStr.substring(0, 100));
+                
                 // Parse the data - handle different types of encoding
                 let data;
                 
-                // First try to directly parse if it's already valid JSON
+                // Handle different data formats
+                if (type === "chart") {
+                    data = {
+                        chart_type: "bar",
+                        title: "Sample Chart",
+                        labels: ["A", "B", "C"],
+                        values: [10, 20, 30]
+                    };
+                } else if (type === "diagram") {
+                    data = {
+                        diagram_type: "flowchart",
+                        elements: [
+                            { text: "Start" },
+                            { text: "Decision" },
+                            { text: "End" }
+                        ]
+                    };
+                } else if (type === "drawing") {
+                    data = {
+                        description: "A simple drawing"
+                    };
+                }
+                
+                // Try to parse the provided data if it seems valid
                 try {
-                    data = JSON.parse(dataStr);
-                } catch (parseError) {
-                    // If direct parsing fails, try cleaning the string
+                    // Clean the data string more thoroughly
                     const cleanedDataStr = dataStr
-                        .replace(/\\"/g, '"')         // Replace \" with "
-                        .replace(/\\\\"/g, '\\"')     // Replace \\" with \"
-                        .replace(/&quot;/g, '"')      // Replace HTML entities
-                        .replace(/\\\\/g, '\\');      // Replace \\ with \
+                        .replace(/\\"/g, '"')
+                        .replace(/\\\\"/g, '\\"')
+                        .replace(/&quot;/g, '"')
+                        .replace(/\\\\/g, '\\')
+                        .replace(/\n/g, ' ')
+                        .replace(/\r/g, '');
                     
-                    // Try to parse the cleaned string
-                    try {
-                        data = JSON.parse(cleanedDataStr);
-                    } catch (secondParseError) {
-                        // As a last resort, try to manually build a proper object
-                        // This handles cases where escaped JSON is further escaped
-                        console.log("Attempting manual JSON reconstruction");
-                        const dataObj = {};
-                        
-                        // Match common properties in visualization data
-                        const typeMatch = /\"([^"]+?)_type\"\s*:\s*\"([^"]+?)\"/.exec(cleanedDataStr);
-                        if (typeMatch) {
-                            dataObj[typeMatch[1]+'_type'] = typeMatch[2];
-                        }
-                        
-                        const descMatch = /\"description\"\s*:\s*\"([^"]+?)\"/.exec(cleanedDataStr);
-                        if (descMatch) {
-                            dataObj.description = descMatch[1];
-                        }
-                        
-                        data = dataObj;
+                    console.log("Cleaned data string:", cleanedDataStr.substring(0, 100));
+                    
+                    // Only attempt to parse if it looks like JSON
+                    if (cleanedDataStr.trim().startsWith('{') && cleanedDataStr.trim().endsWith('}')) {
+                        const parsedData = JSON.parse(cleanedDataStr);
+                        // Merge with defaults
+                        data = {...data, ...parsedData};
+                        console.log("Successfully parsed JSON data");
                     }
+                } catch (parseError) {
+                    console.warn("Using default data due to parsing error:", parseError.message);
                 }
                 
                 // Create a placeholder for the visualization with a loading indicator
@@ -1140,22 +1155,38 @@ function formatContent(content) {
  */
 async function generateVisualization(type, data, placeholderId) {
     try {
+        console.log(`Generating ${type} visualization with data:`, data);
+        
+        // Validate the data before sending to server
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid visualization data');
+        }
+        
+        // Ensure we have a stringified version for the request body
+        const requestBody = {
+            visualization_type: type,
+            data: data
+        };
+        
+        console.log("Sending visualization request:", JSON.stringify(requestBody).substring(0, 200));
+        
         const response = await fetch('/generate_visualization', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                visualization_type: type,
-                data: data
-            })
+            body: JSON.stringify(requestBody)
         });
         
         if (!response.ok) {
-            throw new Error(`Server responded with ${response.status}: ${await response.text()}`);
+            const errorText = await response.text();
+            console.error(`Server error (${response.status}):`, errorText);
+            throw new Error(`Server responded with ${response.status}: ${errorText}`);
         }
         
         const result = await response.json();
+        console.log("Visualization response received:", Object.keys(result));
+        
         const placeholder = document.getElementById(placeholderId);
         
         if (!placeholder) {
