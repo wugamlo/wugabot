@@ -1231,6 +1231,11 @@ async function generateVisualization(type, data, placeholderId) {
         const result = await response.json();
         console.log("Visualization response received:", Object.keys(result));
         
+        // Check for error in the response
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
         const placeholder = document.getElementById(placeholderId);
         
         if (!placeholder) {
@@ -1245,62 +1250,91 @@ async function generateVisualization(type, data, placeholderId) {
         
         // Add the visualization based on the type
         if (result.type === 'chart' || result.type === 'drawing') {
+            if (!result.image) {
+                throw new Error('Visualization response is missing image data');
+            }
             const img = document.createElement('img');
             img.src = result.image;
             img.alt = `${type} visualization`;
             img.classList.add('visualization-image');
             placeholder.appendChild(img);
         } else if (result.type === 'diagram') {
-            // For SVG, we need to use innerHTML
-            placeholder.innerHTML = result.svg;
+            if (!result.svg) {
+                throw new Error('Visualization response is missing SVG data');
+            }
+            
+            // For SVG, sanitize the content before inserting
+            let cleanSvg = result.svg;
+            // Ensure SVG has proper XML declaration and namespaces
+            if (!cleanSvg.includes('<svg')) {
+                cleanSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"></svg>';
+            }
+            
+            // Insert the SVG into the DOM
+            placeholder.innerHTML = cleanSvg;
+            
             // Add classes to the svg element for styling
             const svg = placeholder.querySelector('svg');
             if (svg) {
                 svg.classList.add('visualization-svg');
+                // Ensure SVG has width and height attributes
+                if (!svg.hasAttribute('width')) svg.setAttribute('width', '800');
+                if (!svg.hasAttribute('height')) svg.setAttribute('height', '600');
             }
+        } else {
+            throw new Error(`Unknown visualization type: ${result.type}`);
         }
     } catch (error) {
         console.error('Error generating visualization:', error);
         const placeholder = document.getElementById(placeholderId);
         if (placeholder) {
-            // Try to extract more detailed error message from the response if available
-            let errorDetails = error.message;
-            
-            if (error.message && error.message.includes('Server responded with')) {
-                try {
-                    // Extract the detailed error message from the HTML response if possible
-                    const match = error.message.match(/Server responded with \d+: ([\s\S]+)/);
-                    if (match && match[1]) {
-                        errorDetails = match[1];
-                    }
-                } catch (e) {
-                    console.warn('Failed to parse error details:', e);
-                }
-            }
-            
-            // Display a more detailed error message
-            placeholder.innerHTML = `
-                <div class="error-message">
-                    <h3>Visualization Error</h3>
-                    <p>${errorDetails}</p>
-                    ${error.stack ? `<details><pre>${error.stack}</pre></details>` : ''}
-                </div>
+            // Create a fallback visualization
+            const fallbackMessage = document.createElement('div');
+            fallbackMessage.className = 'error-message';
+            fallbackMessage.innerHTML = `
+                <h3>Visualization Error</h3>
+                <p>${error.message || 'Failed to generate visualization'}</p>
+                <div>Try using a different visualization type or simpler data.</div>
             `;
+            placeholder.innerHTML = '';
+            placeholder.classList.remove('visualization-placeholder');
+            placeholder.classList.add('visualization-container');
+            placeholder.appendChild(fallbackMessage);
             
             // Add a retry button with simpler data
             const retryButton = document.createElement('button');
             retryButton.textContent = 'Retry with Simple Data';
             retryButton.className = 'retry-button';
+            retryButton.style.marginTop = '10px';
+            retryButton.style.padding = '8px 16px';
+            retryButton.style.background = '#3498db';
+            retryButton.style.color = 'white';
+            retryButton.style.border = 'none';
+            retryButton.style.borderRadius = '4px';
+            retryButton.style.cursor = 'pointer';
+            
             retryButton.onclick = () => {
-                // Use simpler data for retry
-                const simpleData = type === 'chart' 
-                    ? { chart_type: 'bar', title: 'Simple Chart', labels: ['A', 'B'], values: [10, 20] }
-                    : type === 'diagram' 
-                    ? { diagram_type: 'flowchart', elements: [{ text: 'Start' }, { text: 'End' }] }
-                    : { description: 'A simple circle' };
+                // Use very simple data for retry
+                let simpleData;
+                if (type === 'chart') {
+                    simpleData = { 
+                        chart_type: 'bar', 
+                        title: 'Simple Chart', 
+                        labels: ['A', 'B'], 
+                        values: [10, 20] 
+                    };
+                } else if (type === 'diagram') {
+                    simpleData = { 
+                        diagram_type: 'flowchart', 
+                        elements: [{ text: 'Start' }, { text: 'End' }] 
+                    };
+                } else {
+                    simpleData = { description: 'A simple circle' };
+                }
                 
                 generateVisualization(type, simpleData, placeholderId);
             };
+            
             placeholder.appendChild(retryButton);
         }
     }

@@ -33,7 +33,7 @@ import requests
 def get_models():
     """
     Retrieves available AI models from the Venice API
-    
+
     Returns:
         JSON response with available models or error information
     """
@@ -61,7 +61,7 @@ def get_models():
 def index():
     """
     Serves the main application page
-    
+
     Returns:
         Rendered HTML template
     """
@@ -73,17 +73,17 @@ def index():
 def chat_stream():
     """
     Handles streaming chat completions from the AI model
-    
+
     Accepts:
         - JSON request with messages, model selection, and parameters
-        
+
     Returns:
         - Streaming response with AI-generated content
     """
     data = request.json
     search_enabled = data.get('web_search', False)
     messages = data.get('messages', [])
-    
+
     # Use max_completion_tokens as the primary parameter, but fall back to max_tokens for backward compatibility
     max_completion_tokens = data.get('max_completion_tokens', data.get('max_tokens', 4000))
     temperature = data.get('temperature', 0.7)
@@ -91,14 +91,14 @@ def chat_stream():
     def generate(model, messages, temperature, max_completion_tokens, search_enabled):
         """
         Generator function that streams AI responses
-        
+
         Args:
             model (str): The AI model to use
             messages (list): Chat history to send to the model
             temperature (float): Temperature parameter for generation
             max_completion_tokens (int): Maximum tokens to generate
             search_enabled (bool): Whether to enable web search
-            
+
         Yields:
             Streaming response data from the AI model
         """
@@ -134,7 +134,7 @@ def chat_stream():
                 json=payload,
                 stream=True
             )
-            
+
             if not response.ok:
                 logger.error(f"Venice API error: Status {response.status_code}")
                 logger.error(f"Response content: {response.text}")
@@ -145,19 +145,19 @@ def chat_stream():
             for line in response.iter_lines():
                 if not line:
                     continue
-                    
+
                 line = line.decode('utf-8')
                 if not line.startswith('data: '):
                     continue
-                    
+
                 data = line[6:]
                 if data == '[DONE]':
                     yield "data: [DONE]\n\n"
                     break
-                    
+
                 try:
                     json_data = json.loads(data)
-                    
+
                     # Forward venice_parameters at the top level
                     if 'venice_parameters' in json_data:
                         logger.debug(f"Venice parameters found at top level: {json_data['venice_parameters']}")
@@ -166,7 +166,7 @@ def chat_stream():
                     # Process content and reasoning_content if present
                     if 'content' in json_data:
                         yield f"data: {json.dumps({'content': json_data['content']})}\n\n"
-                    
+
                     # Use standardized field for reasoning content
                     if 'reasoning_content' in json_data:
                         logger.debug(f"Found reasoning_content at top level: {json_data['reasoning_content'][:100]}...")
@@ -175,20 +175,20 @@ def chat_stream():
                     # Process delta content for streaming
                     if 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0]:
                         delta = json_data['choices'][0]['delta']
-                        
+
                         # Stream content
                         if 'content' in delta and delta['content']:
                             yield f"data: {json.dumps({'content': delta['content']})}\n\n"
-                        
+
                         # Stream reasoning content
                         if 'reasoning_content' in delta and delta['reasoning_content']:
                             yield f"data: {json.dumps({'reasoning_content': delta['reasoning_content']})}\n\n"
-                        
+
                         # Stream venice parameters
                         if 'venice_parameters' in delta:
                             logger.debug(f"Venice parameters found in delta: {delta['venice_parameters']}")
                             yield f"data: {json.dumps(json_data)}\n\n"
-                            
+
                 except json.JSONDecodeError as e:
                     logger.warning(f"JSON decode error: {str(e)}, data: {data[:100]}...")
                     continue
@@ -211,13 +211,13 @@ def chat_stream():
 def extract_text_from_file(file_data, file_type):
     """
     Extracts text content from various file formats
-    
+
     Supports txt, pdf, doc/docx, and xls/xlsx files
-    
+
     Args:
         file_data (bytes): Binary file data
         file_type (str): File extension indicating the type
-        
+
     Returns:
         str: Extracted text content or None if extraction fails
     """
@@ -233,16 +233,16 @@ def extract_text_from_file(file_data, file_type):
                 import fitz  # PyMuPDF
                 pdf_file = io.BytesIO(file_data)
                 pdf_document = fitz.open(stream=pdf_file, filetype="pdf")
-                
+
                 logger.debug(f"PDF file loaded, pages: {len(pdf_document)}")
-                
+
                 # Process each page
                 for page_num in range(len(pdf_document)):
                     page = pdf_document[page_num]
-                    
+
                     # Extract text with better formatting preservation
                     page_text = page.get_text("text")
-                    
+
                     # Safer table extraction
                     try:
                         tables = page.find_tables()
@@ -256,16 +256,16 @@ def extract_text_from_file(file_data, file_type):
                                 page_text += f"\n\n--- Table ---\n{table_text}\n--- End Table ---\n"
                     except Exception as table_err:
                         logger.warning(f"Table extraction error: {str(table_err)}")
-                    
+
                     text += f"\n--- Page {page_num + 1} ---\n{page_text}"
-                
+
                 pdf_document.close()
             except Exception as fitz_err:
                 # Fallback to PyPDF2 if PyMuPDF fails
                 logger.warning(f"PyMuPDF failed: {str(fitz_err)}, falling back to PyPDF2")
                 pdf_file = io.BytesIO(file_data)
                 pdf_reader = PyPDF2.PdfReader(pdf_file)
-                
+
                 for page_num in range(len(pdf_reader.pages)):
                     page = pdf_reader.pages[page_num]
                     page_text = page.extract_text() or "No text extracted"
@@ -280,7 +280,7 @@ def extract_text_from_file(file_data, file_type):
             excel_file = io.BytesIO(file_data)
             # Read all sheets
             excel_data = pd.read_excel(excel_file, sheet_name=None)
-            
+
             # Process each sheet
             tables = []
             for sheet_name, df in excel_data.items():
@@ -288,7 +288,7 @@ def extract_text_from_file(file_data, file_type):
                 table_text = f"\n--- Sheet: {sheet_name} ---\n"
                 table_text += df.to_string(index=False)
                 tables.append(table_text)
-            
+
             text = "\n\n".join(tables)
             logger.debug(f"Excel file processed, found {len(excel_data)} sheets")
 
@@ -306,10 +306,10 @@ def extract_text_from_file(file_data, file_type):
 def process_file():
     """
     Processes uploaded files and extracts their text content
-    
+
     Handles various file formats including txt, pdf, doc/docx, and xls/xlsx
     Enforces file size limits and provides appropriate error messages
-    
+
     Returns:
         JSON response with extracted text or error information
     """
@@ -358,12 +358,12 @@ def process_file():
 def generate_visualization():
     """
     Generates visualizations based on the request type and data
-    
+
     Supports charts, diagrams, and simple drawings
-    
+
     Args:
         Request JSON with visualization_type and data fields
-        
+
     Returns:
         JSON with the generated visualization as SVG or base64 image
     """
@@ -372,19 +372,19 @@ def generate_visualization():
         if not request.is_json:
             logger.error("Invalid request: Not JSON")
             return json.dumps({'error': 'Invalid request format. Expected JSON.'}), 400
-            
+
         data = request.json
         logger.info(f"Visualization request received: {data.keys()}")
-        
+
         visualization_type = data.get('visualization_type')
         if not visualization_type:
             logger.error("Missing visualization_type in request")
             return json.dumps({'error': 'Missing visualization_type parameter'}), 400
-        
+
         # Simplified handling of visualization data
         viz_data = data.get('data', {})
         logger.info(f"Raw visualization data type: {type(viz_data)}")
-        
+
         # Ensure we have a valid data object with proper defaults
         if not viz_data or not isinstance(viz_data, dict):
             logger.warning("Invalid visualization data received, using defaults")
@@ -410,9 +410,9 @@ def generate_visualization():
                 }
             else:
                 viz_data = {"default": True}
-            
+
             logger.info(f"Using default data for {visualization_type}")
-        
+
         # Validate key structure and fill in missing fields with defaults
         if visualization_type == 'chart':
             # Ensure required fields exist with proper defaults
@@ -424,12 +424,12 @@ def generate_visualization():
                 viz_data["labels"] = ["A", "B", "C"]
             if "values" not in viz_data or not isinstance(viz_data["values"], list):
                 viz_data["values"] = [10, 20, 30]
-            
+
             logger.info(f"Validated chart data: {viz_data}")
-        
+
         # Log the final data being used
         logger.info(f"Using data for visualization: {str(viz_data)[:200]}")
-        
+
         if visualization_type == 'chart':
             # Generate chart using matplotlib
             try:
@@ -438,12 +438,12 @@ def generate_visualization():
                 matplotlib.use('Agg')
                 import io
                 import base64
-                
+
                 chart_type = viz_data.get('chart_type', 'bar')
                 title = viz_data.get('title', 'Chart')
                 labels = viz_data.get('labels', [])
                 values = viz_data.get('values', [])
-                
+
                 # Validate input data
                 if not labels or not values:
                     logger.warning(f"Missing data for chart generation - Labels: {labels}, Values: {values}")
@@ -452,14 +452,14 @@ def generate_visualization():
                         labels = ["No Data"] if not values else [f"Item {i+1}" for i in range(len(values))]
                     if not values:
                         values = [0] if not labels else [10 for _ in range(len(labels))]
-                
+
                 # Ensure values are numeric
                 values = [float(v) if isinstance(v, (int, float, str)) else 0 for v in values]
-                
+
                 plt.figure(figsize=(10, 6))
-                
+
                 logger.info(f"Generating {chart_type} chart with {len(labels)} labels and {len(values)} values")
-                
+
                 if chart_type == 'bar':
                     plt.bar(labels, values)
                 elif chart_type == 'line':
@@ -475,10 +475,10 @@ def generate_visualization():
                     # Default to bar chart for unknown types
                     logger.warning(f"Unknown chart type: {chart_type}, defaulting to bar")
                     plt.bar(labels, values)
-                
+
                 plt.title(title)
                 plt.tight_layout()
-                
+
                 # Convert plot to base64 image
                 buf = io.BytesIO()
                 plt.savefig(buf, format='png')
@@ -499,12 +499,12 @@ def generate_visualization():
                 buf.seek(0)
                 img_str = base64.b64encode(buf.read()).decode('utf-8')
                 plt.close()
-            
+
             return json.dumps({
                 'image': f'data:image/png;base64,{img_str}',
                 'type': 'chart'
             })
-            
+
         elif visualization_type == 'diagram':
             # Generate SVG diagram
             try:
@@ -516,12 +516,12 @@ def generate_visualization():
                     import subprocess
                     subprocess.check_call(["pip", "install", "svgwrite"])
                     import svgwrite
-                
+
                 diagram_type = viz_data.get('diagram_type', 'flowchart')
                 elements = viz_data.get('elements', [])
-                
+
                 logger.info(f"Generating {diagram_type} diagram with {len(elements) if elements else 0} elements")
-                
+
                 # Create a simple SVG drawing with white background for visibility
                 dwg = svgwrite.Drawing('diagram.svg', profile='tiny', size=('800px', '600px'))
                 # Add a background rectangle
@@ -529,7 +529,7 @@ def generate_visualization():
             except Exception as diagram_setup_error:
                 logger.exception(f"Error setting up diagram: {diagram_setup_error}")
                 return json.dumps({'error': f'Error setting up diagram: {str(diagram_setup_error)}'}), 500
-            
+
             # Default elements for a simple flowchart if none provided
             if not elements and diagram_type == 'flowchart':
                 elements = [
@@ -540,100 +540,100 @@ def generate_visualization():
                     {'text': 'End', 'branch': 'left'},
                     {'text': 'End', 'branch': 'right'}
                 ]
-            
+
             if diagram_type == 'flowchart':
                 # Improved flowchart implementation
                 main_y_pos = 50
-                
+
                 # Draw the start node
                 dwg.add(dwg.rect((325, main_y_pos), (150, 80), fill='#f0f0f0', stroke='#000000', rx=5, ry=5))
                 dwg.add(dwg.text(elements[0].get('text', 'Start'), insert=(400, main_y_pos + 45), 
                                 text_anchor="middle", font_size=16))
-                
+
                 # Draw connector
                 main_y_pos += 100
                 dwg.add(dwg.line((400, main_y_pos - 20), (400, main_y_pos + 20), stroke='#000000', stroke_width=2))
                 dwg.add(dwg.polygon([(395, main_y_pos + 10), (400, main_y_pos + 20), (405, main_y_pos + 10)], 
                                   fill='#000000'))
-                
+
                 # Draw decision node
                 main_y_pos += 50
                 dwg.add(dwg.polygon([(400, main_y_pos), (475, main_y_pos + 50), (400, main_y_pos + 100), (325, main_y_pos + 50)], 
                                   fill='#f0f0f0', stroke='#000000'))
-                
+
                 # Multi-line text for decision
                 decision_text = elements[1].get('text', 'Decision?').split("\n")
                 for i, line in enumerate(decision_text):
                     y_offset = main_y_pos + 50 + (i - len(decision_text)/2) * 20
                     dwg.add(dwg.text(line, insert=(400, y_offset), text_anchor="middle", font_size=14))
-                
+
                 # Draw Yes/No paths
                 main_y_pos += 120
-                
+
                 # Yes branch (left)
                 dwg.add(dwg.line((350, main_y_pos - 20), (250, main_y_pos + 50), stroke='#000000', stroke_width=2))
                 dwg.add(dwg.polygon([(260, main_y_pos + 45), (250, main_y_pos + 50), (255, main_y_pos + 35)], 
                                   fill='#000000'))
                 dwg.add(dwg.text("Yes", insert=(290, main_y_pos + 10), text_anchor="middle", font_size=14))
-                
+
                 # No branch (right)
                 dwg.add(dwg.line((450, main_y_pos - 20), (550, main_y_pos + 50), stroke='#000000', stroke_width=2))
                 dwg.add(dwg.polygon([(545, main_y_pos + 45), (550, main_y_pos + 50), (540, main_y_pos + 40)], 
                                   fill='#000000'))
                 dwg.add(dwg.text("No", insert=(510, main_y_pos + 10), text_anchor="middle", font_size=14))
-                
+
                 # Left node (Yes result)
                 left_y = main_y_pos + 70
                 dwg.add(dwg.rect((175, left_y), (150, 80), fill='#f0f0f0', stroke='#000000', rx=5, ry=5))
                 dwg.add(dwg.text(elements[2].get('text', 'Yes'), insert=(250, left_y + 45), 
                                 text_anchor="middle", font_size=16))
-                
+
                 # Right node (No result)
                 dwg.add(dwg.rect((475, left_y), (150, 80), fill='#f0f0f0', stroke='#000000', rx=5, ry=5))
                 dwg.add(dwg.text(elements[3].get('text', 'No'), insert=(550, left_y + 45), 
                                 text_anchor="middle", font_size=16))
-                
+
                 # Draw connectors to End nodes
                 left_y += 100
-                
+
                 # Left End connector
                 dwg.add(dwg.line((250, left_y - 20), (250, left_y + 20), stroke='#000000', stroke_width=2))
                 dwg.add(dwg.polygon([(245, left_y + 10), (250, left_y + 20), (255, left_y + 10)], 
                                   fill='#000000'))
-                
+
                 # Right End connector
                 dwg.add(dwg.line((550, left_y - 20), (550, left_y + 20), stroke='#000000', stroke_width=2))
                 dwg.add(dwg.polygon([(545, left_y + 10), (550, left_y + 20), (555, left_y + 10)], 
                                   fill='#000000'))
-                
+
                 # Left End node
                 dwg.add(dwg.rect((175, left_y + 40), (150, 80), fill='#f0f0f0', stroke='#000000', rx=5, ry=5))
                 dwg.add(dwg.text(elements[4].get('text', 'End'), insert=(250, left_y + 85), 
                                 text_anchor="middle", font_size=16))
-                
+
                 # Right End node
                 dwg.add(dwg.rect((475, left_y + 40), (150, 80), fill='#f0f0f0', stroke='#000000', rx=5, ry=5))
                 dwg.add(dwg.text(elements[5].get('text', 'End'), insert=(550, left_y + 85), 
                                 text_anchor="middle", font_size=16))
-            
+
             svg_string = dwg.tostring()
             return json.dumps({
                 'svg': svg_string,
                 'type': 'diagram'
             })
-            
+
         elif visualization_type == 'drawing':
             # Generate a simple drawing based on text description
             from PIL import Image, ImageDraw
             import io
             import base64
-            
+
             description = viz_data.get('description', '')
-            
+
             # Create a blank canvas
             img = Image.new('RGB', (500, 500), color='white')
             draw = ImageDraw.Draw(img)
-            
+
             # Very basic drawing based on keywords in description
             if 'circle' in description.lower():
                 draw.ellipse((100, 100, 400, 400), outline='black')
@@ -645,77 +645,66 @@ def generate_visualization():
                 # Default drawing
                 draw.line((100, 100, 400, 400), fill='black', width=2)
                 draw.line((400, 100, 100, 400), fill='black', width=2)
-            
+
             # Convert to base64
             buf = io.BytesIO()
             img.save(buf, format='PNG')
             buf.seek(0)
             img_str = base64.b64encode(buf.read()).decode('utf-8')
-            
+
             return json.dumps({
                 'image': f'data:image/png;base64,{img_str}',
                 'type': 'drawing'
             })
-        
+
         else:
             return json.dumps({'error': 'Unsupported visualization type'}), 400
-            
+
     except Exception as e:
         logger.exception(f"Visualization generation error: {str(e)}")
-        import traceback
-        # Create a detailed error response with debugging information
-        error_details = {
-            'error': str(e),
-            'traceback': traceback.format_exc(),
-            'visualization_type': visualization_type if 'visualization_type' in locals() else 'unknown',
-            'data_summary': str(viz_data)[:200] if 'viz_data' in locals() else 'No data'
-        }
-        
-        logger.error(f"Visualization error details: {error_details}")
-        
-        # Create a fallback error image with the error message
-        try:
-            import matplotlib.pyplot as plt
-            import matplotlib
-            import traceback
-            matplotlib.use('Agg')
-            import io
-            import base64
-            
-            # Create a simple error visualization with more details
-            plt.figure(figsize=(10, 6))
-            plt.text(0.5, 0.8, f"Error: {str(e)}", 
-                    horizontalalignment='center', verticalalignment='center',
-                    transform=plt.gca().transAxes, color='red', fontsize=14)
-            plt.text(0.5, 0.5, f"Type: {visualization_type}", 
-                    horizontalalignment='center', verticalalignment='center',
-                    transform=plt.gca().transAxes, color='black', fontsize=12)
-            plt.text(0.5, 0.3, "Check server logs for details", 
-                    horizontalalignment='center', verticalalignment='center',
-                    transform=plt.gca().transAxes, color='blue', fontsize=10)
-            plt.tight_layout()
-            
-            # Convert to base64
-            buf = io.BytesIO()
-            plt.savefig(buf, format='png')
-            buf.seek(0)
-            img_str = base64.b64encode(buf.read()).decode('utf-8')
-            plt.close()
-            
-            # Return the error image
-            return json.dumps({
-                'image': f'data:image/png;base64,{img_str}',
-                'type': 'error',
-                'error': str(e),
-                'details': error_details
-            })
-        except Exception as fallback_error:
-            # If even the fallback fails, just return a plain error
-            logger.exception(f"Fallback error visualization failed: {fallback_error}")
-            return json.dumps({
-                'error': f'Visualization error: {str(e)}',
-                'details': error_details,
-            }), 500
+        import matplotlib.pyplot as plt
+        import matplotlib
+        matplotlib.use('Agg')
+        import io
+        import base64
+
+        # Create a cleaner error visualization
+        plt.figure(figsize=(8, 4), facecolor='white')
+        plt.text(0.5, 0.7, "Visualization Error", 
+                horizontalalignment='center', verticalalignment='center',
+                transform=plt.gca().transAxes, color='#e74c3c', fontsize=16, fontweight='bold')
+
+        # Simplified error message for display
+        error_msg = str(e)
+        if len(error_msg) > 100:
+            error_msg = error_msg[:100] + "..."
+
+        plt.text(0.5, 0.5, f"{error_msg}", 
+                horizontalalignment='center', verticalalignment='center',
+                transform=plt.gca().transAxes, color='#2c3e50', fontsize=12)
+
+        plt.text(0.5, 0.3, f"Type: {visualization_type}", 
+                horizontalalignment='center', verticalalignment='center',
+                transform=plt.gca().transAxes, color='#7f8c8d', fontsize=10)
+
+        # Remove axes for cleaner look
+        plt.axis('off')
+        plt.tight_layout()
+
+        # Convert to base64
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100)
+        buf.seek(0)
+        img_str = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close()
+
+        # Return the error image with a cleaner response
+        return json.dumps({
+            'image': f'data:image/png;base64,{img_str}',
+            'type': 'error',
+            'error': str(e)
+        })
+
 
 # Helper function to import traceback module
 def import_traceback():
