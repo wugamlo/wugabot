@@ -1096,7 +1096,15 @@ function showChatContext() {
         };
     })));
 
-    // Skip system message and just show user/assistant exchanges
+    // Add system prompt information at the beginning
+    const systemPrompt = document.getElementById('systemPrompt').value.trim();
+    if (systemPrompt) {
+        contextInfo += `[SYSTEM PROMPT]: ${systemPrompt.substring(0, 100)}${systemPrompt.length > 100 ? '...' : ''}\n\n`;
+        // Count the system prompt separately
+        roleCounts.system = (roleCounts.system || 0) + 1;
+    }
+
+    // Show user/assistant exchanges
     chatHistory.forEach((msg, index) => {
         if (msg.role !== 'system') {
             // For better debugging, include the message index
@@ -1107,27 +1115,35 @@ function showChatContext() {
         }
     });
 
-    if (chatHistory.length <= 1) {
+    if (chatHistory.length <= 1 && !systemPrompt) {
         contextInfo += "No conversation history found. Try sending a few messages first.";
     }
     
-    // Add role count summary
-    contextInfo += `\n--- Summary ---\nTotal messages: ${chatHistory.length}\n`;
+    // Add role count summary with the system prompt included
+    contextInfo += `\n--- Summary ---\n`;
+    contextInfo += `Total messages: ${chatHistory.length + (systemPrompt ? 1 : 0)}\n`;
     contextInfo += `User messages: ${roleCounts.user || 0}\n`;
     contextInfo += `Assistant messages: ${roleCounts.assistant || 0}\n`;
-    contextInfo += `System messages: ${roleCounts.system || 0}\n`;
+    contextInfo += `System messages: ${systemPrompt ? 1 : 0}\n`;
 
     // Add this message to the chat
     appendMessage(contextInfo, 'system');
     
     // Also output to console
-    console.table(chatHistory.map((msg, i) => ({
-        index: i,
-        role: msg.role,
-        preview: typeof msg.content === 'string' ? 
-            msg.content.substring(0, 30) + '...' : 
-            JSON.stringify(msg.content).substring(0, 30) + '...'
-    })));
+    console.table([
+        ...(systemPrompt ? [{
+            index: 'SYSTEM',
+            role: 'system',
+            preview: systemPrompt.substring(0, 30) + '...'
+        }] : []),
+        ...chatHistory.map((msg, i) => ({
+            index: i,
+            role: msg.role,
+            preview: typeof msg.content === 'string' ? 
+                msg.content.substring(0, 30) + '...' : 
+                JSON.stringify(msg.content).substring(0, 30) + '...'
+        }))
+    ]);
 }
 
 // Export functions for global access
