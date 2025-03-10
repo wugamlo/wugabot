@@ -354,9 +354,6 @@ def process_file():
         logger.exception(f"File processing error: {str(e)}")
         return json.dumps({'error': f'File processing error: {str(e)}'}, ensure_ascii=False), 500, headers
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
-
 @app.route('/generate_visualization', methods=['POST'])
 def generate_visualization():
     """
@@ -575,3 +572,6 @@ def generate_visualization():
     except Exception as e:
         logger.exception(f"Visualization generation error: {str(e)}")
         return json.dumps({'error': f'Visualization error: {str(e)}'}), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
