@@ -1029,10 +1029,9 @@ function formatContent(content) {
                 console.log("Visualization request detected:", type);
                 console.log("Raw data string:", dataStr.substring(0, 100));
                 
-                // Parse the data - handle different types of encoding
+                // Set up default data structures based on visualization type
                 let data;
                 
-                // Handle different data formats
                 if (type === "chart") {
                     data = {
                         chart_type: "bar",
@@ -1055,25 +1054,46 @@ function formatContent(content) {
                     };
                 }
                 
-                // Try to parse the provided data if it seems valid
+                // Try to parse the provided data
                 try {
-                    // Clean the data string more thoroughly
-                    const cleanedDataStr = dataStr
+                    // First, replace escaped quotes and other problematic characters
+                    let cleanedDataStr = dataStr
                         .replace(/\\"/g, '"')
                         .replace(/\\\\"/g, '\\"')
                         .replace(/&quot;/g, '"')
                         .replace(/\\\\/g, '\\')
+                        .replace(/\\n/g, ' ')
+                        .replace(/\\r/g, '')
                         .replace(/\n/g, ' ')
                         .replace(/\r/g, '');
                     
+                    // Additional cleanup for malformed JSON
+                    cleanedDataStr = cleanedDataStr.trim();
+                    
+                    // Remove any HTML entities that might have been added
+                    cleanedDataStr = cleanedDataStr
+                        .replace(/&lt;/g, '<')
+                        .replace(/&gt;/g, '>')
+                        .replace(/&amp;/g, '&');
+                    
                     console.log("Cleaned data string:", cleanedDataStr.substring(0, 100));
                     
-                    // Only attempt to parse if it looks like JSON
-                    if (cleanedDataStr.trim().startsWith('{') && cleanedDataStr.trim().endsWith('}')) {
-                        const parsedData = JSON.parse(cleanedDataStr);
-                        // Merge with defaults
-                        data = {...data, ...parsedData};
-                        console.log("Successfully parsed JSON data");
+                    // Try parsing if it looks like JSON
+                    if (cleanedDataStr.startsWith('{') && cleanedDataStr.endsWith('}')) {
+                        try {
+                            const parsedData = JSON.parse(cleanedDataStr);
+                            // Only update properties that exist in parsedData
+                            Object.keys(parsedData).forEach(key => {
+                                if (parsedData[key] !== undefined) {
+                                    data[key] = parsedData[key];
+                                }
+                            });
+                            console.log("Successfully parsed and merged JSON data");
+                        } catch (innerError) {
+                            console.warn("JSON parse error, using default data:", innerError.message);
+                        }
+                    } else {
+                        console.warn("Data string doesn't look like valid JSON, using defaults");
                     }
                 } catch (parseError) {
                     console.warn("Using default data due to parsing error:", parseError.message);
@@ -1162,10 +1182,34 @@ async function generateVisualization(type, data, placeholderId) {
             throw new Error('Invalid visualization data');
         }
         
-        // Ensure we have a stringified version for the request body
+        // Ensure data is properly formatted
+        let sanitizedData = {};
+        
+        // Create appropriate defaults based on visualization type
+        if (type === 'chart') {
+            sanitizedData = {
+                chart_type: data.chart_type || 'bar',
+                title: data.title || 'Chart',
+                labels: Array.isArray(data.labels) ? data.labels : ['A', 'B', 'C'],
+                values: Array.isArray(data.values) ? data.values : [10, 20, 30]
+            };
+        } else if (type === 'diagram') {
+            sanitizedData = {
+                diagram_type: data.diagram_type || 'flowchart',
+                elements: Array.isArray(data.elements) ? data.elements : [
+                    {text: 'Start'}, {text: 'Process'}, {text: 'End'}
+                ]
+            };
+        } else if (type === 'drawing') {
+            sanitizedData = {
+                description: data.description || 'A simple drawing'
+            };
+        }
+        
+        // Create request with sanitized data
         const requestBody = {
             visualization_type: type,
-            data: data
+            data: sanitizedData
         };
         
         console.log("Sending visualization request:", JSON.stringify(requestBody).substring(0, 200));

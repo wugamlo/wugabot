@@ -381,60 +381,54 @@ def generate_visualization():
             logger.error("Missing visualization_type in request")
             return json.dumps({'error': 'Missing visualization_type parameter'}), 400
         
-        # Improved handling of visualization data
+        # Simplified handling of visualization data
         viz_data = data.get('data', {})
         logger.info(f"Raw visualization data type: {type(viz_data)}")
         
-        # Ensure we have a valid data object
-        if not viz_data:
-            logger.warning("Empty visualization data received, using defaults")
-            viz_data = {"default": True}
+        # Ensure we have a valid data object with proper defaults
+        if not viz_data or not isinstance(viz_data, dict):
+            logger.warning("Invalid visualization data received, using defaults")
+            if visualization_type == 'chart':
+                viz_data = {
+                    "chart_type": "bar",
+                    "title": "Default Chart",
+                    "labels": ["A", "B", "C"],
+                    "values": [10, 20, 30]
+                }
+            elif visualization_type == 'diagram':
+                viz_data = {
+                    "diagram_type": "flowchart",
+                    "elements": [
+                        {"text": "Start"},
+                        {"text": "Process"},
+                        {"text": "End"}
+                    ]
+                }
+            elif visualization_type == 'drawing':
+                viz_data = {
+                    "description": "A simple drawing"
+                }
+            else:
+                viz_data = {"default": True}
             
-        if isinstance(viz_data, str):
-            try:
-                import json
-                logger.info(f"Attempting to parse JSON string: {viz_data[:100]}...")
-                viz_data = json.loads(viz_data)
-                logger.info("Successfully parsed JSON string")
-            except json.JSONDecodeError as e:
-                logger.error(f"JSON decode error in visualization data: {e}")
-                logger.error(f"Raw data: {viz_data[:100]}")
-                
-                # Attempt to salvage malformed JSON
-                try:
-                    # Try to fix common JSON issues
-                    fixed_data = viz_data.replace('\\"', '"').replace('\\\\', '\\')
-                    fixed_data = fixed_data.replace('\n', ' ').replace('\r', '')
-                    logger.info(f"Attempting to parse fixed data: {fixed_data[:100]}...")
-                    viz_data = json.loads(fixed_data)
-                    logger.info("Successfully fixed and parsed JSON data")
-                except Exception as fix_error:
-                    logger.error(f"Could not fix JSON: {fix_error}")
-                    # Use default data based on visualization type
-                    if visualization_type == 'chart':
-                        viz_data = {
-                            "chart_type": "bar",
-                            "title": "Default Chart",
-                            "labels": ["A", "B", "C"],
-                            "values": [10, 20, 30]
-                        }
-                    elif visualization_type == 'diagram':
-                        viz_data = {
-                            "diagram_type": "flowchart",
-                            "elements": [
-                                {"text": "Start"},
-                                {"text": "Process"},
-                                {"text": "End"}
-                            ]
-                        }
-                    elif visualization_type == 'drawing':
-                        viz_data = {
-                            "description": "A simple drawing"
-                        }
-                    else:
-                        viz_data = {}
-                    
-                    logger.info(f"Using default data for {visualization_type}")
+            logger.info(f"Using default data for {visualization_type}")
+        
+        # Validate key structure and fill in missing fields with defaults
+        if visualization_type == 'chart':
+            # Ensure required fields exist with proper defaults
+            if "chart_type" not in viz_data or not isinstance(viz_data["chart_type"], str):
+                viz_data["chart_type"] = "bar"
+            if "title" not in viz_data or not isinstance(viz_data["title"], str):
+                viz_data["title"] = "Chart"
+            if "labels" not in viz_data or not isinstance(viz_data["labels"], list):
+                viz_data["labels"] = ["A", "B", "C"]
+            if "values" not in viz_data or not isinstance(viz_data["values"], list):
+                viz_data["values"] = [10, 20, 30]
+            
+            logger.info(f"Validated chart data: {viz_data}")
+        
+        # Log the final data being used
+        logger.info(f"Using data for visualization: {str(viz_data)[:200]}")
         
         if visualization_type == 'chart':
             # Generate chart using matplotlib
@@ -668,11 +662,12 @@ def generate_visualization():
             
     except Exception as e:
         logger.exception(f"Visualization generation error: {str(e)}")
+        import traceback
         # Create a detailed error response with debugging information
         error_details = {
             'error': str(e),
-            'traceback': str(import_traceback().format_exc()),
-            'visualization_type': type if 'type' in locals() else 'unknown',
+            'traceback': traceback.format_exc(),
+            'visualization_type': visualization_type if 'visualization_type' in locals() else 'unknown',
             'data_summary': str(viz_data)[:200] if 'viz_data' in locals() else 'No data'
         }
         
