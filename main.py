@@ -1,3 +1,13 @@
+"""
+WugaBot - Chat Interface Backend
+
+This Flask application serves as the backend for the WugaBot chat interface.
+It handles API requests, file processing, and AI model communication.
+
+Author: WugaBot Team
+Version: 1.0
+"""
+
 from flask import Flask, Response, render_template, request
 from openai import OpenAI
 import os
@@ -21,6 +31,12 @@ import requests
 
 @app.route('/models')
 def get_models():
+    """
+    Retrieves available AI models from the Venice API
+    
+    Returns:
+        JSON response with available models or error information
+    """
     try:
         response = requests.get(
             "https://api.venice.ai/api/v1/models",
@@ -43,12 +59,27 @@ def get_models():
 
 @app.route('/')
 def index():
+    """
+    Serves the main application page
+    
+    Returns:
+        Rendered HTML template
+    """
     return render_template('index.html')
 
 
 
 @app.route('/chat/stream', methods=['POST'])
 def chat_stream():
+    """
+    Handles streaming chat completions from the AI model
+    
+    Accepts:
+        - JSON request with messages, model selection, and parameters
+        
+    Returns:
+        - Streaming response with AI-generated content
+    """
     data = request.json
     search_enabled = data.get('web_search', False)
     messages = data.get('messages', [])
@@ -58,6 +89,19 @@ def chat_stream():
     temperature = data.get('temperature', 0.7)
 
     def generate(model, messages, temperature, max_completion_tokens, search_enabled):
+        """
+        Generator function that streams AI responses
+        
+        Args:
+            model (str): The AI model to use
+            messages (list): Chat history to send to the model
+            temperature (float): Temperature parameter for generation
+            max_completion_tokens (int): Maximum tokens to generate
+            search_enabled (bool): Whether to enable web search
+            
+        Yields:
+            Streaming response data from the AI model
+        """
         try:
             logger.info(f"Generating response for model: {model}")
             logger.info(f"Web search setting: {search_enabled}")
@@ -165,6 +209,18 @@ def chat_stream():
     )
 
 def extract_text_from_file(file_data, file_type):
+    """
+    Extracts text content from various file formats
+    
+    Supports txt, pdf, doc/docx, and xls/xlsx files
+    
+    Args:
+        file_data (bytes): Binary file data
+        file_type (str): File extension indicating the type
+        
+    Returns:
+        str: Extracted text content or None if extraction fails
+    """
     try:
         logger.info(f"Extracting text from {file_type} file")
         text = ""
@@ -248,6 +304,15 @@ def extract_text_from_file(file_data, file_type):
 
 @app.route('/process_file', methods=['POST'])
 def process_file():
+    """
+    Processes uploaded files and extracts their text content
+    
+    Handles various file formats including txt, pdf, doc/docx, and xls/xlsx
+    Enforces file size limits and provides appropriate error messages
+    
+    Returns:
+        JSON response with extracted text or error information
+    """
     try:
         logger.info("Starting file processing...")
 

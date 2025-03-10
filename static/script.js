@@ -1,9 +1,31 @@
-let currentStream = null;
-const chatHistory = [];
-let botContentBuffer = "";
-let lastCitations = null; // Added to store the latest citations
+/**
+ * WugaBot - Main Application Script
+ * 
+ * This file contains the core functionality for the WugaBot chat interface,
+ * including message handling, API communication, and UI manipulation.
+ * 
+ * @author WugaBot Team
+ * @version 1.0
+ */
 
-// Fetch models from the server
+/** @type {Object|null} - Tracks the current streaming response */
+let currentStream = null;
+
+/** @type {Array} - Stores the chat history (user and assistant messages) */
+const chatHistory = [];
+
+/** @type {string} - Temporary buffer for storing assistant responses during streaming */
+let botContentBuffer = "";
+
+/** @type {Array|null} - Stores citations from the latest response with web search */
+let lastCitations = null;
+
+/**
+ * Fetches available AI models from the server
+ * Populates dropdown menus with the retrieved models
+ * @async
+ * @returns {Promise<void>}
+ */
 async function fetchModels() {
     try {
         const response = await fetch('/models');
@@ -20,7 +42,16 @@ async function fetchModels() {
 // Import character options and system prompts
 import { characterOptions, systemPrompts } from './characters.js';
 
-// Vector Store Management API functions
+/**
+ * Vector Store Management API functions
+ * These functions handle interaction with the external vector database for RAG functionality
+ */
+
+/**
+ * Fetches all available vector store collections from the API
+ * @async
+ * @returns {Promise<Array>} Array of collection names
+ */
 async function fetchCollections() {
     try {
         const response = await fetch('https://wugamlo-vector-store.replit.app/api/collections');
@@ -32,6 +63,14 @@ async function fetchCollections() {
     }
 }
 
+/**
+ * Searches a specific vector store collection for relevant results
+ * @async
+ * @param {string} collectionName - Name of the collection to search
+ * @param {string} query - The search query
+ * @param {number} [limit=5] - Maximum number of results to return
+ * @returns {Promise<Array>} Search results with relevance scores and text content
+ */
 async function searchCollection(collectionName, query, limit = 5) {
     try {
         const response = await fetch(`https://wugamlo-vector-store.replit.app/api/collections/${collectionName}/search`, {
@@ -49,7 +88,11 @@ async function searchCollection(collectionName, query, limit = 5) {
     }
 }
 
-// Populate Knowledge Base dropdown
+/**
+ * Populates the knowledge base dropdown with available collections
+ * @async
+ * @returns {Promise<void>}
+ */
 async function populateKnowledgeBaseDropdown() {
     const knowledgeBaseSelect = document.getElementById('knowledgeBase');
     knowledgeBaseSelect.innerHTML = '<option value="">Select a collection...</option>';
@@ -204,7 +247,15 @@ function saveSettings() {
     setTimeout(() => feedback.remove(), 2000);
 }
 
-// Function to resize images to deal with too large images
+/**
+ * Resizes an image file to fit within specified dimensions while maintaining aspect ratio
+ * Helps optimize large images for upload and processing
+ * 
+ * @param {File} file - The image file to resize
+ * @param {number} maxWidth - Maximum width constraint in pixels
+ * @param {number} maxHeight - Maximum height constraint in pixels
+ * @returns {Promise<Blob>} - A promise that resolves with the resized image blob
+ */
 function resizeImage(file, maxWidth, maxHeight) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -250,8 +301,12 @@ function resizeImage(file, maxWidth, maxHeight) {
     });
 }
 
-
-// Handle image upload and show preview
+/**
+ * Handles image upload from gallery or camera, shows preview and switches model to VL if needed
+ * 
+ * @param {HTMLInputElement} input - The file input element containing the image
+ * @returns {void}
+ */
 function handleImageUpload(input) {
     const imagePreview = document.getElementById('imagePreview');
     if (input.files.length > 0) {
@@ -509,7 +564,15 @@ async function startStream() {
     userInput.value = ''; // Clear input after sending
 }
 
-// Submit chat message along with the image
+/**
+ * Submits a chat message to the AI model, optionally with an image attachment
+ * Handles RAG context retrieval if enabled and formats the API request
+ * 
+ * @async
+ * @param {string} message - The user's text message
+ * @param {string} [base64Image] - Optional base64-encoded image data
+ * @returns {Promise<void>}
+ */
 async function submitChat(message, base64Image) {
     if (!message && !base64Image) return;
     const systemPrompt = document.getElementById('systemPrompt').value.trim();
@@ -635,7 +698,15 @@ async function submitChat(message, base64Image) {
 }
 // File input handlers are already set up for galleryInput and cameraInput
 
-// Fetch response from chat
+/**
+ * Fetches a response from the chat API based on the provided messages
+ * Handles streaming, error handling, and updating the chat history
+ * 
+ * @async
+ * @param {Array} messages - Array of message objects to send to the API
+ * @param {HTMLElement} botMessage - DOM element where the response will be displayed
+ * @returns {Promise<void>}
+ */
 async function fetchChatResponse(messages, botMessage) {
     showLoading(true);
     try {
@@ -925,6 +996,13 @@ function toggleCitations(header) {
 // Export the toggle function for global access
 window.toggleCitations = toggleCitations;
 
+/**
+ * Formats the raw text content from the AI into properly formatted HTML
+ * Handles markdown formatting, code blocks, reasoning content, and more
+ * 
+ * @param {string} content - Raw text content from the AI
+ * @returns {string} HTML-formatted content ready for display
+ */
 function formatContent(content) {
     // First handle reasoning content by directly using the API's reasoning_content field
     // (this is handled separately in the fetchChatResponse function now)
@@ -986,6 +1064,14 @@ function formatContent(content) {
     return formatted;
 }
 
+/**
+ * Appends a new message to the chat interface
+ * 
+ * @param {string} content - The message content
+ * @param {string} role - The role of the sender ('user', 'assistant', 'system', or 'error')
+ * @param {boolean} [returnElement=false] - Whether to return the created DOM element
+ * @returns {HTMLElement|undefined} The message element if returnElement is true
+ */
 function appendMessage(content, role, returnElement = false) {
     const chatBox = document.getElementById('chatBox');
     const messageDiv = document.createElement('div');
@@ -1006,10 +1092,23 @@ function appendMessage(content, role, returnElement = false) {
     }
     scrollToBottom();
 }
+
+/**
+ * Shows or hides the loading indicator
+ * 
+ * @param {boolean} show - Whether to show the loading indicator
+ * @returns {void}
+ */
 function showLoading(show) {
     const loading = document.getElementById('loading');
     loading.classList.toggle('hidden', !show);
 }
+
+/**
+ * Scrolls the chat interface to the bottom to show latest messages
+ * 
+ * @returns {void}
+ */
 function scrollToBottom() {
     const chatBox = document.getElementById('chatBox');
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -1074,7 +1173,12 @@ function transferPrompt() {
     togglePromptComposer();
 }
 
-// Function to display chat context (for debugging)
+/**
+ * Debug utility: Displays the current chat context in a special message
+ * Shows message history, system prompt, and role counts for debugging purposes
+ * 
+ * @returns {void}
+ */
 function showChatContext() {
     // Create a message showing the current context
     let contextInfo = "In the context window, I can see the following messages:\n\n";
@@ -1194,6 +1298,12 @@ window.addEventListener('load', () => {
 // Export the function for global access
 window.toggleTextSize = toggleTextSize;
 
+/**
+ * Debug utility: Displays the complete chat history with full message content
+ * Logs to console and displays in chat interface for detailed inspection
+ * 
+ * @returns {void}
+ */
 function displayFullChatHistory() {
     console.table(chatHistory.map((msg, index) => ({
         index,
