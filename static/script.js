@@ -1003,13 +1003,6 @@ window.toggleCitations = toggleCitations;
  * @param {string} content - Raw text content from the AI
  * @returns {string} HTML-formatted content ready for display
  */
-/**
- * Formats the raw text content from the AI into properly formatted HTML
- * Handles markdown formatting, code blocks, reasoning content, visualizations and more
- * 
- * @param {string} content - Raw text content from the AI
- * @returns {string} HTML-formatted content ready for display
- */
 function formatContent(content) {
     // First handle reasoning content by directly using the API's reasoning_content field
     // (this is handled separately in the fetchChatResponse function now)
@@ -1021,29 +1014,6 @@ function formatContent(content) {
             return `<div class="reasoning-content"><strong>Reasoning:</strong><br>${content.trim()}</div>`;
         });
     }
-
-    // Check for visualization requests and process them
-    formatted = formatted.replace(/<generate_visualization[\s\S]+?type="([^"]+)"[\s\S]+?data="([^"]+)"[\s\S]+?<\/generate_visualization>/g, 
-        (match, type, dataStr) => {
-            try {
-                // Parse the data from the tag
-                const data = JSON.parse(decodeURIComponent(dataStr));
-                // Create a placeholder for the visualization with a loading indicator
-                const placeholderId = `viz-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-                
-                // Call the visualization generation function
-                generateVisualization(type, data, placeholderId);
-                
-                // Return a placeholder that will be updated when the visualization is ready
-                return `<div id="${placeholderId}" class="visualization-placeholder">
-                    <div class="loading-dots"></div>
-                    <div>Generating ${type} visualization...</div>
-                </div>`;
-            } catch (e) {
-                console.error('Error processing visualization tag:', e);
-                return `<div class="error-message">Error generating visualization: ${e.message}</div>`;
-            }
-        });
 
     // Format code blocks - improved to handle language specification better
     formatted = formatted.replace(/```(\w*)\n?([\s\S]+?)\n```/g, (match, lang, code) => {
@@ -1092,69 +1062,6 @@ function formatContent(content) {
     });
 
     return formatted;
-}
-
-/**
- * Generates a visualization by calling the backend API
- * 
- * @param {string} type - The type of visualization (chart, diagram, drawing)
- * @param {Object} data - The data for the visualization
- * @param {string} placeholderId - The ID of the placeholder element to update
- * @returns {Promise<void>}
- */
-async function generateVisualization(type, data, placeholderId) {
-    try {
-        const response = await fetch('/generate_visualization', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                visualization_type: type,
-                data: data
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Server responded with ${response.status}: ${await response.text()}`);
-        }
-        
-        const result = await response.json();
-        const placeholder = document.getElementById(placeholderId);
-        
-        if (!placeholder) {
-            console.error('Placeholder element not found:', placeholderId);
-            return;
-        }
-        
-        // Clear the placeholder
-        placeholder.innerHTML = '';
-        placeholder.classList.remove('visualization-placeholder');
-        placeholder.classList.add('visualization-container');
-        
-        // Add the visualization based on the type
-        if (result.type === 'chart' || result.type === 'drawing') {
-            const img = document.createElement('img');
-            img.src = result.image;
-            img.alt = `${type} visualization`;
-            img.classList.add('visualization-image');
-            placeholder.appendChild(img);
-        } else if (result.type === 'diagram') {
-            // For SVG, we need to use innerHTML
-            placeholder.innerHTML = result.svg;
-            // Add classes to the svg element for styling
-            const svg = placeholder.querySelector('svg');
-            if (svg) {
-                svg.classList.add('visualization-svg');
-            }
-        }
-    } catch (error) {
-        console.error('Error generating visualization:', error);
-        const placeholder = document.getElementById(placeholderId);
-        if (placeholder) {
-            placeholder.innerHTML = `<div class="error-message">Failed to generate visualization: ${error.message}</div>`;
-        }
-    }
 }
 
 /**
