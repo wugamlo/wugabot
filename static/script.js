@@ -1023,18 +1023,47 @@ function formatContent(content) {
     }
 
     // Check for visualization requests and process them
-    formatted = formatted.replace(/<generate_visualization[\s\S]+?type="([^"]+)"[\s\S]+?data="([^"]+)"[\s\S]+?<\/generate_visualization>/g, 
+    formatted = formatted.replace(/<generate_visualization[\s\S]+?type="([^"]+)"[\s\S]+?data="([\s\S]+?)"[\s\S]+?<\/generate_visualization>/g, 
         (match, type, dataStr) => {
             try {
-                // Fix JSON string before parsing
-                // Replace escaped quotes with actual quotes and fix any malformed JSON
-                const cleanedDataStr = dataStr
-                    .replace(/\\"/g, '"')
-                    .replace(/\\\\"/g, '\\"')
-                    .replace(/&quot;/g, '"');
+                // Parse the data - handle different types of encoding
+                let data;
                 
-                // Parse the data from the tag
-                const data = JSON.parse(cleanedDataStr);
+                // First try to directly parse if it's already valid JSON
+                try {
+                    data = JSON.parse(dataStr);
+                } catch (parseError) {
+                    // If direct parsing fails, try cleaning the string
+                    const cleanedDataStr = dataStr
+                        .replace(/\\"/g, '"')         // Replace \" with "
+                        .replace(/\\\\"/g, '\\"')     // Replace \\" with \"
+                        .replace(/&quot;/g, '"')      // Replace HTML entities
+                        .replace(/\\\\/g, '\\');      // Replace \\ with \
+                    
+                    // Try to parse the cleaned string
+                    try {
+                        data = JSON.parse(cleanedDataStr);
+                    } catch (secondParseError) {
+                        // As a last resort, try to manually build a proper object
+                        // This handles cases where escaped JSON is further escaped
+                        console.log("Attempting manual JSON reconstruction");
+                        const dataObj = {};
+                        
+                        // Match common properties in visualization data
+                        const typeMatch = /\"([^"]+?)_type\"\s*:\s*\"([^"]+?)\"/.exec(cleanedDataStr);
+                        if (typeMatch) {
+                            dataObj[typeMatch[1]+'_type'] = typeMatch[2];
+                        }
+                        
+                        const descMatch = /\"description\"\s*:\s*\"([^"]+?)\"/.exec(cleanedDataStr);
+                        if (descMatch) {
+                            dataObj.description = descMatch[1];
+                        }
+                        
+                        data = dataObj;
+                    }
+                }
+                
                 // Create a placeholder for the visualization with a loading indicator
                 const placeholderId = `viz-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
                 

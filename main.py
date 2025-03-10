@@ -383,7 +383,15 @@ def generate_visualization():
             except json.JSONDecodeError as e:
                 logger.error(f"JSON decode error in visualization data: {e}")
                 logger.error(f"Raw data: {viz_data[:100]}")
-                viz_data = {}
+                
+                # Attempt to salvage malformed JSON
+                try:
+                    # Try to fix common JSON issues
+                    fixed_data = viz_data.replace('\\"', '"').replace('\\\\', '\\')
+                    viz_data = json.loads(fixed_data)
+                except Exception as fix_error:
+                    logger.error(f"Could not fix JSON: {fix_error}")
+                    viz_data = {}
         
         if visualization_type == 'chart':
             # Generate chart using matplotlib
