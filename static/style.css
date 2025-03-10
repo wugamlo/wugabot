@@ -703,6 +703,7 @@ input[type="number"] {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    margin-bottom: 15px;
 }
 
 .debug-button {
@@ -715,6 +716,7 @@ input[type="number"] {
     font-size: 12px;
     text-align: left;
     transition: all 0.2s ease;
+    width: 100%;
 }
 
 .debug-button:hover {

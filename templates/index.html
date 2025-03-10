@@ -129,12 +129,6 @@
                         <button class="icon-button" onclick="togglePromptComposer()">
                             <i class="fas fa-times"></i>
                         </button>
-                        <button onclick="showChatContext()" class="icon-button" title="Debug Context">
-                            <i class="fas fa-bug"></i>
-                        </button>
-                        <button onclick="displayFullChatHistory()" class="icon-button" title="Full Chat History">
-                            <i class="fas fa-history"></i>
-                        </button>
                     </div>
                 </div>
                 <div class="composer-content">
@@ -158,6 +152,19 @@
                         <div class="field-group">
                             <label for="warnings">Warnings</label>
                             <textarea id="warnings" placeholder="Add warnings..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Debug Tools Section -->
+                    <div class="debug-tools">
+                        <h3>Debug Tools</h3>
+                        <div class="debug-buttons">
+                            <button onclick="showChatContext()" class="debug-button">
+                                <i class="fas fa-bug"></i> Show Chat Context
+                            </button>
+                            <button onclick="displayFullChatHistory()" class="debug-button">
+                                <i class="fas fa-history"></i> Show Full Chat History
+                            </button>
                         </div>
                     </div>
                 </div>
