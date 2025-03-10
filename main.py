@@ -356,3 +356,133 @@ def process_file():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
+
+@app.route('/generate_visualization', methods=['POST'])
+def generate_visualization():
+    """
+    Generates visualizations based on the request type and data
+    
+    Supports charts, diagrams, and simple drawings
+    
+    Args:
+        Request JSON with visualization_type and data fields
+        
+    Returns:
+        JSON with the generated visualization as SVG or base64 image
+    """
+    try:
+        data = request.json
+        visualization_type = data.get('visualization_type')
+        viz_data = data.get('data', {})
+        
+        if visualization_type == 'chart':
+            # Generate chart using matplotlib
+            import matplotlib.pyplot as plt
+            import matplotlib
+            matplotlib.use('Agg')
+            import io
+            import base64
+            
+            chart_type = viz_data.get('chart_type', 'bar')
+            title = viz_data.get('title', 'Chart')
+            labels = viz_data.get('labels', [])
+            values = viz_data.get('values', [])
+            
+            plt.figure(figsize=(10, 6))
+            
+            if chart_type == 'bar':
+                plt.bar(labels, values)
+            elif chart_type == 'line':
+                plt.plot(labels, values)
+            elif chart_type == 'pie':
+                plt.pie(values, labels=labels, autopct='%1.1f%%')
+            
+            plt.title(title)
+            plt.tight_layout()
+            
+            # Convert plot to base64 image
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png')
+            buf.seek(0)
+            img_str = base64.b64encode(buf.read()).decode('utf-8')
+            plt.close()
+            
+            return json.dumps({
+                'image': f'data:image/png;base64,{img_str}',
+                'type': 'chart'
+            })
+            
+        elif visualization_type == 'diagram':
+            # Generate SVG diagram
+            import svgwrite
+            
+            diagram_type = viz_data.get('diagram_type', 'flowchart')
+            elements = viz_data.get('elements', [])
+            
+            # Create a simple SVG drawing
+            dwg = svgwrite.Drawing('diagram.svg', profile='tiny', size=('800px', '600px'))
+            
+            if diagram_type == 'flowchart':
+                # Simple flowchart implementation
+                y_pos = 50
+                for i, element in enumerate(elements):
+                    # Add a box for each element
+                    dwg.add(dwg.rect((50, y_pos), (150, 80), fill='#f0f0f0', stroke='#000000'))
+                    dwg.add(dwg.text(element.get('text', ''), insert=(125, y_pos + 40), 
+                                     text_anchor="middle", font_size=14))
+                    
+                    # Add arrow if not the last element
+                    if i < len(elements) - 1:
+                        dwg.add(dwg.line((125, y_pos + 80), (125, y_pos + 120), stroke='#000000'))
+                        dwg.add(dwg.polygon([(120, y_pos + 110), (125, y_pos + 120), (130, y_pos + 110)], 
+                                          fill='#000000'))
+                    
+                    y_pos += 150
+            
+            svg_string = dwg.tostring()
+            return json.dumps({
+                'svg': svg_string,
+                'type': 'diagram'
+            })
+            
+        elif visualization_type == 'drawing':
+            # Generate a simple drawing based on text description
+            from PIL import Image, ImageDraw
+            import io
+            import base64
+            
+            description = viz_data.get('description', '')
+            
+            # Create a blank canvas
+            img = Image.new('RGB', (500, 500), color='white')
+            draw = ImageDraw.Draw(img)
+            
+            # Very basic drawing based on keywords in description
+            if 'circle' in description.lower():
+                draw.ellipse((100, 100, 400, 400), outline='black')
+            elif 'square' in description.lower():
+                draw.rectangle((100, 100, 400, 400), outline='black')
+            elif 'triangle' in description.lower():
+                draw.polygon([(250, 100), (100, 400), (400, 400)], outline='black')
+            else:
+                # Default drawing
+                draw.line((100, 100, 400, 400), fill='black', width=2)
+                draw.line((400, 100, 100, 400), fill='black', width=2)
+            
+            # Convert to base64
+            buf = io.BytesIO()
+            img.save(buf, format='PNG')
+            buf.seek(0)
+            img_str = base64.b64encode(buf.read()).decode('utf-8')
+            
+            return json.dumps({
+                'image': f'data:image/png;base64,{img_str}',
+                'type': 'drawing'
+            })
+        
+        else:
+            return json.dumps({'error': 'Unsupported visualization type'}), 400
+            
+    except Exception as e:
+        logger.exception(f"Visualization generation error: {str(e)}")
+        return json.dumps({'error': f'Visualization error: {str(e)}'}), 500
