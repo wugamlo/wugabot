@@ -1017,3 +1017,47 @@ input[type="number"] {
   color: #ffffff;
   font-style: normal;
 }
+
+/* Visualization styles */
+.visualization-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--code-bg);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 15px 0;
+  min-height: 200px;
+  color: #ffffff;
+}
+
+.visualization-container {
+  display: flex;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.visualization-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.visualization-svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.error-message {
+  background: var(--error-color);
+  color: #ffffff;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
