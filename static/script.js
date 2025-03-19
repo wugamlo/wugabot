@@ -520,13 +520,16 @@ function populateModelDropdown(models) {
         const selectedOption = Array.from(modelSelect.options).find(opt => opt.value === selectedModel);
         if (selectedOption) {
             const supportsVision = selectedOption.dataset.supportsVision === 'true';
+            const supportsWebSearch = selectedOption.dataset.supportsWebSearch === 'true';
             
             // Update button visibility
             const galleryButton = document.querySelector('button[onclick*="galleryInput"]');
             const cameraButton = document.querySelector('button[onclick*="cameraInput"]');
+            const searchButton = document.getElementById('searchEnabled');
             
             if (galleryButton) galleryButton.style.display = supportsVision ? 'inline-block' : 'none';
             if (cameraButton) cameraButton.style.display = supportsVision ? 'inline-block' : 'none';
+            if (searchButton) searchButton.style.display = supportsWebSearch ? 'block' : 'none';
         }
     };
 
