@@ -984,7 +984,7 @@ input[type="number"] {
 
 /* Make only the Send button wider by targeting it specifically by its text content */
 .input-area button:nth-of-type(5) {
-    min-width: 80px;
+    min-width: 160px;
     font-weight: bold;
 }
 
