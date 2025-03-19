@@ -1529,29 +1529,22 @@ function appendMessage(content, role, returnElement = false) {
 
 async function copyMessageContent(messageDiv) {
     try {
-        const contentToClean = messageDiv.cloneNode(true);
+        // Get message content, excluding action buttons
+        const contentDiv = messageDiv.querySelector('.message-content');
+        if (!contentDiv) return;
         
-        // Remove all action buttons from the clone
-        const actionsToRemove = contentToClean.getElementsByClassName('message-actions');
-        while (actionsToRemove.length > 0) {
-            actionsToRemove[0].remove();
-        }
+        const textContent = contentDiv.textContent.trim();
+        navigator.clipboard.writeText(textContent);
         
-        await navigator.clipboard.writeText(contentToClean.textContent);
-        
-        // Create and position success message
+        // Show copy confirmation
         const success = document.createElement('div');
         success.className = 'copy-success';
         success.textContent = 'Copied!';
-        success.style.position = 'absolute';
-        success.style.top = '-25px';
-        success.style.right = '0';
         
-        // Ensure messageDiv has relative positioning for absolute positioning of success message
+        // Position relative to message div
         messageDiv.style.position = 'relative';
         messageDiv.appendChild(success);
         
-        // Remove after animation
         setTimeout(() => success.remove(), 2000);
     } catch (err) {
         console.error('Failed to copy:', err);
@@ -1560,18 +1553,30 @@ async function copyMessageContent(messageDiv) {
 }
 
 function requestSummary(messageDiv) {
+    // Get original message content
     const contentDiv = messageDiv.querySelector('.message-content');
-    if (contentDiv) {
-        const content = contentDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
+    if (!contentDiv) return;
+    
+    const content = contentDiv.textContent
+        .replace(/Copy|Summarize|More Details/g, '')
+        .trim();
+    
+    if (content) {
         document.getElementById('userInput').value = 'Please summarize this concisely: ' + content;
         startStream();
     }
 }
 
 function requestDetails(messageDiv) {
+    // Get original message content
     const contentDiv = messageDiv.querySelector('.message-content');
-    if (contentDiv) {
-        const content = contentDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
+    if (!contentDiv) return;
+    
+    const content = contentDiv.textContent
+        .replace(/Copy|Summarize|More Details/g, '')
+        .trim();
+    
+    if (content) {
         document.getElementById('userInput').value = 'Please provide more details about this: ' + content;
         startStream();
     }
