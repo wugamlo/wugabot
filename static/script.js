@@ -818,29 +818,11 @@ async function fetchChatResponse(messages, botMessage) {
                 if (!data) continue;
 
                 if (data === '[DONE]') {
-                    // Add action buttons only after streaming is complete
-                    const actionsDiv = document.createElement('div');
-                    actionsDiv.className = 'message-actions';
-                    
-                    const copyBtn = document.createElement('button');
-                    copyBtn.className = 'message-action-button';
-                    copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-                    copyBtn.onclick = () => copyMessageContent(botMessage);
-                    
-                    const summarizeBtn = document.createElement('button');
-                    summarizeBtn.className = 'message-action-button';
-                    summarizeBtn.innerHTML = '<i class="fas fa-compress-alt"></i> Summarize';
-                    summarizeBtn.onclick = () => requestSummary(botMessage.closest('.message'));
-                    
-                    const detailsBtn = document.createElement('button');
-                    detailsBtn.className = 'message-action-button';
-                    detailsBtn.innerHTML = '<i class="fas fa-expand-alt"></i> More Details';
-                    detailsBtn.onclick = () => requestDetails(botMessage.closest('.message'));
-                    
-                    actionsDiv.appendChild(copyBtn);
-                    actionsDiv.appendChild(summarizeBtn);
-                    actionsDiv.appendChild(detailsBtn);
-                    botMessage.appendChild(actionsDiv);
+                    // Final check to ensure all content is displayed before completing
+                    if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
+                        const finalContent = formatContent(botContentBuffer);
+                        botMessage.innerHTML = finalContent + formatCitations(lastCitations);
+                    }
 
                     showLoading(false);
 
@@ -943,26 +925,11 @@ async function fetchChatResponse(messages, botMessage) {
                             `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
                     }
 
-                    // Update content without re-adding buttons during streaming
-                    let contentDiv = botMessage.querySelector('.message-content');
-                    let actionsDiv = botMessage.querySelector('.message-actions');
-                    
-                    if (!contentDiv) {
-                        contentDiv = document.createElement('div');
-                        contentDiv.className = 'message-content';
-                        botMessage.innerHTML = '';
-                        botMessage.appendChild(contentDiv);
-                    }
-                    
+                    // Add citations if available
                     if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
-                        contentDiv.innerHTML = updatedContent + formatCitations(lastCitations);
+                        botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
                     } else {
-                        contentDiv.innerHTML = updatedContent;
-                    }
-                    
-                    // Preserve actions div if it exists
-                    if (actionsDiv) {
-                        botMessage.appendChild(actionsDiv);
+                        botMessage.innerHTML = updatedContent;
                     }
 
                     Prism.highlightAll();
@@ -1490,173 +1457,11 @@ function appendMessage(content, role, returnElement = false) {
         }
     }
     messageDiv.innerHTML = content;
-
-    // Add message actions for assistant messages
-    if (role === 'assistant') {
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'message-actions';
-        
-        // Copy button
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'message-action-button';
-        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-        copyBtn.onclick = () => copyMessageContent(messageDiv);
-        
-        // Summarize button
-        const summarizeBtn = document.createElement('button');
-        summarizeBtn.className = 'message-action-button';
-        summarizeBtn.innerHTML = '<i class="fas fa-compress-alt"></i> Summarize';
-        summarizeBtn.onclick = () => requestSummary(content);
-        
-        // Details button
-        const detailsBtn = document.createElement('button');
-        detailsBtn.className = 'message-action-button';
-        detailsBtn.innerHTML = '<i class="fas fa-expand-alt"></i> More Details';
-        detailsBtn.onclick = () => requestDetails(content);
-        
-        actionsDiv.appendChild(copyBtn);
-        actionsDiv.appendChild(summarizeBtn);
-        actionsDiv.appendChild(detailsBtn);
-        messageDiv.appendChild(actionsDiv);
-    }
-
     chatBox.appendChild(messageDiv);
     if (returnElement) {
         return messageDiv;
     }
     scrollToBottom();
-}
-
-async function copyMessageContent(messageDiv) {
-    try {
-        let content = '';
-        if (typeof messageDiv === 'string') {
-            content = messageDiv;
-        } else {
-            const contentDiv = messageDiv.querySelector('.message-content');
-            content = contentDiv ? contentDiv.textContent.trim() : messageDiv.textContent.trim();
-        }
-
-        await navigator.clipboard.writeText(content);
-        
-        const success = document.createElement('div');
-        success.className = 'copy-success';
-        success.textContent = 'Copied!';
-        
-        if (typeof messageDiv !== 'string') {
-            messageDiv.style.position = 'relative';
-            messageDiv.appendChild(success);
-            setTimeout(() => success.remove(), 2000);
-        }
-    } catch (err) {
-        console.error('Failed to copy:', err);
-        alert('Failed to copy message');
-    }
-}
-
-function extractMessageContent(element) {
-    try {
-        if (!element) {
-            throw new Error('No element provided');
-        }
-
-        // Handle string input
-        if (typeof element === 'string') {
-            return element.trim();
-        }
-
-        // Handle DOM element
-        if (element instanceof HTMLElement) {
-            // First try to get content from message-content div
-            const contentDiv = element.querySelector('.message-content');
-            if (contentDiv) {
-                // Remove any action buttons, message headers, etc.
-                const cleanContent = Array.from(contentDiv.childNodes)
-                    .filter(node => {
-                        if (node.nodeType === Node.ELEMENT_NODE) {
-                            return !node.classList.contains('message-actions') &&
-                                   !node.classList.contains('citations-section') &&
-                                   !node.classList.contains('reasoning-content');
-                        }
-                        return true;
-                    })
-                    .map(node => node.textContent)
-                    .join(' ')
-                    .trim();
-                
-                if (cleanContent) {
-                    return cleanContent;
-                }
-            }
-
-            // If no content div or it's empty, get all text content except from special sections
-            const text = Array.from(element.childNodes)
-                .filter(node => {
-                    if (node.nodeType === Node.ELEMENT_NODE) {
-                        return !node.classList.contains('message-actions') &&
-                               !node.classList.contains('citations-section') &&
-                               !node.classList.contains('reasoning-content');
-                    }
-                    return true;
-                })
-                .map(node => node.textContent)
-                .join(' ')
-                .trim();
-
-            if (text) {
-                return text;
-            }
-        }
-
-        throw new Error('Could not extract valid content');
-    } catch (error) {
-        console.error('Error extracting message content:', error);
-        return null;
-    }
-}
-
-function requestSummary(messageElement) {
-    try {
-        const textToSummarize = extractMessageContent(messageElement);
-        
-        if (!textToSummarize) {
-            appendMessage('No content found to summarize.', 'error');
-            return;
-        }
-
-        const truncatedText = textToSummarize.length > 1000 
-            ? textToSummarize.substring(0, 1000) + '...'
-            : textToSummarize;
-
-        document.getElementById('userInput').value = `Please summarize this: ${truncatedText}`;
-        startStream();
-
-    } catch (error) {
-        console.error('Error in requestSummary:', error);
-        appendMessage('Failed to process summary request.', 'error');
-    }
-}
-
-function requestDetails(messageElement) {
-    try {
-        const textToDetail = extractMessageContent(messageElement);
-        
-        if (!textToDetail) {
-            appendMessage('No content found to analyze.', 'error');
-            return;
-        }
-
-        const truncatedText = textToDetail.length > 1000 
-            ? textToDetail.substring(0, 1000) + '...' 
-            : textToDetail;
-
-        document.getElementById('userInput').value = `Please provide more details about: ${truncatedText}`;
-        startStream();
-
-    } catch (error) {
-        console.error('Error in requestDetails:', error);
-        appendMessage('Failed to process details request.', 'error');
-    }
 }
 
 /**
