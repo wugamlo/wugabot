@@ -1554,27 +1554,17 @@ async function copyMessageContent(messageDiv) {
     }
 }
 
-function requestSummary(content) {
-    if (typeof content === 'string') {
-        document.getElementById('userInput').value = 'Please summarize this concisely: ' + content;
-    } else {
-        const messageContent = content.querySelector('.message-content');
-        if (messageContent) {
-            document.getElementById('userInput').value = 'Please summarize this concisely: ' + messageContent.textContent.trim();
-        }
-    }
+function requestSummary(messageDiv) {
+    const messageContent = messageDiv.querySelector('.message-content');
+    const textToSummarize = messageContent ? messageContent.textContent.trim() : messageDiv.textContent.trim();
+    document.getElementById('userInput').value = `Please summarize this concisely: ${textToSummarize}`;
     startStream();
 }
 
-function requestDetails(content) {
-    if (typeof content === 'string') {
-        document.getElementById('userInput').value = 'Please provide more details about this: ' + content;
-    } else {
-        const messageContent = content.querySelector('.message-content');
-        if (messageContent) {
-            document.getElementById('userInput').value = 'Please provide more details about this: ' + messageContent.textContent.trim();
-        }
-    }
+function requestDetails(messageDiv) {
+    const messageContent = messageDiv.querySelector('.message-content');
+    const textToDetail = messageContent ? messageContent.textContent.trim() : messageDiv.textContent.trim();
+    document.getElementById('userInput').value = `Please provide more details about this: ${textToDetail}`;
     startStream();
 }
 

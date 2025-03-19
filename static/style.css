@@ -369,8 +369,8 @@ input[type="number"] {
 
 
 .input-area button {
-  padding: 8px 16px; /* Smaller padding for the button */
-  font-size: 12px; /* Smaller font size for the button */
+  padding: 6px 12px; /* Smaller padding for the button */
+  font-size: 14px; /* Smaller font size for the button */
   border-radius: 20px; /* Adjusted to match the input field */
 }
 
