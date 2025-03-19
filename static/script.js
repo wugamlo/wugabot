@@ -1554,44 +1554,64 @@ async function copyMessageContent(messageDiv) {
     }
 }
 
-function requestSummary(messageDiv) {
-    try {
-        let textToSummarize = '';
-        
-        if (typeof messageDiv === 'string') {
-            textToSummarize = messageDiv;
-        } else {
-            const messageContent = messageDiv.querySelector('.message-content');
-            if (messageContent) {
-                // Create a deep clone of the content
-                const clone = messageContent.cloneNode(true);
-                
-                // Remove action buttons and citations
-                const toRemove = clone.querySelectorAll('.message-actions, .citations-section, button');
-                toRemove.forEach(el => el.remove());
-                
-                // Get the cleaned text content
-                textToSummarize = clone.textContent.trim();
+function extractMessageContent(element) {
+    // If element is a string, return it directly
+    if (typeof element === 'string') {
+        return element;
+    }
+
+    // Create a temporary container
+    const container = document.createElement('div');
+    container.innerHTML = element.innerHTML;
+
+    // Remove all action buttons, citations sections, and other UI elements
+    const elementsToRemove = container.querySelectorAll(
+        '.message-actions, .citations-section, button, .reasoning-content'
+    );
+    elementsToRemove.forEach(el => el.remove());
+
+    // Get all text content, preserving important formatting
+    let content = '';
+    const processNode = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+            content += node.textContent;
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.tagName === 'BR' || node.tagName === 'P') {
+                content += '\n';
+            } else if (node.tagName === 'CODE') {
+                content += node.textContent;
             } else {
-                // Fallback to cleaning the entire message div
-                const tempDiv = messageDiv.cloneNode(true);
-                const toRemove = tempDiv.querySelectorAll('.message-actions, .citations-section, button');
-                toRemove.forEach(el => el.remove());
-                textToSummarize = tempDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
+                Array.from(node.childNodes).forEach(processNode);
             }
         }
+    };
+
+    Array.from(container.childNodes).forEach(processNode);
+
+    // Clean up the content
+    return content
+        .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+        .replace(/\n\s*\n/g, '\n')  // Remove empty lines
+        .replace(/Copy|Summarize|More Details/g, '')  // Remove button text
+        .trim();
+}
+
+function requestSummary(messageDiv) {
+    try {
+        const textToSummarize = extractMessageContent(messageDiv);
         
-        // Ensure we have content to summarize
         if (!textToSummarize) {
             throw new Error('No content found to summarize');
         }
-        
-        if (textToSummarize.length > 1000) {
-            textToSummarize = textToSummarize.substring(0, 1000) + '...';
-        }
-        
-        document.getElementById('userInput').value = `Please provide a concise summary of this text: ${textToSummarize}`;
+
+        // Only take first 1000 chars to prevent token limits
+        const truncatedText = textToSummarize.length > 1000 
+            ? textToSummarize.substring(0, 1000) + '...'
+            : textToSummarize;
+
+        document.getElementById('userInput').value = `Please provide a concise summary of this text: ${truncatedText}`;
         startStream();
+
     } catch (error) {
         console.error('Error in requestSummary:', error);
         appendMessage('Failed to process summary request.', 'error');
@@ -1600,42 +1620,20 @@ function requestSummary(messageDiv) {
 
 function requestDetails(messageDiv) {
     try {
-        let textToDetail = '';
+        const textToDetail = extractMessageContent(messageDiv);
         
-        if (typeof messageDiv === 'string') {
-            textToDetail = messageDiv;
-        } else {
-            const messageContent = messageDiv.querySelector('.message-content');
-            if (messageContent) {
-                // Create a deep clone of the content
-                const clone = messageContent.cloneNode(true);
-                
-                // Remove action buttons and citations
-                const toRemove = clone.querySelectorAll('.message-actions, .citations-section, button');
-                toRemove.forEach(el => el.remove());
-                
-                // Get the cleaned text content
-                textToDetail = clone.textContent.trim();
-            } else {
-                // Fallback to cleaning the entire message div
-                const tempDiv = messageDiv.cloneNode(true);
-                const toRemove = tempDiv.querySelectorAll('.message-actions, .citations-section, button');
-                toRemove.forEach(el => el.remove());
-                textToDetail = tempDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
-            }
-        }
-        
-        // Ensure we have content to process
         if (!textToDetail) {
             throw new Error('No content found to analyze');
         }
-        
-        if (textToDetail.length > 1000) {
-            textToDetail = textToDetail.substring(0, 1000) + '...';
-        }
-        
-        document.getElementById('userInput').value = `Please provide more detailed information about this topic: ${textToDetail}`;
+
+        // Only take first 1000 chars to prevent token limits
+        const truncatedText = textToDetail.length > 1000 
+            ? textToDetail.substring(0, 1000) + '...' 
+            : textToDetail;
+
+        document.getElementById('userInput').value = `Please provide more detailed information about this topic: ${truncatedText}`;
         startStream();
+
     } catch (error) {
         console.error('Error in requestDetails:', error);
         appendMessage('Failed to process details request.', 'error');
