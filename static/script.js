@@ -325,7 +325,6 @@ function handleImageUpload(input) {
             const base64Image = event.target.result;
             imagePreview.innerHTML = `
                 <img src="${base64Image}" alt="Image Preview" style="max-width: 50px; max-height: 50px; margin-left: 10px;" />
-                <div style="font-size: 12px; color: #666; margin-top: 4px;">Switched to qwen-2.5-vl for image analysis</div>
             `;
         };
         reader.readAsDataURL(input.files[0]);
