@@ -512,22 +512,35 @@ function populateModelDropdown(models) {
     };
 
     // Keep the dropdowns in sync
-    // Function to handle model selection changes
-    const handleModelChange = (sourceDropdown, targetDropdown) => {
-        return function() {
-            targetDropdown.value = this.value;
-            // Always use the selected option from the source dropdown
-            const selectedOption = this.options[this.selectedIndex];
-            updateCapabilityUI(selectedOption);
-        };
+    const updateUI = (selectedModel) => {
+        modelSelect.value = selectedModel;
+        headerModelSelect.value = selectedModel;
+        
+        // Get the selected option from modelSelect (which has the full dataset)
+        const selectedOption = Array.from(modelSelect.options).find(opt => opt.value === selectedModel);
+        if (selectedOption) {
+            const supportsVision = selectedOption.dataset.supportsVision === 'true';
+            
+            // Update button visibility
+            const galleryButton = document.querySelector('button[onclick*="galleryInput"]');
+            const cameraButton = document.querySelector('button[onclick*="cameraInput"]');
+            
+            if (galleryButton) galleryButton.style.display = supportsVision ? 'inline-block' : 'none';
+            if (cameraButton) cameraButton.style.display = supportsVision ? 'inline-block' : 'none';
+        }
     };
 
     // Set up bidirectional sync between dropdowns
-    modelSelect.addEventListener('change', handleModelChange(modelSelect, headerModelSelect));
-    headerModelSelect.addEventListener('change', handleModelChange(headerModelSelect, modelSelect));
+    modelSelect.addEventListener('change', function() {
+        updateUI(this.value);
+    });
 
-    // Trigger initial UI update using the settings panel dropdown
-    updateCapabilityUI(modelSelect.options[modelSelect.selectedIndex]);
+    headerModelSelect.addEventListener('change', function() {
+        updateUI(this.value);
+    });
+
+    // Trigger initial UI update
+    updateUI(modelSelect.value);
 }
 
 // Start streaming data to the chat
