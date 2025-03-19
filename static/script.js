@@ -1457,11 +1457,74 @@ function appendMessage(content, role, returnElement = false) {
         }
     }
     messageDiv.innerHTML = content;
+
+    // Add message actions for assistant messages
+    if (role === 'assistant') {
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'message-actions';
+        
+        // Copy button
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'message-action-button';
+        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+        copyBtn.onclick = () => copyMessageContent(messageDiv);
+        
+        // Summarize button
+        const summarizeBtn = document.createElement('button');
+        summarizeBtn.className = 'message-action-button';
+        summarizeBtn.innerHTML = '<i class="fas fa-compress-alt"></i> Summarize';
+        summarizeBtn.onclick = () => requestSummary(content);
+        
+        // Details button
+        const detailsBtn = document.createElement('button');
+        detailsBtn.className = 'message-action-button';
+        detailsBtn.innerHTML = '<i class="fas fa-expand-alt"></i> More Details';
+        detailsBtn.onclick = () => requestDetails(content);
+        
+        actionsDiv.appendChild(copyBtn);
+        actionsDiv.appendChild(summarizeBtn);
+        actionsDiv.appendChild(detailsBtn);
+        messageDiv.appendChild(actionsDiv);
+    }
+
     chatBox.appendChild(messageDiv);
     if (returnElement) {
         return messageDiv;
     }
     scrollToBottom();
+}
+
+async function copyMessageContent(messageDiv) {
+    try {
+        // Get only the message content, not the action buttons
+        const content = messageDiv.cloneNode(true);
+        const actions = content.querySelector('.message-actions');
+        if (actions) actions.remove();
+        
+        await navigator.clipboard.writeText(content.textContent);
+        
+        // Show success message
+        const success = document.createElement('div');
+        success.className = 'copy-success';
+        success.textContent = 'Copied!';
+        messageDiv.appendChild(success);
+        
+        // Remove success message after animation
+        setTimeout(() => success.remove(), 2000);
+    } catch (err) {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy message');
+    }
+}
+
+function requestSummary(content) {
+    document.getElementById('userInput').value = 'Please summarize this concisely: ' + content;
+    startStream();
+}
+
+function requestDetails(content) {
+    document.getElementById('userInput').value = 'Please provide more details about this: ' + content;
+    startStream();
 }
 
 /**
