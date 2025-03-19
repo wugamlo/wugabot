@@ -1556,23 +1556,59 @@ async function copyMessageContent(messageDiv) {
 
 function extractMessageContent(element) {
     try {
-        // If element is a DOM element, get the message content
-        if (element instanceof HTMLElement) {
-            const contentDiv = element.querySelector('.message-content');
-            if (contentDiv) {
-                return contentDiv.textContent.trim();
-            }
-            // Fallback to direct text content if no message-content div
-            return element.textContent.trim();
+        if (!element) {
+            throw new Error('No element provided');
         }
-        
-        // If element is a string, return it directly
+
+        // Handle string input
         if (typeof element === 'string') {
             return element.trim();
         }
 
-        // If we can't extract content, throw an error
-        throw new Error('Unable to extract message content');
+        // Handle DOM element
+        if (element instanceof HTMLElement) {
+            // First try to get content from message-content div
+            const contentDiv = element.querySelector('.message-content');
+            if (contentDiv) {
+                // Remove any action buttons, message headers, etc.
+                const cleanContent = Array.from(contentDiv.childNodes)
+                    .filter(node => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            return !node.classList.contains('message-actions') &&
+                                   !node.classList.contains('citations-section') &&
+                                   !node.classList.contains('reasoning-content');
+                        }
+                        return true;
+                    })
+                    .map(node => node.textContent)
+                    .join(' ')
+                    .trim();
+                
+                if (cleanContent) {
+                    return cleanContent;
+                }
+            }
+
+            // If no content div or it's empty, get all text content except from special sections
+            const text = Array.from(element.childNodes)
+                .filter(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        return !node.classList.contains('message-actions') &&
+                               !node.classList.contains('citations-section') &&
+                               !node.classList.contains('reasoning-content');
+                    }
+                    return true;
+                })
+                .map(node => node.textContent)
+                .join(' ')
+                .trim();
+
+            if (text) {
+                return text;
+            }
+        }
+
+        throw new Error('Could not extract valid content');
     } catch (error) {
         console.error('Error extracting message content:', error);
         return null;
