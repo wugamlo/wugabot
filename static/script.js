@@ -1529,20 +1529,29 @@ function appendMessage(content, role, returnElement = false) {
 
 async function copyMessageContent(messageDiv) {
     try {
-        // Get only the message content, not the action buttons
-        const content = messageDiv.cloneNode(true);
-        const actions = content.querySelector('.message-actions');
-        if (actions) actions.remove();
+        const contentToClean = messageDiv.cloneNode(true);
         
-        await navigator.clipboard.writeText(content.textContent);
+        // Remove all action buttons from the clone
+        const actionsToRemove = contentToClean.getElementsByClassName('message-actions');
+        while (actionsToRemove.length > 0) {
+            actionsToRemove[0].remove();
+        }
         
-        // Show success message
+        await navigator.clipboard.writeText(contentToClean.textContent);
+        
+        // Create and position success message
         const success = document.createElement('div');
         success.className = 'copy-success';
         success.textContent = 'Copied!';
+        success.style.position = 'absolute';
+        success.style.top = '-25px';
+        success.style.right = '0';
+        
+        // Ensure messageDiv has relative positioning for absolute positioning of success message
+        messageDiv.style.position = 'relative';
         messageDiv.appendChild(success);
         
-        // Remove success message after animation
+        // Remove after animation
         setTimeout(() => success.remove(), 2000);
     } catch (err) {
         console.error('Failed to copy:', err);
