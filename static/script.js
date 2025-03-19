@@ -830,12 +830,12 @@ async function fetchChatResponse(messages, botMessage) {
                     const summarizeBtn = document.createElement('button');
                     summarizeBtn.className = 'message-action-button';
                     summarizeBtn.innerHTML = '<i class="fas fa-compress-alt"></i> Summarize';
-                    summarizeBtn.onclick = () => requestSummary(botMessage);
+                    summarizeBtn.onclick = () => requestSummary(botMessage.closest('.message'));
                     
                     const detailsBtn = document.createElement('button');
                     detailsBtn.className = 'message-action-button';
                     detailsBtn.innerHTML = '<i class="fas fa-expand-alt"></i> More Details';
-                    detailsBtn.onclick = () => requestDetails(botMessage);
+                    detailsBtn.onclick = () => requestDetails(botMessage.closest('.message'));
                     
                     actionsDiv.appendChild(copyBtn);
                     actionsDiv.appendChild(summarizeBtn);
