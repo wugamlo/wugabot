@@ -1555,17 +1555,69 @@ async function copyMessageContent(messageDiv) {
 }
 
 function requestSummary(messageDiv) {
-    const messageContent = messageDiv.querySelector('.message-content');
-    const textToSummarize = messageContent ? messageContent.textContent.trim() : messageDiv.textContent.trim();
-    document.getElementById('userInput').value = `Please summarize this concisely: ${textToSummarize}`;
-    startStream();
+    try {
+        // Get content, excluding action buttons
+        const messageContent = messageDiv.querySelector('.message-content');
+        let textToSummarize = '';
+        
+        if (messageContent) {
+            // Clone node to avoid modifying original
+            const contentClone = messageContent.cloneNode(true);
+            
+            // Remove any nested buttons or action elements
+            const actionsToRemove = contentClone.querySelectorAll('.message-actions, .citations-section');
+            actionsToRemove.forEach(el => el.remove());
+            
+            textToSummarize = contentClone.textContent.trim();
+        } else {
+            // Fallback to clean message text
+            textToSummarize = messageDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
+        }
+        
+        // Truncate if too long
+        if (textToSummarize.length > 1000) {
+            textToSummarize = textToSummarize.substring(0, 1000) + '...';
+        }
+        
+        document.getElementById('userInput').value = `Please provide a concise summary of this text: ${textToSummarize}`;
+        startStream();
+    } catch (error) {
+        console.error('Error in requestSummary:', error);
+        appendMessage('Failed to process summary request.', 'error');
+    }
 }
 
 function requestDetails(messageDiv) {
-    const messageContent = messageDiv.querySelector('.message-content');
-    const textToDetail = messageContent ? messageContent.textContent.trim() : messageDiv.textContent.trim();
-    document.getElementById('userInput').value = `Please provide more details about this: ${textToDetail}`;
-    startStream();
+    try {
+        // Get content, excluding action buttons
+        const messageContent = messageDiv.querySelector('.message-content');
+        let textToDetail = '';
+        
+        if (messageContent) {
+            // Clone node to avoid modifying original
+            const contentClone = messageContent.cloneNode(true);
+            
+            // Remove any nested buttons or action elements
+            const actionsToRemove = contentClone.querySelectorAll('.message-actions, .citations-section');
+            actionsToRemove.forEach(el => el.remove());
+            
+            textToDetail = contentClone.textContent.trim();
+        } else {
+            // Fallback to clean message text
+            textToDetail = messageDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
+        }
+        
+        // Truncate if too long
+        if (textToDetail.length > 1000) {
+            textToDetail = textToDetail.substring(0, 1000) + '...';
+        }
+        
+        document.getElementById('userInput').value = `Please provide more detailed information about this topic: ${textToDetail}`;
+        startStream();
+    } catch (error) {
+        console.error('Error in requestDetails:', error);
+        appendMessage('Failed to process details request.', 'error');
+    }
 }
 
 /**
