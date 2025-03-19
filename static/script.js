@@ -1529,23 +1529,25 @@ function appendMessage(content, role, returnElement = false) {
 
 async function copyMessageContent(messageDiv) {
     try {
-        // Get message content, excluding action buttons
-        const contentDiv = messageDiv.querySelector('.message-content');
-        if (!contentDiv) return;
+        let content = '';
+        if (typeof messageDiv === 'string') {
+            content = messageDiv;
+        } else {
+            const contentDiv = messageDiv.querySelector('.message-content');
+            content = contentDiv ? contentDiv.textContent.trim() : messageDiv.textContent.trim();
+        }
+
+        await navigator.clipboard.writeText(content);
         
-        const textContent = contentDiv.textContent.trim();
-        navigator.clipboard.writeText(textContent);
-        
-        // Show copy confirmation
         const success = document.createElement('div');
         success.className = 'copy-success';
         success.textContent = 'Copied!';
         
-        // Position relative to message div
-        messageDiv.style.position = 'relative';
-        messageDiv.appendChild(success);
-        
-        setTimeout(() => success.remove(), 2000);
+        if (typeof messageDiv !== 'string') {
+            messageDiv.style.position = 'relative';
+            messageDiv.appendChild(success);
+            setTimeout(() => success.remove(), 2000);
+        }
     } catch (err) {
         console.error('Failed to copy:', err);
         alert('Failed to copy message');
@@ -1553,13 +1555,15 @@ async function copyMessageContent(messageDiv) {
 }
 
 function requestSummary(messageDiv) {
-    // Get original message content
-    const contentDiv = messageDiv.querySelector('.message-content');
-    if (!contentDiv) return;
+    let content = '';
+    if (typeof messageDiv === 'string') {
+        content = messageDiv;
+    } else {
+        const contentDiv = messageDiv.querySelector('.message-content');
+        content = contentDiv ? contentDiv.textContent : messageDiv.textContent;
+    }
     
-    const content = contentDiv.textContent
-        .replace(/Copy|Summarize|More Details/g, '')
-        .trim();
+    content = content.replace(/Copy|Summarize|More Details/g, '').trim();
     
     if (content) {
         document.getElementById('userInput').value = 'Please summarize this concisely: ' + content;
@@ -1568,13 +1572,15 @@ function requestSummary(messageDiv) {
 }
 
 function requestDetails(messageDiv) {
-    // Get original message content
-    const contentDiv = messageDiv.querySelector('.message-content');
-    if (!contentDiv) return;
+    let content = '';
+    if (typeof messageDiv === 'string') {
+        content = messageDiv;
+    } else {
+        const contentDiv = messageDiv.querySelector('.message-content');
+        content = contentDiv ? contentDiv.textContent : messageDiv.textContent;
+    }
     
-    const content = contentDiv.textContent
-        .replace(/Copy|Summarize|More Details/g, '')
-        .trim();
+    content = content.replace(/Copy|Summarize|More Details/g, '').trim();
     
     if (content) {
         document.getElementById('userInput').value = 'Please provide more details about this: ' + content;
