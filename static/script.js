@@ -468,9 +468,10 @@ function populateModelDropdown(models) {
         const option = document.createElement('option');
         option.value = model.id;
         option.text = displayText;
-        option.dataset.supportsWebSearch = supportsWebSearch || false;
-        option.dataset.supportsReasoning = supportsReasoning || false;
-        option.dataset.supportsVision = supportsVision || false;
+        option.dataset.supportsWebSearch = String(supportsWebSearch || false);
+        option.dataset.supportsReasoning = String(supportsReasoning || false);
+        option.dataset.supportsVision = String(supportsVision || false);
+        console.log(`Setting model ${model.id} vision support:`, option.dataset.supportsVision);
         modelSelect.appendChild(option);
 
         // For header dropdown
@@ -496,11 +497,20 @@ function populateModelDropdown(models) {
         searchButton.style.display = supportsWebSearch ? 'block' : 'none';
         searchButton.classList.remove('active');
         
-        // Update image upload buttons visibility
-        const galleryButton = document.querySelector('button[onclick="document.getElementById(\'galleryInput\').click();"]');
-        const cameraButton = document.querySelector('button[onclick="document.getElementById(\'cameraInput\').click();"]');
-        if (galleryButton) galleryButton.style.display = supportsVision ? 'block' : 'none';
-        if (cameraButton) cameraButton.style.display = supportsVision ? 'block' : 'none';
+        // Update image upload buttons visibility using proper query selectors
+        const galleryButton = document.querySelector('button[onclick*="galleryInput"]');
+        const cameraButton = document.querySelector('button[onclick*="cameraInput"]');
+        
+        console.log('Model supports vision:', supportsVision);
+        console.log('Found gallery button:', !!galleryButton);
+        console.log('Found camera button:', !!cameraButton);
+        
+        if (galleryButton) {
+            galleryButton.style.display = selectedOption.dataset.supportsVision === 'true' ? 'inline-block' : 'none';
+        }
+        if (cameraButton) {
+            cameraButton.style.display = selectedOption.dataset.supportsVision === 'true' ? 'inline-block' : 'none';
+        }
     };
 
     // Keep the dropdowns in sync
