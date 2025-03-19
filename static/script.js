@@ -953,12 +953,22 @@ async function fetchChatResponse(messages, botMessage) {
                             botMessage.appendChild(contentDiv);
                         }
                     } else {
-                        const contentDiv = botMessage.querySelector('.message-content') || document.createElement('div');
-                        contentDiv.className = 'message-content';
-                        contentDiv.innerHTML = updatedContent;
-                        if (!botMessage.contains(contentDiv)) {
-                            botMessage.innerHTML = '';
+                        let contentDiv = botMessage.querySelector('.message-content');
+                        let actionsDiv = botMessage.querySelector('.message-actions');
+                        
+                        if (!contentDiv) {
+                            contentDiv = document.createElement('div');
+                            contentDiv.className = 'message-content';
                             botMessage.appendChild(contentDiv);
+                        }
+                        
+                        contentDiv.innerHTML = updatedContent;
+                        
+                        // Preserve actions div if it exists
+                        if (actionsDiv) {
+                            if (!botMessage.contains(actionsDiv)) {
+                                botMessage.appendChild(actionsDiv);
+                            }
                         }
                     }
 
