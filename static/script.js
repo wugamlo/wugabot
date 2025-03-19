@@ -1556,25 +1556,24 @@ async function copyMessageContent(messageDiv) {
 
 function requestSummary(messageDiv) {
     try {
-        // Get content, excluding action buttons
-        const messageContent = messageDiv.querySelector('.message-content');
         let textToSummarize = '';
         
-        if (messageContent) {
-            // Clone node to avoid modifying original
-            const contentClone = messageContent.cloneNode(true);
-            
-            // Remove any nested buttons or action elements
-            const actionsToRemove = contentClone.querySelectorAll('.message-actions, .citations-section');
-            actionsToRemove.forEach(el => el.remove());
-            
-            textToSummarize = contentClone.textContent.trim();
+        // If messageDiv is a string, use it directly
+        if (typeof messageDiv === 'string') {
+            textToSummarize = messageDiv;
         } else {
-            // Fallback to clean message text
-            textToSummarize = messageDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
+            // Otherwise, extract content from DOM element
+            const messageContent = messageDiv.querySelector('.message-content');
+            if (messageContent) {
+                const clone = messageContent.cloneNode(true);
+                const toRemove = clone.querySelectorAll('.message-actions, .citations-section');
+                toRemove.forEach(el => el.remove());
+                textToSummarize = clone.textContent.trim();
+            } else {
+                textToSummarize = messageDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
+            }
         }
         
-        // Truncate if too long
         if (textToSummarize.length > 1000) {
             textToSummarize = textToSummarize.substring(0, 1000) + '...';
         }
@@ -1589,25 +1588,24 @@ function requestSummary(messageDiv) {
 
 function requestDetails(messageDiv) {
     try {
-        // Get content, excluding action buttons
-        const messageContent = messageDiv.querySelector('.message-content');
         let textToDetail = '';
         
-        if (messageContent) {
-            // Clone node to avoid modifying original
-            const contentClone = messageContent.cloneNode(true);
-            
-            // Remove any nested buttons or action elements
-            const actionsToRemove = contentClone.querySelectorAll('.message-actions, .citations-section');
-            actionsToRemove.forEach(el => el.remove());
-            
-            textToDetail = contentClone.textContent.trim();
+        // If messageDiv is a string, use it directly
+        if (typeof messageDiv === 'string') {
+            textToDetail = messageDiv;
         } else {
-            // Fallback to clean message text
-            textToDetail = messageDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
+            // Otherwise, extract content from DOM element
+            const messageContent = messageDiv.querySelector('.message-content');
+            if (messageContent) {
+                const clone = messageContent.cloneNode(true);
+                const toRemove = clone.querySelectorAll('.message-actions, .citations-section');
+                toRemove.forEach(el => el.remove());
+                textToDetail = clone.textContent.trim();
+            } else {
+                textToDetail = messageDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
+            }
         }
         
-        // Truncate if too long
         if (textToDetail.length > 1000) {
             textToDetail = textToDetail.substring(0, 1000) + '...';
         }
