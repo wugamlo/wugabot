@@ -310,14 +310,15 @@ function resizeImage(file, maxWidth, maxHeight) {
 function handleImageUpload(input) {
     const imagePreview = document.getElementById('imagePreview');
     if (input.files.length > 0) {
-        // Auto-switch to qwen-2.5-vl model for image analysis
         const modelSelect = document.getElementById('modelSelect');
-        const headerModelSelect = document.getElementById('headerModelSelect');
-        const previousModel = modelSelect.value;
-
-        // Update both model selectors to ensure consistency
-        modelSelect.value = 'qwen-2.5-vl';
-        headerModelSelect.value = 'qwen-2.5-vl';
+        const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+        
+        // Check if current model supports vision
+        if (!selectedOption.dataset.supportsVision === 'true') {
+            alert('Please select a vision-capable model to analyze images');
+            input.value = '';
+            return;
+        }
 
         const reader = new FileReader();
         reader.onload = (event) => {
@@ -452,18 +453,16 @@ function populateModelDropdown(models) {
         // Filter out models where offline is true
         return !(model.model_spec && model.model_spec.offline === true);
     }).forEach(model => {
-        // Get reasoning capability
-        const supportsReasoning = model.model_spec && 
-                                 model.model_spec.capabilities && 
-                                 model.model_spec.capabilities.supportsReasoning === true;
+        // Get model capabilities
+        const capabilities = model.model_spec?.capabilities || {};
+        const supportsReasoning = capabilities.supportsReasoning === true;
+        const supportsWebSearch = capabilities.supportsWebSearch === true;
+        const supportsVision = capabilities.supportsVision === true;
 
-        // Get web search capability
-        const supportsWebSearch = model.model_spec && 
-                                 model.model_spec.capabilities && 
-                                 model.model_spec.capabilities.supportsWebSearch === true;
-
-        // Create display text with reasoning indicator
-        const displayText = supportsReasoning ? `${model.id} - Reasoning` : model.id;
+        // Create display text with capability indicators
+        let displayText = model.id;
+        if (supportsReasoning) displayText += ' - Reasoning';
+        if (supportsVision) displayText += ' - Vision';
 
         // For settings dropdown
         const option = document.createElement('option');
@@ -486,27 +485,36 @@ function populateModelDropdown(models) {
     modelSelect.value = 'qwen-2.5-qwq-32b';
     headerModelSelect.value = 'qwen-2.5-qwq-32b';
 
-    // Function to update search button visibility
-    const updateSearchButtonVisibility = (dropdown) => {
+    // Function to update capability-dependent UI elements
+    const updateCapabilityUI = (dropdown) => {
         const selectedOption = dropdown.options[dropdown.selectedIndex];
         const supportsWebSearch = selectedOption.dataset.supportsWebSearch === 'true';
+        const supportsVision = selectedOption.dataset.supportsVision === 'true';
+        
+        // Update search button visibility
         searchButton.style.display = supportsWebSearch ? 'block' : 'none';
         searchButton.classList.remove('active');
+        
+        // Update image upload buttons visibility
+        const galleryButton = document.querySelector('button[onclick="document.getElementById(\'galleryInput\').click();"]');
+        const cameraButton = document.querySelector('button[onclick="document.getElementById(\'cameraInput\').click();"]');
+        if (galleryButton) galleryButton.style.display = supportsVision ? 'block' : 'none';
+        if (cameraButton) cameraButton.style.display = supportsVision ? 'block' : 'none';
     };
 
     // Keep the dropdowns in sync
     modelSelect.addEventListener('change', function() {
         headerModelSelect.value = this.value;
-        updateSearchButtonVisibility(this);
+        updateCapabilityUI(this);
     });
 
     headerModelSelect.addEventListener('change', function() {
         modelSelect.value = this.value;
-        updateSearchButtonVisibility(this);
+        updateCapabilityUI(this);
     });
 
-    // Trigger initial visibility
-    updateSearchButtonVisibility(modelSelect);
+    // Trigger initial UI update
+    updateCapabilityUI(modelSelect);
 }
 
 // Start streaming data to the chat
