@@ -830,12 +830,12 @@ async function fetchChatResponse(messages, botMessage) {
                     const summarizeBtn = document.createElement('button');
                     summarizeBtn.className = 'message-action-button';
                     summarizeBtn.innerHTML = '<i class="fas fa-compress-alt"></i> Summarize';
-                    summarizeBtn.onclick = () => requestSummary(botContentBuffer);
+                    summarizeBtn.onclick = () => requestSummary(botMessage);
                     
                     const detailsBtn = document.createElement('button');
                     detailsBtn.className = 'message-action-button';
                     detailsBtn.innerHTML = '<i class="fas fa-expand-alt"></i> More Details';
-                    detailsBtn.onclick = () => requestDetails(botContentBuffer);
+                    detailsBtn.onclick = () => requestDetails(botMessage);
                     
                     actionsDiv.appendChild(copyBtn);
                     actionsDiv.appendChild(summarizeBtn);
@@ -944,32 +944,25 @@ async function fetchChatResponse(messages, botMessage) {
                     }
 
                     // Update content without re-adding buttons during streaming
-                    if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
-                        const contentDiv = botMessage.querySelector('.message-content') || document.createElement('div');
+                    let contentDiv = botMessage.querySelector('.message-content');
+                    let actionsDiv = botMessage.querySelector('.message-actions');
+                    
+                    if (!contentDiv) {
+                        contentDiv = document.createElement('div');
                         contentDiv.className = 'message-content';
+                        botMessage.innerHTML = '';
+                        botMessage.appendChild(contentDiv);
+                    }
+                    
+                    if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
                         contentDiv.innerHTML = updatedContent + formatCitations(lastCitations);
-                        if (!botMessage.contains(contentDiv)) {
-                            botMessage.innerHTML = '';
-                            botMessage.appendChild(contentDiv);
-                        }
                     } else {
-                        let contentDiv = botMessage.querySelector('.message-content');
-                        let actionsDiv = botMessage.querySelector('.message-actions');
-                        
-                        if (!contentDiv) {
-                            contentDiv = document.createElement('div');
-                            contentDiv.className = 'message-content';
-                            botMessage.appendChild(contentDiv);
-                        }
-                        
                         contentDiv.innerHTML = updatedContent;
-                        
-                        // Preserve actions div if it exists
-                        if (actionsDiv) {
-                            if (!botMessage.contains(actionsDiv)) {
-                                botMessage.appendChild(actionsDiv);
-                            }
-                        }
+                    }
+                    
+                    // Preserve actions div if it exists
+                    if (actionsDiv) {
+                        botMessage.appendChild(actionsDiv);
                     }
 
                     Prism.highlightAll();
@@ -1557,12 +1550,16 @@ async function copyMessageContent(messageDiv) {
     }
 }
 
-function requestSummary(content) {
+function requestSummary(messageDiv) {
+    const contentDiv = messageDiv.querySelector('.message-content');
+    const content = contentDiv ? contentDiv.textContent : '';
     document.getElementById('userInput').value = 'Please summarize this concisely: ' + content;
     startStream();
 }
 
-function requestDetails(content) {
+function requestDetails(messageDiv) {
+    const contentDiv = messageDiv.querySelector('.message-content');
+    const content = contentDiv ? contentDiv.textContent : '';
     document.getElementById('userInput').value = 'Please provide more details about this: ' + content;
     startStream();
 }
