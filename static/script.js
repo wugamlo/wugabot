@@ -487,8 +487,7 @@ function populateModelDropdown(models) {
     headerModelSelect.value = 'qwen-2.5-qwq-32b';
 
     // Function to update capability-dependent UI elements
-    const updateCapabilityUI = (dropdown) => {
-        const selectedOption = dropdown.options[dropdown.selectedIndex];
+    const updateCapabilityUI = (selectedOption) => {
         const supportsWebSearch = selectedOption.dataset.supportsWebSearch === 'true';
         const supportsVision = selectedOption.dataset.supportsVision === 'true';
         
@@ -513,18 +512,22 @@ function populateModelDropdown(models) {
     };
 
     // Keep the dropdowns in sync
-    modelSelect.addEventListener('change', function() {
-        headerModelSelect.value = this.value;
-        updateCapabilityUI(this);
-    });
+    // Function to handle model selection changes
+    const handleModelChange = (sourceDropdown, targetDropdown) => {
+        return function() {
+            targetDropdown.value = this.value;
+            // Always use the selected option from the source dropdown
+            const selectedOption = this.options[this.selectedIndex];
+            updateCapabilityUI(selectedOption);
+        };
+    };
 
-    headerModelSelect.addEventListener('change', function() {
-        modelSelect.value = this.value;
-        updateCapabilityUI(this);
-    });
+    // Set up bidirectional sync between dropdowns
+    modelSelect.addEventListener('change', handleModelChange(modelSelect, headerModelSelect));
+    headerModelSelect.addEventListener('change', handleModelChange(headerModelSelect, modelSelect));
 
-    // Trigger initial UI update
-    updateCapabilityUI(modelSelect);
+    // Trigger initial UI update using the settings panel dropdown
+    updateCapabilityUI(modelSelect.options[modelSelect.selectedIndex]);
 }
 
 // Start streaming data to the chat
