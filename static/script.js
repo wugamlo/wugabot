@@ -1556,17 +1556,9 @@ async function copyMessageContent(messageDiv) {
 
 function requestSummary(messageDiv) {
     let content = '';
-    if (typeof messageDiv === 'string') {
-        content = messageDiv;
-    } else {
-        const contentDiv = messageDiv.querySelector('.message-content');
-        if (contentDiv) {
-            content = contentDiv.innerText || contentDiv.textContent;
-            content = content.replace(/Copy|Summarize|More Details/g, '').trim();
-        }
-    }
-    
-    if (content) {
+    if (messageDiv.classList.contains('message')) {
+        content = messageDiv.querySelector('.message-content').textContent;
+        content = content.replace(/Copy|Summarize|More Details/g, '').trim();
         document.getElementById('userInput').value = 'Please summarize this concisely: ' + content;
         startStream();
     }
@@ -1574,17 +1566,9 @@ function requestSummary(messageDiv) {
 
 function requestDetails(messageDiv) {
     let content = '';
-    if (typeof messageDiv === 'string') {
-        content = messageDiv;
-    } else {
-        const contentDiv = messageDiv.querySelector('.message-content');
-        if (contentDiv) {
-            content = contentDiv.innerText || contentDiv.textContent;
-            content = content.replace(/Copy|Summarize|More Details/g, '').trim();
-        }
-    }
-    
-    if (content) {
+    if (messageDiv.classList.contains('message')) {
+        content = messageDiv.querySelector('.message-content').textContent;
+        content = content.replace(/Copy|Summarize|More Details/g, '').trim();
         document.getElementById('userInput').value = 'Please provide more details about this: ' + content;
         startStream();
     }
