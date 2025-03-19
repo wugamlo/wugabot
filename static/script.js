@@ -1558,20 +1558,32 @@ function requestSummary(messageDiv) {
     try {
         let textToSummarize = '';
         
-        // If messageDiv is a string, use it directly
         if (typeof messageDiv === 'string') {
             textToSummarize = messageDiv;
         } else {
-            // Otherwise, extract content from DOM element
             const messageContent = messageDiv.querySelector('.message-content');
             if (messageContent) {
+                // Create a deep clone of the content
                 const clone = messageContent.cloneNode(true);
-                const toRemove = clone.querySelectorAll('.message-actions, .citations-section');
+                
+                // Remove action buttons and citations
+                const toRemove = clone.querySelectorAll('.message-actions, .citations-section, button');
                 toRemove.forEach(el => el.remove());
+                
+                // Get the cleaned text content
                 textToSummarize = clone.textContent.trim();
             } else {
-                textToSummarize = messageDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
+                // Fallback to cleaning the entire message div
+                const tempDiv = messageDiv.cloneNode(true);
+                const toRemove = tempDiv.querySelectorAll('.message-actions, .citations-section, button');
+                toRemove.forEach(el => el.remove());
+                textToSummarize = tempDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
             }
+        }
+        
+        // Ensure we have content to summarize
+        if (!textToSummarize) {
+            throw new Error('No content found to summarize');
         }
         
         if (textToSummarize.length > 1000) {
@@ -1590,20 +1602,32 @@ function requestDetails(messageDiv) {
     try {
         let textToDetail = '';
         
-        // If messageDiv is a string, use it directly
         if (typeof messageDiv === 'string') {
             textToDetail = messageDiv;
         } else {
-            // Otherwise, extract content from DOM element
             const messageContent = messageDiv.querySelector('.message-content');
             if (messageContent) {
+                // Create a deep clone of the content
                 const clone = messageContent.cloneNode(true);
-                const toRemove = clone.querySelectorAll('.message-actions, .citations-section');
+                
+                // Remove action buttons and citations
+                const toRemove = clone.querySelectorAll('.message-actions, .citations-section, button');
                 toRemove.forEach(el => el.remove());
+                
+                // Get the cleaned text content
                 textToDetail = clone.textContent.trim();
             } else {
-                textToDetail = messageDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
+                // Fallback to cleaning the entire message div
+                const tempDiv = messageDiv.cloneNode(true);
+                const toRemove = tempDiv.querySelectorAll('.message-actions, .citations-section, button');
+                toRemove.forEach(el => el.remove());
+                textToDetail = tempDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
             }
+        }
+        
+        // Ensure we have content to process
+        if (!textToDetail) {
+            throw new Error('No content found to analyze');
         }
         
         if (textToDetail.length > 1000) {
