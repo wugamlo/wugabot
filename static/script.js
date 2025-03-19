@@ -1560,15 +1560,21 @@ async function copyMessageContent(messageDiv) {
 }
 
 function requestSummary(messageDiv) {
-    const content = messageDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
-    document.getElementById('userInput').value = 'Please summarize this concisely: ' + content;
-    startStream();
+    const contentDiv = messageDiv.querySelector('.message-content');
+    if (contentDiv) {
+        const content = contentDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
+        document.getElementById('userInput').value = 'Please summarize this concisely: ' + content;
+        startStream();
+    }
 }
 
 function requestDetails(messageDiv) {
-    const content = messageDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
-    document.getElementById('userInput').value = 'Please provide more details about this: ' + content;
-    startStream();
+    const contentDiv = messageDiv.querySelector('.message-content');
+    if (contentDiv) {
+        const content = contentDiv.textContent.replace(/Copy|Summarize|More Details/g, '').trim();
+        document.getElementById('userInput').value = 'Please provide more details about this: ' + content;
+        startStream();
+    }
 }
 
 /**
