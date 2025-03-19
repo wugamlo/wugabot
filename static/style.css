@@ -982,8 +982,8 @@ input[type="number"] {
     justify-content: center;
 }
 
-/* Make only the Send button wider by targeting it specifically by its text content */
-.input-area button:last-child {
+/* Make only the Send button wider by targeting it specifically (second to last button) */
+.input-area button:nth-last-child(2) {
     min-width: 160px;
     font-weight: bold;
 }
