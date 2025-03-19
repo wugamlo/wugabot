@@ -470,6 +470,7 @@ function populateModelDropdown(models) {
         option.text = displayText;
         option.dataset.supportsWebSearch = supportsWebSearch || false;
         option.dataset.supportsReasoning = supportsReasoning || false;
+        option.dataset.supportsVision = supportsVision || false;
         modelSelect.appendChild(option);
 
         // For header dropdown
