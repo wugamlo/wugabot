@@ -925,11 +925,40 @@ async function fetchChatResponse(messages, botMessage) {
                             `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
                     }
 
+                    // Get existing action buttons if they exist
+                    const existingActions = botMessage.querySelector('.message-actions');
+
                     // Add citations if available
                     if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
                         botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
                     } else {
                         botMessage.innerHTML = updatedContent;
+                    }
+
+                    // If there were no action buttons, add them
+                    if (!existingActions) {
+                        const actionsDiv = document.createElement('div');
+                        actionsDiv.className = 'message-actions';
+                        
+                        const copyBtn = document.createElement('button');
+                        copyBtn.className = 'message-action-button';
+                        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                        copyBtn.onclick = () => copyMessageContent(botMessage);
+                        
+                        const summarizeBtn = document.createElement('button');
+                        summarizeBtn.className = 'message-action-button';
+                        summarizeBtn.innerHTML = '<i class="fas fa-compress-alt"></i> Summarize';
+                        summarizeBtn.onclick = () => requestSummary(botContentBuffer);
+                        
+                        const detailsBtn = document.createElement('button');
+                        detailsBtn.className = 'message-action-button';
+                        detailsBtn.innerHTML = '<i class="fas fa-expand-alt"></i> More Details';
+                        detailsBtn.onclick = () => requestDetails(botContentBuffer);
+                        
+                        actionsDiv.appendChild(copyBtn);
+                        actionsDiv.appendChild(summarizeBtn);
+                        actionsDiv.appendChild(detailsBtn);
+                        botMessage.appendChild(actionsDiv);
                     }
 
                     Prism.highlightAll();
