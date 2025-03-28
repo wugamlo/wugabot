@@ -1,5 +1,5 @@
 
-import google.generativeai as genai
+from google import genai
 import os
 import logging
 
@@ -23,7 +23,7 @@ class GoogleAIHandler:
             # Send messages
             for msg in messages:
                 if msg["role"] != "system":  # Skip system messages
-                    response = chat.send_message(
+                    response = await chat.send_message(
                         msg["content"],
                         generation_config={"temperature": temperature}
                     )
