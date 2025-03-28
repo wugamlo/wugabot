@@ -16,6 +16,14 @@ import PyPDF2
 import docx
 import io
 import logging
+from google_ai_handler import GoogleAIHandler
+
+# Initialize Google AI handler
+google_ai = None
+try:
+    google_ai = GoogleAIHandler()
+except ValueError as e:
+    logging.warning(f"Google AI initialization failed: {e}")
 
 # Configure logging
 log_level = os.getenv('LOG_LEVEL', 'INFO')
@@ -32,12 +40,13 @@ import requests
 @app.route('/models')
 def get_models():
     """
-    Retrieves available AI models from the Venice API
+    Retrieves available AI models from Venice API and adds Google AI models
 
     Returns:
         JSON response with available models or error information
     """
     try:
+        # Get Venice models
         response = requests.get(
             "https://api.venice.ai/api/v1/models",
             headers={
@@ -49,9 +58,32 @@ def get_models():
         models_data = response.json()
         models = []
         for model in models_data['data']:
-            # Pass the entire model structure to the client
-            # This includes model_spec with offline status and all capabilities
             models.append(model)
+        
+        # Add Google AI models if available
+        if google_ai:
+            google_models = [
+                {
+                    "id": "gemini-pro",
+                    "name": "Google Gemini Pro",
+                    "provider": "google",
+                    "capabilities": {
+                        "chat": True,
+                        "vision": False
+                    }
+                },
+                {
+                    "id": "gemini-pro-vision",
+                    "name": "Google Gemini Pro Vision",
+                    "provider": "google",
+                    "capabilities": {
+                        "chat": True,
+                        "vision": True
+                    }
+                }
+            ]
+            models.extend(google_models)
+            
         return json.dumps({'models': models})
     except Exception as e:
         logger.error(f"Error fetching models: {str(e)}")
@@ -72,7 +104,7 @@ def index():
 @app.route('/chat/stream', methods=['POST'])
 def chat_stream():
     """
-    Handles streaming chat completions from the AI model
+    Handles streaming chat completions from AI models (Venice and Google)
 
     Accepts:
         - JSON request with messages, model selection, and parameters
@@ -83,6 +115,24 @@ def chat_stream():
     data = request.json
     search_enabled = data.get('web_search', False)
     messages = data.get('messages', [])
+    model = data.get('model', 'mistral-31-24b')
+    
+    # Check if it's a Google AI model
+    if model.startswith('gemini-') and google_ai:
+        try:
+            async def generate_google():
+                response = await google_ai.generate_response(
+                    messages=messages,
+                    model=model,
+                    temperature=data.get('temperature', 0.7)
+                )
+                yield f"data: {json.dumps(response)}\n\n"
+                yield "data: [DONE]\n\n"
+            
+            return Response(generate_google(), mimetype='text/event-stream')
+        except Exception as e:
+            logging.exception(f"Google AI error: {str(e)}")
+            return json.dumps({'error': str(e)}), 500
 
     # Use max_completion_tokens as the primary parameter, but fall back to max_tokens for backward compatibility
     max_completion_tokens = data.get('max_completion_tokens', data.get('max_tokens', 4000))
