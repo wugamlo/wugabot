@@ -15,19 +15,20 @@ class GoogleAIHandler:
         
     async def generate_response(self, messages, model="gemini-pro", temperature=0.7):
         try:
-            # Initialize model
-            model = self.client.models.get_model(model)
+            # Initialize model and prepare content
+            model = self.client.get_generative_model(model_name=model)
             
-            # Create chat
-            chat = model.start_chat()
-            
-            # Send messages
+            # Format messages into content parts
+            content_parts = []
             for msg in messages:
                 if msg["role"] != "system":  # Skip system messages
-                    response = await chat.send_message(
-                        contents=[{"text": msg["content"]}],
-                        generation_config={"temperature": temperature}
-                    )
+                    content_parts.append({"text": msg["content"]})
+            
+            # Generate content
+            response = model.generate_content(
+                content_parts,
+                generation_config={"temperature": temperature}
+            )
             
             # Format response to match Venice format
             return {
