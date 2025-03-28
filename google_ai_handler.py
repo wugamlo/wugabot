@@ -1,5 +1,6 @@
 
 from google import genai
+from google.genai import types
 import os
 import logging
 
@@ -10,12 +11,12 @@ class GoogleAIHandler:
         api_key = os.getenv('GOOGLE_API_KEY')
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable not set")
-        genai.configure(api_key=api_key)
+        self.client = genai.Client(api_key=api_key)
         
     async def generate_response(self, messages, model="gemini-pro", temperature=0.7):
         try:
             # Initialize model
-            model = genai.GenerativeModel(model_name=model)
+            model = self.client.models.get_model(model)
             
             # Create chat
             chat = model.start_chat()
@@ -24,7 +25,7 @@ class GoogleAIHandler:
             for msg in messages:
                 if msg["role"] != "system":  # Skip system messages
                     response = await chat.send_message(
-                        msg["content"],
+                        contents=[{"text": msg["content"]}],
                         generation_config={"temperature": temperature}
                     )
             
