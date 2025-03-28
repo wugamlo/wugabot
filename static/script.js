@@ -483,8 +483,8 @@ function populateModelDropdown(models) {
     });
 
     // Set the default value for both dropdowns
-    modelSelect.value = 'qwen-2.5-qwq-32b';
-    headerModelSelect.value = 'qwen-2.5-qwq-32b';
+    modelSelect.value = 'mistral-31-24b';
+    headerModelSelect.value = 'mistral-31-24b';
 
     // Function to update capability-dependent UI elements
     const updateCapabilityUI = (selectedOption) => {
