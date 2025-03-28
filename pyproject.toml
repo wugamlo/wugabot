@@ -23,4 +23,6 @@ dependencies = [
     "plotly>=6.0.0",
     "svgwrite>=1.4.3",
     "pillow>=11.1.0",
+    "google-genai>=1.2.0",
+    "sift-stack-py>=0.4.2",
 ]
