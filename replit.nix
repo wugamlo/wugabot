@@ -1,20 +1,6 @@
 
 { pkgs }: {
     deps = [
-      pkgs.zlib
-      pkgs.libxcrypt
-      pkgs.libwebp
-      pkgs.libtiff
-      pkgs.libjpeg
-      pkgs.libimagequant
-      pkgs.lcms2
-      pkgs.tk
-      pkgs.tcl
-      pkgs.qhull
-      pkgs.pkg-config
-      pkgs.gobject-introspection
-      pkgs.ghostscript
-      pkgs.ffmpeg-full
       pkgs.xcbuild
       pkgs.swig
       pkgs.openjpeg

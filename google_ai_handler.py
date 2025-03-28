@@ -1,6 +1,5 @@
 
-from google import genai
-from google.genai import types
+import google.genai as genai
 import os
 import logging
 
@@ -11,24 +10,23 @@ class GoogleAIHandler:
         api_key = os.getenv('GOOGLE_API_KEY')
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable not set")
-        self.client = genai.Client(api_key=api_key)
+        genai.configure(api_key=api_key)
         
     async def generate_response(self, messages, model="gemini-pro", temperature=0.7):
         try:
-            # Initialize model and prepare content
-            model = self.client.get_generative_model(model_name=model)
+            # Initialize model
+            model = genai.GenerativeModel(model_name=model)
             
-            # Format messages into content parts
-            content_parts = []
+            # Create chat
+            chat = model.start_chat()
+            
+            # Send messages
             for msg in messages:
                 if msg["role"] != "system":  # Skip system messages
-                    content_parts.append({"text": msg["content"]})
-            
-            # Generate content
-            response = model.generate_content(
-                content_parts,
-                generation_config={"temperature": temperature}
-            )
+                    response = chat.send_message(
+                        msg["content"],
+                        generation_config={"temperature": temperature}
+                    )
             
             # Format response to match Venice format
             return {
