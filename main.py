@@ -39,7 +39,7 @@ def get_models():
     """
     try:
         response = requests.get(
-            "https://venice-api.ai/api/v1/models",
+            "https://api.venice.ai/api/v1/models",
             headers={
                 "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
                 "Content-Type": "application/json"
@@ -126,7 +126,7 @@ def chat_stream():
             # Make request to Venice API
             logger.debug(f"Sending request to Venice API with payload: {json.dumps(payload)}")
             response = requests.post(
-                "https://venice-api.ai/api/v1/chat/completions",
+                "https://api.venice.ai/api/v1/chat/completions",
                 headers={
                     "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
                     "Content-Type": "application/json"
