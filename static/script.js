@@ -906,9 +906,15 @@ async function fetchChatResponse(messages, botMessage) {
                         // Get citations if available
                         const citationsInResponse = parsed.venice_parameters?.web_search_citations;
                         if (citationsInResponse) {
-                            console.log('Found citations:', JSON.stringify(citationsInResponse));
+                            console.log('Found citations (raw):', JSON.stringify(citationsInResponse, null, 2));
+                            console.log('Citations type:', typeof citationsInResponse);
+                            console.log('Citations is array:', Array.isArray(citationsInResponse));
+                            
                             // Clean REF tags from content
+                            const originalContent = botContentBuffer;
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
+                            console.log('Content before cleaning:', originalContent);
+                            console.log('Content after cleaning:', botContentBuffer);
                             
                             // Map numeric references to actual citations
                             if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
