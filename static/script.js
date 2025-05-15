@@ -904,21 +904,25 @@ async function fetchChatResponse(messages, botMessage) {
                     // Handle citations and other venice parameters
                     if (parsed.venice_parameters) {
                         // Get citations if available
-                        const citationsInResponse = parsed.venice_parameters.web_search_citations;
+                        const citationsInResponse = parsed.venice_parameters?.web_search_citations;
                         if (citationsInResponse) {
                             console.log('Found citations:', citationsInResponse);
                             // Clean REF tags from content
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
                             
                             // Map numeric references to actual citations
-                            if (citationsInResponse.length > 0) {
+                            if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
+                                console.log('Processing citations:', citationsInResponse);
                                 // Ensure citations have required fields
-                                const validCitations = citationsInResponse.map((citation, index) => ({
-                                    title: citation.title || `Search Result ${index + 1}`,
-                                    url: citation.url || '#',
-                                    content: citation.content || '',
-                                    published_date: citation.published_date || ''
-                                }));
+                                const validCitations = citationsInResponse.map((citation, index) => {
+                                    console.log('Processing citation:', citation);
+                                    return {
+                                        title: citation.title || `Search Result ${index + 1}`,
+                                        url: citation.url || '#',
+                                        content: citation.content || '',
+                                        published_date: citation.published_date || ''
+                                    };
+                                });
                                 
                                 lastCitations = validCitations;
                                 const citationsHtml = formatCitations(lastCitations);
