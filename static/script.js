@@ -905,9 +905,15 @@ async function fetchChatResponse(messages, botMessage) {
                     if (parsed.venice_parameters) {
                         // Get citations if available
                         const citationsInResponse = parsed.venice_parameters.web_search_citations;
-                        if (citationsInResponse) {
+                        if (citationsInResponse && citationsInResponse.length > 0) {
                             console.log('Found citations:', citationsInResponse);
                             lastCitations = citationsInResponse;
+                            
+                            // Ensure citations are displayed immediately
+                            const citationsHtml = formatCitations(lastCitations);
+                            if (citationsHtml) {
+                                botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
+                            }
                         }
 
                         // Check for reasoning content in venice_parameters
@@ -1002,11 +1008,12 @@ async function fetchChatResponse(messages, botMessage) {
 function formatCitations(citations) {
     if (!citations || !citations.length || citations.every(c => !c.title && !c.url)) return '';
 
+    console.log('Formatting citations:', citations);
     let citationsHtml = '\n\n<div class="citations-section">';
-    citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
+    citationsHtml += `<div class="citations-header expanded" onclick="toggleCitations(this)">
         <h3>Web Search Results (${citations.length})</h3>
         <span class="toggle-icon"></span>
-    </div><div class="citations-content">`;
+    </div><div class="citations-content expanded">`;
     citations.forEach((citation, index) => {
         if (citation.title && citation.url) {
             citationsHtml += `
