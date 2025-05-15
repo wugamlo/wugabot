@@ -907,8 +907,11 @@ async function fetchChatResponse(messages, botMessage) {
                         const citationsInResponse = parsed.venice_parameters.web_search_citations;
                         if (citationsInResponse) {
                             console.log('Found citations:', citationsInResponse);
+                            // Clean REF tags from content
+                            botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
+                            
                             // Only update citations if we have valid ones
-                            if (citationsInResponse.length > 0 && citationsInResponse.some(c => c.title && c.url)) {
+                            if (citationsInResponse.length > 0) {
                                 lastCitations = citationsInResponse;
                                 
                                 // Update display with citations
