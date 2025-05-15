@@ -905,14 +905,17 @@ async function fetchChatResponse(messages, botMessage) {
                     if (parsed.venice_parameters) {
                         // Get citations if available
                         const citationsInResponse = parsed.venice_parameters.web_search_citations;
-                        if (citationsInResponse && citationsInResponse.length > 0) {
+                        if (citationsInResponse) {
                             console.log('Found citations:', citationsInResponse);
-                            lastCitations = citationsInResponse;
-                            
-                            // Ensure citations are displayed immediately
-                            const citationsHtml = formatCitations(lastCitations);
-                            if (citationsHtml) {
-                                botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
+                            // Only update citations if we have valid ones
+                            if (citationsInResponse.length > 0 && citationsInResponse.some(c => c.title && c.url)) {
+                                lastCitations = citationsInResponse;
+                                
+                                // Update display with citations
+                                const citationsHtml = formatCitations(lastCitations);
+                                if (citationsHtml) {
+                                    botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
+                                }
                             }
                         }
 
@@ -1010,10 +1013,10 @@ function formatCitations(citations) {
 
     console.log('Formatting citations:', citations);
     let citationsHtml = '\n\n<div class="citations-section">';
-    citationsHtml += `<div class="citations-header expanded" onclick="toggleCitations(this)">
+    citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
         <h3>Web Search Results (${citations.length})</h3>
         <span class="toggle-icon"></span>
-    </div><div class="citations-content expanded">`;
+    </div><div class="citations-content">`;
     citations.forEach((citation, index) => {
         if (citation.title && citation.url) {
             citationsHtml += `
