@@ -910,11 +910,17 @@ async function fetchChatResponse(messages, botMessage) {
                             // Clean REF tags from content
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
                             
-                            // Only update citations if we have valid ones
+                            // Map numeric references to actual citations
                             if (citationsInResponse.length > 0) {
-                                lastCitations = citationsInResponse;
+                                // Ensure citations have required fields
+                                const validCitations = citationsInResponse.map((citation, index) => ({
+                                    title: citation.title || `Search Result ${index + 1}`,
+                                    url: citation.url || '#',
+                                    content: citation.content || '',
+                                    published_date: citation.published_date || ''
+                                }));
                                 
-                                // Update display with citations
+                                lastCitations = validCitations;
                                 const citationsHtml = formatCitations(lastCitations);
                                 if (citationsHtml) {
                                     botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
