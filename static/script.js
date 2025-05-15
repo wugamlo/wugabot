@@ -906,25 +906,28 @@ async function fetchChatResponse(messages, botMessage) {
                         // Get citations if available
                         const citationsInResponse = parsed.venice_parameters?.web_search_citations;
                         if (citationsInResponse) {
-                            console.log('Found citations:', citationsInResponse);
+                            console.log('Found citations:', JSON.stringify(citationsInResponse));
                             // Clean REF tags from content
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
                             
                             // Map numeric references to actual citations
                             if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
-                                console.log('Processing citations:', citationsInResponse);
+                                console.log('Processing citations:', JSON.stringify(citationsInResponse));
                                 // Ensure citations have required fields
                                 const validCitations = citationsInResponse.map((citation, index) => {
-                                    console.log('Processing citation:', citation);
-                                    return {
+                                    console.log('Processing citation:', JSON.stringify(citation));
+                                    const validatedCitation = {
                                         title: citation.title || `Search Result ${index + 1}`,
                                         url: citation.url || '#',
-                                        content: citation.content || '',
-                                        published_date: citation.published_date || ''
+                                        content: citation.snippet || citation.content || '',
+                                        published_date: citation.published_date || citation.date || ''
                                     };
+                                    console.log('Validated citation:', validatedCitation);
+                                    return validatedCitation;
                                 });
                                 
                                 lastCitations = validCitations;
+                                console.log('Final citations:', JSON.stringify(lastCitations));
                                 const citationsHtml = formatCitations(lastCitations);
                                 if (citationsHtml) {
                                     botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
