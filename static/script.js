@@ -151,16 +151,10 @@ window.addEventListener('load', () => {
     if (savedMaxTokens) {
         document.getElementById('maxTokens').value = savedMaxTokens;
     }
-    
-    // For temperature, we'll prioritize saved user preference if it exists
-    const temperatureSlider = document.getElementById('temperature');
-    const temperatureValue = document.getElementById('temperatureValue');
+
     if (savedTemperature) {
-        temperatureSlider.value = savedTemperature;
-        temperatureValue.textContent = savedTemperature;
-    } else {
-        // If no saved temperature, we'll set it later when model dropdown is populated
-        console.log("No saved temperature, will use model default");
+        document.getElementById('temperature').value = savedTemperature;
+        document.getElementById('temperatureValue').textContent = savedTemperature;
     }
 
     // Setup RAG toggle
@@ -463,12 +457,6 @@ function populateModelDropdown(models) {
         const supportsReasoning = capabilities.supportsReasoning === true;
         const supportsWebSearch = capabilities.supportsWebSearch === true;
         const supportsVision = capabilities.supportsVision === true;
-        
-        // Get default temperature if available
-        let defaultTemperature = 0.7; // Fallback default
-        if (model.model_spec?.constraints?.temperature?.default) {
-            defaultTemperature = model.model_spec.constraints.temperature.default;
-        }
 
         // Create display text with capability indicators
         let displayText = model.id;
@@ -482,9 +470,7 @@ function populateModelDropdown(models) {
         option.dataset.supportsWebSearch = String(supportsWebSearch || false);
         option.dataset.supportsReasoning = String(supportsReasoning || false);
         option.dataset.supportsVision = String(supportsVision || false);
-        option.dataset.defaultTemperature = String(defaultTemperature);
         console.log(`Setting model ${model.id} vision support:`, option.dataset.supportsVision);
-        console.log(`Setting model ${model.id} default temperature:`, option.dataset.defaultTemperature);
         modelSelect.appendChild(option);
 
         // For header dropdown
@@ -493,28 +479,12 @@ function populateModelDropdown(models) {
         headerOption.text = displayText;
         headerOption.dataset.supportsWebSearch = supportsWebSearch || false;
         headerOption.dataset.supportsReasoning = supportsReasoning || false;
-        headerOption.dataset.supportsVision = supportsVision || false;
-        headerOption.dataset.defaultTemperature = String(defaultTemperature);
         headerModelSelect.appendChild(headerOption);
     });
 
     // Set the default value for both dropdowns
     modelSelect.value = 'mistral-31-24b';
     headerModelSelect.value = 'mistral-31-24b';
-    
-    // Apply default temperature if we don't have a saved user preference
-    if (!localStorage.getItem('temperature')) {
-        const selectedOption = Array.from(modelSelect.options).find(opt => opt.value === modelSelect.value);
-        if (selectedOption && selectedOption.dataset.defaultTemperature) {
-            const defaultTemp = parseFloat(selectedOption.dataset.defaultTemperature);
-            const temperatureSlider = document.getElementById('temperature');
-            const temperatureValue = document.getElementById('temperatureValue');
-            temperatureSlider.value = defaultTemp;
-            temperatureValue.textContent = defaultTemp;
-            localStorage.setItem('temperature', defaultTemp);
-            console.log("Applied model default temperature:", defaultTemp);
-        }
-    }
 
     // Function to update capability-dependent UI elements
     const updateCapabilityUI = (selectedOption) => {
@@ -560,16 +530,6 @@ function populateModelDropdown(models) {
             if (galleryButton) galleryButton.style.display = supportsVision ? 'inline-block' : 'none';
             if (cameraButton) cameraButton.style.display = supportsVision ? 'inline-block' : 'none';
             if (searchButton) searchButton.style.display = supportsWebSearch ? 'block' : 'none';
-            
-            // Update temperature to default value for this model if available
-            if (selectedOption.dataset.defaultTemperature) {
-                const defaultTemp = parseFloat(selectedOption.dataset.defaultTemperature);
-                const temperatureSlider = document.getElementById('temperature');
-                const temperatureValue = document.getElementById('temperatureValue');
-                temperatureSlider.value = defaultTemp;
-                temperatureValue.textContent = defaultTemp;
-                localStorage.setItem('temperature', defaultTemp);
-            }
         }
     };
 
