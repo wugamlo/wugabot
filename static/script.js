@@ -442,6 +442,8 @@ function populateModelDropdown(models) {
     const modelSelect = document.getElementById('modelSelect');
     const headerModelSelect = document.getElementById('headerModelSelect');
     const searchButton = document.getElementById('searchEnabled');
+    const temperatureInput = document.getElementById('temperature');
+    const temperatureValue = document.getElementById('temperatureValue');
 
     // Clear both dropdowns
     modelSelect.innerHTML = '';
@@ -457,6 +459,9 @@ function populateModelDropdown(models) {
         const supportsReasoning = capabilities.supportsReasoning === true;
         const supportsWebSearch = capabilities.supportsWebSearch === true;
         const supportsVision = capabilities.supportsVision === true;
+        
+        // Get default temperature if available
+        const defaultTemperature = model.model_spec?.constraints?.temperature?.default || 0.7;
 
         // Create display text with capability indicators
         let displayText = model.id;
@@ -470,6 +475,7 @@ function populateModelDropdown(models) {
         option.dataset.supportsWebSearch = String(supportsWebSearch || false);
         option.dataset.supportsReasoning = String(supportsReasoning || false);
         option.dataset.supportsVision = String(supportsVision || false);
+        option.dataset.defaultTemperature = defaultTemperature;
         console.log(`Setting model ${model.id} vision support:`, option.dataset.supportsVision);
         modelSelect.appendChild(option);
 
@@ -490,6 +496,7 @@ function populateModelDropdown(models) {
     const updateCapabilityUI = (selectedOption) => {
         const supportsWebSearch = selectedOption.dataset.supportsWebSearch === 'true';
         const supportsVision = selectedOption.dataset.supportsVision === 'true';
+        const defaultTemperature = selectedOption.dataset.defaultTemperature || 0.7;
         
         // Update search button visibility
         searchButton.style.display = supportsWebSearch ? 'block' : 'none';
@@ -509,6 +516,12 @@ function populateModelDropdown(models) {
         if (cameraButton) {
             cameraButton.style.display = selectedOption.dataset.supportsVision === 'true' ? 'inline-block' : 'none';
         }
+        
+        // Update temperature to model default
+        temperatureInput.value = defaultTemperature;
+        temperatureValue.textContent = defaultTemperature;
+        // Save the updated temperature
+        localStorage.setItem('temperature', defaultTemperature);
     };
 
     // Keep the dropdowns in sync
@@ -521,6 +534,7 @@ function populateModelDropdown(models) {
         if (selectedOption) {
             const supportsVision = selectedOption.dataset.supportsVision === 'true';
             const supportsWebSearch = selectedOption.dataset.supportsWebSearch === 'true';
+            const defaultTemperature = selectedOption.dataset.defaultTemperature || 0.7;
             
             // Update button visibility
             const galleryButton = document.querySelector('button[onclick*="galleryInput"]');
@@ -530,6 +544,12 @@ function populateModelDropdown(models) {
             if (galleryButton) galleryButton.style.display = supportsVision ? 'inline-block' : 'none';
             if (cameraButton) cameraButton.style.display = supportsVision ? 'inline-block' : 'none';
             if (searchButton) searchButton.style.display = supportsWebSearch ? 'block' : 'none';
+            
+            // Update temperature to model default
+            temperatureInput.value = defaultTemperature;
+            temperatureValue.textContent = defaultTemperature;
+            // Save the updated temperature
+            localStorage.setItem('temperature', defaultTemperature);
         }
     };
 
