@@ -939,12 +939,15 @@ async function fetchChatResponse(messages, botMessage) {
                             // Map numeric references to actual citations
                             if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
                                 console.log('Processing citations:', JSON.stringify(citationsInResponse));
-                                // Ensure citations have required fields
-                                const validCitations = citationsInResponse.map((citation, index) => {
+                                // Ensure citations have required fields with more robust validation
+                                const validCitations = citationsInResponse.filter(citation => {
+                                    // Only include citations that have at least a title and URL
+                                    return citation && citation.title && citation.url;
+                                }).map((citation, index) => {
                                     console.log('Processing citation:', JSON.stringify(citation));
                                     const validatedCitation = {
-                                        title: citation.title || `Search Result ${index + 1}`,
-                                        url: citation.url || '#',
+                                        title: citation.title,
+                                        url: citation.url,
                                         content: citation.content || citation.snippet || '',
                                         published_date: citation.date || citation.published_date || ''
                                     };
@@ -952,11 +955,15 @@ async function fetchChatResponse(messages, botMessage) {
                                     return validatedCitation;
                                 });
                                 
-                                lastCitations = validCitations;
-                                console.log('Final citations:', JSON.stringify(lastCitations));
-                                const citationsHtml = formatCitations(lastCitations);
-                                if (citationsHtml) {
-                                    botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
+                                if (validCitations.length > 0) {
+                                    lastCitations = validCitations;
+                                    console.log('Final citations:', JSON.stringify(lastCitations));
+                                    const citationsHtml = formatCitations(lastCitations);
+                                    if (citationsHtml) {
+                                        botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
+                                    }
+                                } else {
+                                    console.log('No valid citations found after filtering');
                                 }
                             }
                         }
@@ -1030,29 +1037,39 @@ async function fetchChatResponse(messages, botMessage) {
 }
 
 function formatCitations(citations) {
-    if (!citations || !citations.length || citations.every(c => !c.title && !c.url)) return '';
+    if (!citations || !citations.length) {
+        console.log('No citations to format');
+        return '';
+    }
 
-    console.log('Formatting citations:', citations);
+    // Filter for valid citations
+    const validCitations = citations.filter(c => c && c.title && c.url);
+    if (validCitations.length === 0) {
+        console.log('No valid citations found');
+        return '';
+    }
+
+    console.log('Formatting citations:', validCitations);
     let citationsHtml = '\n\n<div class="citations-section">';
     citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
-        <h3>Web Search Results (${citations.length})</h3>
+        <h3>Web Search Results (${validCitations.length})</h3>
         <span class="toggle-icon"></span>
     </div><div class="citations-content">`;
-    citations.forEach((citation, index) => {
-        if (citation.title && citation.url) {
-            citationsHtml += `
-                <div class="citation-item">
-                    <div class="citation-number">[${index + 1}]</div>
-                    <div class="citation-content">
-                        <a href="${citation.url}" class="citation-title" target="_blank">${citation.title}</a>
-                        ${citation.content ? `<div class="citation-snippet">${citation.content}</div>` : ''}
-                        <div class="citation-url">${citation.url}</div>
-                        ${citation.published_date ? `<div class="citation-date">Published: ${citation.published_date}</div>` : ''}
-                    </div>
-                </div>`;
-        }
+    
+    validCitations.forEach((citation, index) => {
+        citationsHtml += `
+            <div class="citation-item">
+                <div class="citation-number">[${index + 1}]</div>
+                <div class="citation-content">
+                    <a href="${citation.url}" class="citation-title" target="_blank">${citation.title}</a>
+                    ${citation.content ? `<div class="citation-snippet">${citation.content}</div>` : ''}
+                    <div class="citation-url">${citation.url}</div>
+                    ${citation.published_date ? `<div class="citation-date">Published: ${citation.published_date}</div>` : ''}
+                </div>
+            </div>`;
     });
     citationsHtml += '</div></div>';
+    console.log('Generated citations HTML:', citationsHtml.length, 'characters');
     return citationsHtml;
 }
 
