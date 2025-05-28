@@ -125,7 +125,7 @@ def chat_stream():
                 payload["venice_parameters"]["enable_web_citations"] = True
 
             # Make request to Venice API
-            logger.debug(f"Sending request to Venice API with payload: {json.dumps(payload)}")
+            logger.info(f"🔍 SENDING TO VENICE API: {json.dumps(payload, indent=2)}")
             response = requests.post(
                 "https://api.venice.ai/api/v1/chat/completions",
                 headers={
@@ -136,6 +136,10 @@ def chat_stream():
                 stream=True
             )
 
+            # Log response headers for debugging
+            logger.info(f"🔍 VENICE API RESPONSE STATUS: {response.status_code}")
+            logger.info(f"🔍 VENICE API RESPONSE HEADERS: {dict(response.headers)}")
+            
             if not response.ok:
                 logger.error(f"Venice API error: Status {response.status_code}")
                 logger.error(f"Response content: {response.text}")
