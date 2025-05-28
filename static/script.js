@@ -947,17 +947,34 @@ async function fetchChatResponse(messages, botMessage) {
                     if (parsed.venice_parameters) {
                         console.log('✅ Venice parameters found with keys:', Object.keys(parsed.venice_parameters));
                         
+                        // Log the ENTIRE venice_parameters content for debugging
+                        console.log('🔍 FULL venice_parameters content:', JSON.stringify(parsed.venice_parameters, null, 2));
+                        
                         // Check for web_search_citations exactly as shown in the attached response
-                        if (parsed.venice_parameters.web_search_citations && Array.isArray(parsed.venice_parameters.web_search_citations)) {
-                            lastCitations = parsed.venice_parameters.web_search_citations;
-                            console.log('🎯 FOUND CITATIONS! Count:', lastCitations.length);
-                            console.log('🎯 First citation preview:', lastCitations[0]?.title || 'No title');
+                        if (parsed.venice_parameters.web_search_citations) {
+                            console.log('🎯 web_search_citations field exists! Type:', typeof parsed.venice_parameters.web_search_citations);
+                            console.log('🎯 Is array?', Array.isArray(parsed.venice_parameters.web_search_citations));
+                            console.log('🎯 Length:', parsed.venice_parameters.web_search_citations?.length);
+                            console.log('🎯 FULL CITATIONS CONTENT:', JSON.stringify(parsed.venice_parameters.web_search_citations, null, 2));
+                            
+                            if (Array.isArray(parsed.venice_parameters.web_search_citations)) {
+                                lastCitations = parsed.venice_parameters.web_search_citations;
+                                console.log('🎯 CITATIONS ASSIGNED! Count:', lastCitations.length);
+                                console.log('🎯 First citation preview:', lastCitations[0]?.title || 'No title');
+                                console.log('🎯 First citation full:', JSON.stringify(lastCitations[0], null, 2));
+                            } else {
+                                console.log('❌ Citations exist but not an array');
+                            }
+                        } else {
+                            console.log('❌ NO web_search_citations field found in venice_parameters');
                         }
 
                         // Check for reasoning content in venice_parameters
                         if (parsed.venice_parameters.reasoning_content) {
                             reasoningContent = parsed.venice_parameters.reasoning_content;
                         }
+                    } else {
+                        console.log('❌ NO venice_parameters found in response');
                     }
 
                     // Update the message with all available content
