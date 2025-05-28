@@ -112,10 +112,7 @@ def chat_stream():
                 "model": model,
                 "messages": messages,
                 "venice_parameters": {
-                    "include_venice_system_prompt": True,
-                    "character_slug": "venice",
-                    "strip_thinking_response": True,
-                    "disable_thinking": True
+                    "include_venice_system_prompt": False
                 },
                 "max_completion_tokens": max_completion_tokens,  # Using specified parameter name
                 "temperature": temperature,
