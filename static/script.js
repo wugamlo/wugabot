@@ -885,17 +885,32 @@ async function fetchChatResponse(messages, botMessage) {
                 try {
                     const parsed = JSON.parse(data);
 
-                    // Log important parts of the response for debugging
-                    if (parsed.error || parsed.venice_parameters) {
-                        // Only log a portion of potentially very large responses to avoid console errors
-                        const truncatedResponse = {...parsed};
-                        if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
-                            truncatedResponse.venice_parameters = {
-                                ...parsed.venice_parameters,
-                                web_search_citations: parsed.venice_parameters.web_search_citations.slice(0, 2)
-                            };
+                    // DEBUG: Log every single response chunk to see what we're getting
+                    console.log('🔍 RAW RESPONSE CHUNK:', JSON.stringify(parsed, null, 2).substring(0, 1000));
+                    console.log('🔍 TOP-LEVEL KEYS:', Object.keys(parsed));
+                    
+                    // Check all possible locations where citations might be hiding
+                    if (parsed.choices && parsed.choices[0]) {
+                        console.log('🔍 CHOICES[0] KEYS:', Object.keys(parsed.choices[0]));
+                        if (parsed.choices[0].message) {
+                            console.log('🔍 MESSAGE KEYS:', Object.keys(parsed.choices[0].message));
+                            if (parsed.choices[0].message.venice_parameters) {
+                                console.log('🔍 MESSAGE.VENICE_PARAMETERS:', JSON.stringify(parsed.choices[0].message.venice_parameters, null, 2));
+                            }
                         }
-                        console.log('Parsed response chunk:', truncatedResponse);
+                        if (parsed.choices[0].delta) {
+                            console.log('🔍 DELTA KEYS:', Object.keys(parsed.choices[0].delta));
+                            if (parsed.choices[0].delta.venice_parameters) {
+                                console.log('🔍 DELTA.VENICE_PARAMETERS:', JSON.stringify(parsed.choices[0].delta.venice_parameters, null, 2));
+                            }
+                        }
+                    }
+                    
+                    // Check for any field containing "citation" or "search"
+                    const allKeys = JSON.stringify(parsed).toLowerCase();
+                    if (allKeys.includes('citation') || allKeys.includes('search')) {
+                        console.log('🎯 FOUND CITATION/SEARCH KEYWORDS IN RESPONSE!');
+                        console.log('🎯 FULL RESPONSE WITH CITATIONS:', JSON.stringify(parsed, null, 2));
                     }
 
                     // Handle errors
@@ -943,38 +958,62 @@ async function fetchChatResponse(messages, botMessage) {
                         }
                     }
 
-                    // Handle citations and other venice parameters
+                    // Handle citations and other venice parameters - check multiple locations
+                    
+                    // Check top-level venice_parameters
                     if (parsed.venice_parameters) {
-                        console.log('✅ Venice parameters found with keys:', Object.keys(parsed.venice_parameters));
-                        
-                        // Log the ENTIRE venice_parameters content for debugging
+                        console.log('✅ TOP-LEVEL Venice parameters found with keys:', Object.keys(parsed.venice_parameters));
                         console.log('🔍 FULL venice_parameters content:', JSON.stringify(parsed.venice_parameters, null, 2));
                         
-                        // Check for web_search_citations exactly as shown in the attached response
-                        if (parsed.venice_parameters.web_search_citations) {
-                            console.log('🎯 web_search_citations field exists! Type:', typeof parsed.venice_parameters.web_search_citations);
-                            console.log('🎯 Is array?', Array.isArray(parsed.venice_parameters.web_search_citations));
-                            console.log('🎯 Length:', parsed.venice_parameters.web_search_citations?.length);
-                            console.log('🎯 FULL CITATIONS CONTENT:', JSON.stringify(parsed.venice_parameters.web_search_citations, null, 2));
-                            
-                            if (Array.isArray(parsed.venice_parameters.web_search_citations)) {
-                                lastCitations = parsed.venice_parameters.web_search_citations;
-                                console.log('🎯 CITATIONS ASSIGNED! Count:', lastCitations.length);
-                                console.log('🎯 First citation preview:', lastCitations[0]?.title || 'No title');
-                                console.log('🎯 First citation full:', JSON.stringify(lastCitations[0], null, 2));
-                            } else {
-                                console.log('❌ Citations exist but not an array');
-                            }
-                        } else {
-                            console.log('❌ NO web_search_citations field found in venice_parameters');
+                        if (parsed.venice_parameters.web_search_citations && Array.isArray(parsed.venice_parameters.web_search_citations)) {
+                            lastCitations = parsed.venice_parameters.web_search_citations;
+                            console.log('🎯 CITATIONS FOUND AT TOP LEVEL! Count:', lastCitations.length);
                         }
-
-                        // Check for reasoning content in venice_parameters
-                        if (parsed.venice_parameters.reasoning_content) {
-                            reasoningContent = parsed.venice_parameters.reasoning_content;
+                    }
+                    
+                    // Check choices[0].message.venice_parameters
+                    if (parsed.choices && parsed.choices[0] && parsed.choices[0].message && parsed.choices[0].message.venice_parameters) {
+                        console.log('✅ MESSAGE Venice parameters found with keys:', Object.keys(parsed.choices[0].message.venice_parameters));
+                        
+                        if (parsed.choices[0].message.venice_parameters.web_search_citations && Array.isArray(parsed.choices[0].message.venice_parameters.web_search_citations)) {
+                            lastCitations = parsed.choices[0].message.venice_parameters.web_search_citations;
+                            console.log('🎯 CITATIONS FOUND IN MESSAGE! Count:', lastCitations.length);
                         }
+                    }
+                    
+                    // Check choices[0].delta.venice_parameters
+                    if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.venice_parameters) {
+                        console.log('✅ DELTA Venice parameters found with keys:', Object.keys(parsed.choices[0].delta.venice_parameters));
+                        
+                        if (parsed.choices[0].delta.venice_parameters.web_search_citations && Array.isArray(parsed.choices[0].delta.venice_parameters.web_search_citations)) {
+                            lastCitations = parsed.choices[0].delta.venice_parameters.web_search_citations;
+                            console.log('🎯 CITATIONS FOUND IN DELTA! Count:', lastCitations.length);
+                        }
+                    }
+                    
+                    // Also check for direct web_search_citations at top level
+                    if (parsed.web_search_citations && Array.isArray(parsed.web_search_citations)) {
+                        lastCitations = parsed.web_search_citations;
+                        console.log('🎯 CITATIONS FOUND AT TOP LEVEL DIRECT! Count:', lastCitations.length);
+                    }
+                    
+                    // Log what we found
+                    if (lastCitations && lastCitations.length > 0) {
+                        console.log('🎯 FINAL CITATIONS ASSIGNED! Count:', lastCitations.length);
+                        console.log('🎯 First citation preview:', lastCitations[0]?.title || lastCitations[0]?.content?.substring(0, 50) || 'No title/content');
                     } else {
-                        console.log('❌ NO venice_parameters found in response');
+                        console.log('❌ NO citations found in any location');
+                    }
+                    
+                    // Handle reasoning content
+                    if (parsed.venice_parameters?.reasoning_content) {
+                        reasoningContent = parsed.venice_parameters.reasoning_content;
+                    }
+                    if (parsed.choices?.[0]?.message?.venice_parameters?.reasoning_content) {
+                        reasoningContent = parsed.choices[0].message.venice_parameters.reasoning_content;
+                    }
+                    if (parsed.choices?.[0]?.delta?.venice_parameters?.reasoning_content) {
+                        reasoningContent = parsed.choices[0].delta.venice_parameters.reasoning_content;
                     }
 
                     // Update the message with all available content
