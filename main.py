@@ -107,7 +107,7 @@ def chat_stream():
             logger.info(f"Web search setting: {search_enabled}")
             logger.info(f"Max completion tokens: {max_completion_tokens}")
 
-            # Prepare the payload for Venice API matching your working parameters exactly
+            # Prepare the payload for Venice API with only valid parameters
             payload = {
                 "model": model,
                 "messages": messages,
@@ -116,21 +116,14 @@ def chat_stream():
                 "stream": True,
                 "logprobs": True,
                 "stream_options": {"include_usage": True},
-                "frequency_penalty": 0,
-                "presence_penalty": 0,
-                "repetition_penalty": 1.2,
-                "top_k": 40,
-                "top_p": 1,
-                "min_p": 0.05,
                 "venice_parameters": {
-                    "character_slug": "venice",
                     "strip_thinking_response": False,
                     "disable_thinking": False,
                     "include_venice_system_prompt": True
                 }
             }
 
-            # Add web search parameters when enabled
+            # Only add web search parameter when explicitly enabled
             if search_enabled == "on":
                 payload["venice_parameters"]["enable_web_search"] = "on"
                 payload["venice_parameters"]["enable_web_citations"] = True
