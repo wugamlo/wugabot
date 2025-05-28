@@ -125,7 +125,7 @@ def chat_stream():
                 payload["venice_parameters"]["enable_web_citations"] = True
 
             # Make request to Venice API
-            logger.info(f"🔍 SENDING TO VENICE API: {json.dumps(payload, indent=2)}")
+            logger.debug(f"Sending request to Venice API with payload: {json.dumps(payload)}")
             response = requests.post(
                 "https://api.venice.ai/api/v1/chat/completions",
                 headers={
@@ -136,10 +136,6 @@ def chat_stream():
                 stream=True
             )
 
-            # Log response headers for debugging
-            logger.info(f"🔍 VENICE API RESPONSE STATUS: {response.status_code}")
-            logger.info(f"🔍 VENICE API RESPONSE HEADERS: {dict(response.headers)}")
-            
             if not response.ok:
                 logger.error(f"Venice API error: Status {response.status_code}")
                 logger.error(f"Response content: {response.text}")
@@ -162,10 +158,11 @@ def chat_stream():
 
                 try:
                     json_data = json.loads(data)
-                    
-                    # LOG EVERYTHING for debugging
-                    logger.info(f"🔍 RAW API RESPONSE: {json.dumps(json_data)}")
-                    logger.info(f"🔍 Response keys: {list(json_data.keys())}")
+
+                    # Forward venice_parameters at the top level
+                    if 'venice_parameters' in json_data:
+                        logger.debug(f"Venice parameters found at top level: {json_data['venice_parameters']}")
+                        yield f"data: {json.dumps(json_data)}\n\n"
 
                     # Process content and reasoning_content if present
                     if 'content' in json_data:
@@ -179,7 +176,6 @@ def chat_stream():
                     # Process delta content for streaming
                     if 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0]:
                         delta = json_data['choices'][0]['delta']
-                        logger.info(f"🔍 DELTA KEYS: {list(delta.keys())}")
 
                         # Stream content
                         if 'content' in delta and delta['content']:
@@ -189,34 +185,10 @@ def chat_stream():
                         if 'reasoning_content' in delta and delta['reasoning_content']:
                             yield f"data: {json.dumps({'reasoning_content': delta['reasoning_content']})}\n\n"
 
-                    # Handle venice_parameters at any level (top level or in delta)
-                    venice_params = None
-                    if 'venice_parameters' in json_data:
-                        venice_params = json_data['venice_parameters']
-                        logger.info(f"🔍 Found venice_parameters at TOP LEVEL")
-                    elif 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0] and 'venice_parameters' in json_data['choices'][0]['delta']:
-                        venice_params = json_data['choices'][0]['delta']['venice_parameters']
-                        logger.info(f"🔍 Found venice_parameters in DELTA")
-                    else:
-                        logger.info(f"🔍 NO venice_parameters found in response")
-
-                    if venice_params:
-                        logger.info(f"🔍 Venice parameters found: {list(venice_params.keys())}")
-                        
-                        # Log all venice_parameters content for debugging
-                        for key, value in venice_params.items():
-                            if key == 'web_search_citations':
-                                logger.info(f"🔍 Citations field type: {type(value)}")
-                                logger.info(f"🔍 Citations field content: {json.dumps(value, indent=2)}")
-                                if isinstance(value, list):
-                                    logger.info(f"🔍 Citations count: {len(value)}")
-                                    for i, citation in enumerate(value):
-                                        logger.info(f"🔍 Citation {i}: {citation}")
-                            else:
-                                logger.debug(f"🔍 Venice param {key}: {value}")
-                        
-                        # Always forward venice_parameters for debugging
-                        yield f"data: {json.dumps({'venice_parameters': venice_params})}\n\n"
+                        # Stream venice parameters
+                        if 'venice_parameters' in delta:
+                            logger.debug(f"Venice parameters found in delta: {delta['venice_parameters']}")
+                            yield f"data: {json.dumps(json_data)}\n\n"
 
                 except json.JSONDecodeError as e:
                     logger.warning(f"JSON decode error: {str(e)}, data: {data[:100]}...")
@@ -449,7 +421,7 @@ def generate_visualization():
 
         # Create a deep copy to avoid modifying the original
         sanitized_data = {}
-
+        
         try:
             # Validate key structure and fill in missing fields with defaults
             if visualization_type == 'chart':
@@ -457,19 +429,19 @@ def generate_visualization():
                 sanitized_data["chart_type"] = viz_data.get("chart_type", "bar")
                 if not isinstance(sanitized_data["chart_type"], str):
                     sanitized_data["chart_type"] = "bar"
-
+                    
                 sanitized_data["title"] = viz_data.get("title", "Chart")
                 if not isinstance(sanitized_data["title"], str):
                     sanitized_data["title"] = "Chart"
-
+                    
                 sanitized_data["labels"] = viz_data.get("labels", ["A", "B", "C"])
                 if not isinstance(sanitized_data["labels"], list):
                     sanitized_data["labels"] = ["A", "B", "C"]
-
+                    
                 sanitized_data["values"] = viz_data.get("values", [10, 20, 30])
                 if not isinstance(sanitized_data["values"], list):
                     sanitized_data["values"] = [10, 20, 30]
-
+                
                 # Ensure values are numeric with stronger validation
                 sanitized_data["values"] = []
                 for v in viz_data.get("values", [10, 20, 30]):
@@ -482,20 +454,20 @@ def generate_visualization():
                             sanitized_data["values"].append(0)
                     except:
                         sanitized_data["values"].append(0)
-
+                
                 # Make sure we have at least some data
                 if not sanitized_data["values"] or len(sanitized_data["values"]) == 0:
                     sanitized_data["values"] = [10, 20, 30]
-
+                
                 # Use sanitized data
                 viz_data = sanitized_data
                 logger.info(f"Validated chart data: {viz_data}")
-
+                
             elif visualization_type == 'diagram':
                 sanitized_data["diagram_type"] = viz_data.get("diagram_type", "flowchart")
                 if not isinstance(sanitized_data["diagram_type"], str):
                     sanitized_data["diagram_type"] = "flowchart"
-
+                    
                 sanitized_data["elements"] = []
                 # Validate each element
                 for elem in viz_data.get("elements", [{"text": "Start"}, {"text": "Process"}, {"text": "End"}]):
@@ -504,19 +476,19 @@ def generate_visualization():
                     else:
                         # Skip invalid elements
                         logger.warning(f"Skipping invalid diagram element: {elem}")
-
+                
                 # If no valid elements, use defaults
                 if not sanitized_data["elements"]:
                     sanitized_data["elements"] = [{"text": "Start"}, {"text": "Process"}, {"text": "End"}]
-
+                    
                 # Use sanitized data
                 viz_data = sanitized_data
-
+                
             elif visualization_type == 'drawing':
                 sanitized_data["description"] = str(viz_data.get("description", "A simple drawing"))
                 # Use sanitized data
                 viz_data = sanitized_data
-
+                
         except Exception as validation_error:
             logger.error(f"Error during data validation: {str(validation_error)}")
             # Fall back to safe defaults
@@ -753,32 +725,32 @@ def generate_visualization():
             if 'cat' in description.lower():
                 # Draw cat face
                 draw.ellipse((100, 100, 400, 400), outline='black', width=3)  # Face
-
+                
                 # Draw cat ears
                 draw.polygon([(150, 150), (200, 50), (250, 150)], fill='white', outline='black', width=3)  # Left ear
                 draw.polygon([(350, 150), (300, 50), (250, 150)], fill='white', outline='black', width=3)  # Right ear
-
+                
                 # Draw cat eyes
                 draw.ellipse((175, 200, 225, 250), fill='white', outline='black', width=2)  # Left eye
                 draw.ellipse((275, 200, 325, 250), fill='white', outline='black', width=2)  # Right eye
-
+                
                 # Draw pupils
                 draw.ellipse((190, 215, 210, 235), fill='black')  # Left pupil
                 draw.ellipse((290, 215, 310, 235), fill='black')  # Right pupil
-
+                
                 # Draw nose
                 draw.polygon([(250, 270), (230, 290), (270, 290)], fill='pink', outline='black')
-
+                
                 # Draw whiskers
                 for i in range(3):
                     # Left whiskers
                     draw.line((170, 290 + i*15, 70, 270 + i*15), fill='black', width=2)
                     # Right whiskers
                     draw.line((330, 290 + i*15, 430, 270 + i*15), fill='black', width=2)
-
+                
                 # Draw smile
                 draw.arc((200, 280, 300, 350), 0, 180, fill='black', width=3)
-
+            
             elif 'circle' in description.lower():
                 draw.ellipse((100, 100, 400, 400), outline='black', width=3, fill='#FFEEEE')
             elif 'square' in description.lower():
@@ -796,7 +768,7 @@ def generate_visualization():
                 draw.ellipse((200, 150, 230, 180), fill='black')  # Left eye
                 draw.ellipse((270, 150, 300, 180), fill='black')  # Right eye
                 draw.arc((200, 200, 300, 250), 0, 180, fill='black', width=3)  # Smile
-
+                
                 # Add a label with the description
                 try:
                     # Try to load a font, but don't fail if not available
@@ -805,7 +777,7 @@ def generate_visualization():
                     except:
                         # Fall back to default font
                         font = ImageFont.load_default()
-
+                    
                     # Add description text at the bottom
                     draw.text((250, 450), description, fill="black", anchor="ms", font=font)
                 except Exception as font_error:

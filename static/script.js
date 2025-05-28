@@ -923,101 +923,48 @@ async function fetchChatResponse(messages, botMessage) {
 
                     // Handle citations and other venice parameters
                     if (parsed.venice_parameters) {
-                        console.log('🔍 FULL Venice parameters received:', JSON.stringify(parsed.venice_parameters, null, 2));
-                        
-                        // Log every field in venice_parameters
-                        Object.keys(parsed.venice_parameters).forEach(key => {
-                            console.log(`🔍 Venice param "${key}":`, parsed.venice_parameters[key]);
-                        });
-                        
                         // Get citations if available
                         const citationsInResponse = parsed.venice_parameters?.web_search_citations;
-                        console.log('🔍 Citations field exists:', 'web_search_citations' in parsed.venice_parameters);
-                        console.log('🔍 Citations field value:', citationsInResponse);
-                        console.log('🔍 Citations field type:', typeof citationsInResponse);
-                        console.log('🔍 Citations is array:', Array.isArray(citationsInResponse));
-                        
-                        if (citationsInResponse !== undefined) {
-                            console.log('🔍 Citations found - full dump:', JSON.stringify(citationsInResponse, null, 2));
+                        if (citationsInResponse) {
+                            console.log('Found citations (raw):', JSON.stringify(citationsInResponse, null, 2));
+                            console.log('Citations type:', typeof citationsInResponse);
+                            console.log('Citations is array:', Array.isArray(citationsInResponse));
                             
-                            // Store original content with REF tags for reference
+                            // Clean REF tags from content
                             const originalContent = botContentBuffer;
-                            console.log('🔍 Original content with REF tags:', originalContent);
-                            
-                            // Extract REF tag numbers to map to citations
-                            const refMatches = originalContent.match(/\[REF\]([^[\]]+)\[\/REF\]/g);
-                            console.log('🔍 Found REF tags:', refMatches);
-                            
-                            // Clean REF tags from displayed content
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                            console.log('🔍 Content after cleaning REF tags:', botContentBuffer);
+                            console.log('Content before cleaning:', originalContent);
+                            console.log('Content after cleaning:', botContentBuffer);
                             
-                            // Process citations if we have them
+                            // Map numeric references to actual citations
                             if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
-                                console.log('🔍 Processing citations array with', citationsInResponse.length, 'items');
-                                
-                                // Log each citation individually
-                                citationsInResponse.forEach((citation, index) => {
-                                    console.log(`🔍 Raw citation ${index}:`, JSON.stringify(citation, null, 2));
-                                });
-                                
-                                // Validate and format citations
-                                const validCitations = citationsInResponse.filter((citation, index) => {
-                                    const isValid = citation && citation.title && citation.url;
-                                    console.log(`🔍 Citation ${index} validation:`, {
-                                        hasTitle: !!citation?.title,
-                                        hasUrl: !!citation?.url,
-                                        isValid: isValid
-                                    });
-                                    if (!isValid) {
-                                        console.log(`🔍 Skipping invalid citation ${index}:`, citation);
-                                    }
-                                    return isValid;
-                                }).map((citation, index) => {
-                                    console.log('🔍 Processing valid citation:', JSON.stringify(citation));
+                                console.log('Processing citations:', JSON.stringify(citationsInResponse));
+                                // Ensure citations have required fields
+                                const validCitations = citationsInResponse.map((citation, index) => {
+                                    console.log('Processing citation:', JSON.stringify(citation));
                                     const validatedCitation = {
-                                        title: citation.title,
-                                        url: citation.url,
+                                        title: citation.title || `Search Result ${index + 1}`,
+                                        url: citation.url || '#',
                                         content: citation.content || citation.snippet || '',
                                         published_date: citation.date || citation.published_date || ''
                                     };
-                                    console.log('🔍 Validated citation:', validatedCitation);
+                                    console.log('Validated citation:', validatedCitation);
                                     return validatedCitation;
                                 });
                                 
-                                console.log('🔍 Final valid citations count:', validCitations.length);
-                                
-                                if (validCitations.length > 0) {
-                                    lastCitations = validCitations;
-                                    console.log('🔍 Setting lastCitations to:', lastCitations.length, 'citations');
-                                    
-                                    // Immediately update the display with citations
-                                    const formattedContent = formatContent(botContentBuffer);
-                                    const citationsHtml = formatCitations(lastCitations);
-                                    console.log('🔍 Citations HTML length:', citationsHtml ? citationsHtml.length : 0);
-                                    if (citationsHtml) {
-                                        botMessage.innerHTML = formattedContent + citationsHtml;
-                                        console.log('🔍 Updated message with citations');
-                                    } else {
-                                        console.log('🔍 Citations HTML was empty');
-                                    }
-                                } else {
-                                    console.log('🔍 No valid citations found after filtering');
+                                lastCitations = validCitations;
+                                console.log('Final citations:', JSON.stringify(lastCitations));
+                                const citationsHtml = formatCitations(lastCitations);
+                                if (citationsHtml) {
+                                    botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
                                 }
-                            } else {
-                                console.log('🔍 Citations response is not a valid array or is empty:', citationsInResponse);
                             }
-                        } else {
-                            console.log('🔍 No web_search_citations found in venice_parameters');
-                            console.log('🔍 Available venice_parameters keys:', Object.keys(parsed.venice_parameters));
                         }
 
                         // Check for reasoning content in venice_parameters
                         if (parsed.venice_parameters.reasoning_content) {
                             reasoningContent = parsed.venice_parameters.reasoning_content;
                         }
-                    } else {
-                        console.log('🔍 No venice_parameters in parsed response');
                     }
 
                     // Update the message with all available content
@@ -1083,39 +1030,29 @@ async function fetchChatResponse(messages, botMessage) {
 }
 
 function formatCitations(citations) {
-    if (!citations || !citations.length) {
-        console.log('No citations to format');
-        return '';
-    }
+    if (!citations || !citations.length || citations.every(c => !c.title && !c.url)) return '';
 
-    // Filter for valid citations
-    const validCitations = citations.filter(c => c && c.title && c.url);
-    if (validCitations.length === 0) {
-        console.log('No valid citations found');
-        return '';
-    }
-
-    console.log('Formatting citations:', validCitations);
+    console.log('Formatting citations:', citations);
     let citationsHtml = '\n\n<div class="citations-section">';
     citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
-        <h3>Web Search Results (${validCitations.length})</h3>
+        <h3>Web Search Results (${citations.length})</h3>
         <span class="toggle-icon"></span>
     </div><div class="citations-content">`;
-    
-    validCitations.forEach((citation, index) => {
-        citationsHtml += `
-            <div class="citation-item">
-                <div class="citation-number">[${index + 1}]</div>
-                <div class="citation-content">
-                    <a href="${citation.url}" class="citation-title" target="_blank">${citation.title}</a>
-                    ${citation.content ? `<div class="citation-snippet">${citation.content}</div>` : ''}
-                    <div class="citation-url">${citation.url}</div>
-                    ${citation.published_date ? `<div class="citation-date">Published: ${citation.published_date}</div>` : ''}
-                </div>
-            </div>`;
+    citations.forEach((citation, index) => {
+        if (citation.title && citation.url) {
+            citationsHtml += `
+                <div class="citation-item">
+                    <div class="citation-number">[${index + 1}]</div>
+                    <div class="citation-content">
+                        <a href="${citation.url}" class="citation-title" target="_blank">${citation.title}</a>
+                        ${citation.content ? `<div class="citation-snippet">${citation.content}</div>` : ''}
+                        <div class="citation-url">${citation.url}</div>
+                        ${citation.published_date ? `<div class="citation-date">Published: ${citation.published_date}</div>` : ''}
+                    </div>
+                </div>`;
+        }
     });
     citationsHtml += '</div></div>';
-    console.log('Generated citations HTML:', citationsHtml.length, 'characters');
     return citationsHtml;
 }
 
