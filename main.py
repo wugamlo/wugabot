@@ -107,20 +107,19 @@ def chat_stream():
             logger.info(f"Web search setting: {search_enabled}")
             logger.info(f"Max completion tokens: {max_completion_tokens}")
 
-            # Prepare the payload for Venice API matching the working parameters from user's direct call
+            # Prepare the payload for Venice API with only valid parameters
             payload = {
                 "model": model,
                 "messages": messages,
                 "max_completion_tokens": max_completion_tokens,
                 "temperature": temperature,
                 "stream": True,
-                "logprobs": True,  # Add this parameter
-                "stream_options": {"include_usage": True},  # Add this parameter
+                "logprobs": True,
+                "stream_options": {"include_usage": True},
                 "venice_parameters": {
-                    "character_slug": "venice",  # Add this parameter
-                    "strip_thinking_response": False,  # Add this parameter
-                    "disable_thinking": False,  # Add this parameter
-                    "include_venice_system_prompt": True  # Change to True like working call
+                    "strip_thinking_response": False,
+                    "disable_thinking": False,
+                    "include_venice_system_prompt": True
                 }
             }
 
