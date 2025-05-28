@@ -158,6 +158,10 @@ def chat_stream():
 
                 try:
                     json_data = json.loads(data)
+                    
+                    # LOG EVERYTHING for debugging
+                    logger.info(f"🔍 RAW API RESPONSE: {json.dumps(json_data)}")
+                    logger.info(f"🔍 Response keys: {list(json_data.keys())}")
 
                     # Process content and reasoning_content if present
                     if 'content' in json_data:
@@ -171,6 +175,7 @@ def chat_stream():
                     # Process delta content for streaming
                     if 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0]:
                         delta = json_data['choices'][0]['delta']
+                        logger.info(f"🔍 DELTA KEYS: {list(delta.keys())}")
 
                         # Stream content
                         if 'content' in delta and delta['content']:
@@ -184,8 +189,12 @@ def chat_stream():
                     venice_params = None
                     if 'venice_parameters' in json_data:
                         venice_params = json_data['venice_parameters']
+                        logger.info(f"🔍 Found venice_parameters at TOP LEVEL")
                     elif 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0] and 'venice_parameters' in json_data['choices'][0]['delta']:
                         venice_params = json_data['choices'][0]['delta']['venice_parameters']
+                        logger.info(f"🔍 Found venice_parameters in DELTA")
+                    else:
+                        logger.info(f"🔍 NO venice_parameters found in response")
 
                     if venice_params:
                         logger.info(f"🔍 Venice parameters found: {list(venice_params.keys())}")
