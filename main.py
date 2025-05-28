@@ -125,7 +125,12 @@ def chat_stream():
                 payload["venice_parameters"]["enable_web_citations"] = True
 
             # Make request to Venice API
-            logger.debug(f"Sending request to Venice API with payload: {json.dumps(payload)}")
+            logger.info(f"🚀 SENDING REQUEST TO VENICE API")
+            logger.info(f"🚀 Model: {model}")
+            logger.info(f"🚀 Web search enabled: {search_enabled}")
+            logger.info(f"🚀 Venice parameters: {json.dumps(payload.get('venice_parameters', {}))}")
+            logger.info(f"🚀 Full payload: {json.dumps(payload, indent=2)}")
+            
             response = requests.post(
                 "https://api.venice.ai/api/v1/chat/completions",
                 headers={
@@ -158,10 +163,43 @@ def chat_stream():
 
                 try:
                     json_data = json.loads(data)
+                    
+                    # Log every response chunk for debugging
+                    logger.info(f"📥 RAW VENICE RESPONSE CHUNK: {json.dumps(json_data, indent=2)}")
+                    
+                    # Check all possible locations for citations
+                    has_citations = False
+                    citation_locations = []
+                    
+                    if 'venice_parameters' in json_data:
+                        citation_locations.append("top-level venice_parameters")
+                        if 'web_search_citations' in json_data['venice_parameters']:
+                            has_citations = True
+                            citation_locations.append("top-level venice_parameters.web_search_citations")
+                    
+                    if 'choices' in json_data and json_data['choices']:
+                        choice = json_data['choices'][0]
+                        if 'message' in choice and 'venice_parameters' in choice['message']:
+                            citation_locations.append("choices[0].message.venice_parameters")
+                            if 'web_search_citations' in choice['message']['venice_parameters']:
+                                has_citations = True
+                                citation_locations.append("choices[0].message.venice_parameters.web_search_citations")
+                        if 'delta' in choice and 'venice_parameters' in choice['delta']:
+                            citation_locations.append("choices[0].delta.venice_parameters")
+                            if 'web_search_citations' in choice['delta']['venice_parameters']:
+                                has_citations = True
+                                citation_locations.append("choices[0].delta.venice_parameters.web_search_citations")
+                    
+                    if has_citations:
+                        logger.info(f"🎯 CITATIONS FOUND IN: {citation_locations}")
+                    elif citation_locations:
+                        logger.info(f"📍 Venice parameters found but no citations in: {citation_locations}")
+                    else:
+                        logger.debug(f"📍 No venice_parameters in chunk")
 
                     # Forward venice_parameters at the top level
                     if 'venice_parameters' in json_data:
-                        logger.debug(f"Venice parameters found at top level: {json_data['venice_parameters']}")
+                        logger.info(f"🔄 Forwarding top-level venice_parameters: {json_data['venice_parameters']}")
                         yield f"data: {json.dumps(json_data)}\n\n"
 
                     # Process content and reasoning_content if present
@@ -176,6 +214,7 @@ def chat_stream():
                     # Process delta content for streaming
                     if 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0]:
                         delta = json_data['choices'][0]['delta']
+                        logger.debug(f"📊 Processing delta with keys: {list(delta.keys())}")
 
                         # Stream content
                         if 'content' in delta and delta['content']:
@@ -187,7 +226,7 @@ def chat_stream():
 
                         # Stream venice parameters
                         if 'venice_parameters' in delta:
-                            logger.debug(f"Venice parameters found in delta: {delta['venice_parameters']}")
+                            logger.info(f"🔄 Venice parameters found in delta: {delta['venice_parameters']}")
                             yield f"data: {json.dumps(json_data)}\n\n"
 
                 except json.JSONDecodeError as e:
