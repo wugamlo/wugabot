@@ -107,24 +107,27 @@ def chat_stream():
             logger.info(f"Web search setting: {search_enabled}")
             logger.info(f"Max completion tokens: {max_completion_tokens}")
 
-            # Prepare the payload for Venice API with proper parameter names
+            # Prepare the payload for Venice API matching the working parameters from user's direct call
             payload = {
                 "model": model,
                 "messages": messages,
-                "venice_parameters": {
-                    "include_venice_system_prompt": False
-                },
-                "max_completion_tokens": max_completion_tokens,  # Using specified parameter name
+                "max_completion_tokens": max_completion_tokens,
                 "temperature": temperature,
-                "stream": True
+                "stream": True,
+                "logprobs": True,  # Add this parameter
+                "stream_options": {"include_usage": True},  # Add this parameter
+                "venice_parameters": {
+                    "character_slug": "venice",  # Add this parameter
+                    "strip_thinking_response": False,  # Add this parameter
+                    "disable_thinking": False,  # Add this parameter
+                    "include_venice_system_prompt": True  # Change to True like working call
+                }
             }
 
             # Only add web search parameter when explicitly enabled
             if search_enabled == "on":
                 payload["venice_parameters"]["enable_web_search"] = "on"
                 payload["venice_parameters"]["enable_web_citations"] = True
-                payload["venice_parameters"]["web_search_enabled"] = True  # Try alternative parameter
-                payload["venice_parameters"]["include_sources"] = True     # Try alternative parameter
                 
                 # For certain models, try switching to a web-search capable model
                 if model == "mistral-31-24b":
@@ -173,6 +176,17 @@ def chat_stream():
                     
                     # Log every response chunk for debugging
                     logger.info(f"📥 RAW VENICE RESPONSE CHUNK: {json.dumps(json_data, indent=2)}")
+                    
+                    # Special logging for chunks that might contain citations
+                    if 'venice_parameters' in json_data and json_data['venice_parameters']:
+                        logger.info(f"🎯 FOUND VENICE_PARAMETERS: {json.dumps(json_data['venice_parameters'], indent=2)}")
+                        if 'web_search_citations' in json_data['venice_parameters']:
+                            logger.info(f"🎯 CITATIONS DETECTED! Count: {len(json_data['venice_parameters']['web_search_citations'])}")
+                    
+                    # Also check for usage info which indicates final chunk
+                    if 'usage' in json_data:
+                        logger.info(f"📊 USAGE INFO FOUND: {json_data['usage']}")
+                        logger.info(f"📊 This appears to be the final chunk of the response")
                     
                     # Check all possible locations for citations
                     has_citations = False
