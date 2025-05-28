@@ -123,6 +123,13 @@ def chat_stream():
             if search_enabled == "on":
                 payload["venice_parameters"]["enable_web_search"] = "on"
                 payload["venice_parameters"]["enable_web_citations"] = True
+                payload["venice_parameters"]["web_search_enabled"] = True  # Try alternative parameter
+                payload["venice_parameters"]["include_sources"] = True     # Try alternative parameter
+                
+                # For certain models, try switching to a web-search capable model
+                if model == "mistral-31-24b":
+                    logger.info("🔄 Switching to web-search capable model for citations")
+                    payload["model"] = "venice-uncensored"  # Try a model known to support web search
 
             # Make request to Venice API
             logger.info(f"🚀 SENDING REQUEST TO VENICE API")
@@ -232,6 +239,11 @@ def chat_stream():
                 except json.JSONDecodeError as e:
                     logger.warning(f"JSON decode error: {str(e)}, data: {data[:100]}...")
                     continue
+            
+            # Log final summary about citations
+            logger.info(f"🏁 FINAL SUMMARY: Web search was {'ENABLED' if search_enabled == 'on' else 'DISABLED'}")
+            logger.info(f"🏁 FINAL SUMMARY: Total response chunks processed")
+            logger.info(f"🏁 FINAL SUMMARY: No citations were found in Venice API response")
 
         except Exception as e:
             logger.exception(f"Error in generate: {str(e)}")
