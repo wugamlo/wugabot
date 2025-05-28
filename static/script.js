@@ -942,6 +942,22 @@ async function fetchChatResponse(messages, botMessage) {
                         }
                     }
 
+                    // Also check for citations in the main response object
+                    if (parsed.choices && parsed.choices[0] && parsed.choices[0].message) {
+                        const message = parsed.choices[0].message;
+                        // Check if citations are embedded in the message
+                        if (message.venice_parameters && message.venice_parameters.web_search_citations) {
+                            lastCitations = message.venice_parameters.web_search_citations;
+                            console.log('Citations found in message venice_parameters:', lastCitations.length, 'citations');
+                        }
+                    }
+
+                    // Check for citations at the root level of parsed response
+                    if (parsed.web_search_citations) {
+                        lastCitations = parsed.web_search_citations;
+                        console.log('Citations found at root level:', lastCitations.length, 'citations');
+                    }
+
                     // Update the message with all available content
                     let updatedContent = formatContent(botContentBuffer);
 
