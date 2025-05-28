@@ -923,8 +923,11 @@ async function fetchChatResponse(messages, botMessage) {
 
                     // Handle citations and other venice parameters
                     if (parsed.venice_parameters) {
-                        // Get citations if available
-                        const citationsInResponse = parsed.venice_parameters?.web_search_citations;
+                        // Get citations if available - check multiple possible field names
+                        const citationsInResponse = parsed.venice_parameters?.web_search_citations || 
+                                                  parsed.venice_parameters?.citations ||
+                                                  parsed.venice_parameters?.search_results;
+                        
                         if (citationsInResponse) {
                             console.log('Found citations (raw):', JSON.stringify(citationsInResponse, null, 2));
                             console.log('Citations type:', typeof citationsInResponse);
@@ -933,8 +936,6 @@ async function fetchChatResponse(messages, botMessage) {
                             // Clean REF tags from content
                             const originalContent = botContentBuffer;
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                            console.log('Content before cleaning:', originalContent);
-                            console.log('Content after cleaning:', botContentBuffer);
                             
                             // Map numeric references to actual citations
                             if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
@@ -943,21 +944,17 @@ async function fetchChatResponse(messages, botMessage) {
                                 const validCitations = citationsInResponse.map((citation, index) => {
                                     console.log('Processing citation:', JSON.stringify(citation));
                                     const validatedCitation = {
-                                        title: citation.title || `Search Result ${index + 1}`,
-                                        url: citation.url || '#',
-                                        content: citation.snippet || citation.content || '',
-                                        published_date: citation.published_date || citation.date || ''
+                                        title: citation.title || citation.name || `Search Result ${index + 1}`,
+                                        url: citation.url || citation.link || '#',
+                                        content: citation.snippet || citation.content || citation.description || '',
+                                        published_date: citation.published_date || citation.date || citation.timestamp || ''
                                     };
                                     console.log('Validated citation:', validatedCitation);
                                     return validatedCitation;
                                 });
                                 
                                 lastCitations = validCitations;
-                                console.log('Final citations:', JSON.stringify(lastCitations));
-                                const citationsHtml = formatCitations(lastCitations);
-                                if (citationsHtml) {
-                                    botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
-                                }
+                                console.log('Final citations set:', JSON.stringify(lastCitations));
                             }
                         }
 
@@ -976,9 +973,14 @@ async function fetchChatResponse(messages, botMessage) {
                             `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
                     }
 
-                    // Add citations if available
-                    if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
-                        botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
+                    // Always add citations if available (even if some fields are missing)
+                    if (lastCitations?.length > 0) {
+                        const citationsHtml = formatCitations(lastCitations);
+                        if (citationsHtml) {
+                            botMessage.innerHTML = updatedContent + citationsHtml;
+                        } else {
+                            botMessage.innerHTML = updatedContent;
+                        }
                     } else {
                         botMessage.innerHTML = updatedContent;
                     }
@@ -1030,27 +1032,36 @@ async function fetchChatResponse(messages, botMessage) {
 }
 
 function formatCitations(citations) {
-    if (!citations || !citations.length || citations.every(c => !c.title && !c.url)) return '';
+    if (!citations || !citations.length) return '';
 
     console.log('Formatting citations:', citations);
+    
+    // Filter out citations that have no useful information
+    const validCitations = citations.filter(c => c.title || c.url || c.content);
+    
+    if (validCitations.length === 0) return '';
+
     let citationsHtml = '\n\n<div class="citations-section">';
     citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
-        <h3>Web Search Results (${citations.length})</h3>
+        <h3>Web Search Results (${validCitations.length})</h3>
         <span class="toggle-icon"></span>
     </div><div class="citations-content">`;
-    citations.forEach((citation, index) => {
-        if (citation.title && citation.url) {
-            citationsHtml += `
-                <div class="citation-item">
-                    <div class="citation-number">[${index + 1}]</div>
-                    <div class="citation-content">
-                        <a href="${citation.url}" class="citation-title" target="_blank">${citation.title}</a>
-                        ${citation.content ? `<div class="citation-snippet">${citation.content}</div>` : ''}
-                        <div class="citation-url">${citation.url}</div>
-                        ${citation.published_date ? `<div class="citation-date">Published: ${citation.published_date}</div>` : ''}
-                    </div>
-                </div>`;
-        }
+    
+    validCitations.forEach((citation, index) => {
+        const title = citation.title || 'Search Result';
+        const url = citation.url || '#';
+        const hasContent = citation.content && citation.content.trim() !== '';
+        
+        citationsHtml += `
+            <div class="citation-item">
+                <div class="citation-number">[${index + 1}]</div>
+                <div class="citation-content">
+                    <a href="${url}" class="citation-title" target="_blank">${title}</a>
+                    ${hasContent ? `<div class="citation-snippet">${citation.content}</div>` : ''}
+                    ${url !== '#' ? `<div class="citation-url">${url}</div>` : ''}
+                    ${citation.published_date ? `<div class="citation-date">Published: ${citation.published_date}</div>` : ''}
+                </div>
+            </div>`;
     });
     citationsHtml += '</div></div>';
     return citationsHtml;
