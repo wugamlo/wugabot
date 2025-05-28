@@ -923,6 +923,8 @@ async function fetchChatResponse(messages, botMessage) {
 
                     // Handle citations and other venice parameters
                     if (parsed.venice_parameters) {
+                        console.log('Venice parameters received:', Object.keys(parsed.venice_parameters));
+                        
                         // Get citations if available
                         const citationsInResponse = parsed.venice_parameters?.web_search_citations;
                         if (citationsInResponse) {
@@ -930,21 +932,31 @@ async function fetchChatResponse(messages, botMessage) {
                             console.log('Citations type:', typeof citationsInResponse);
                             console.log('Citations is array:', Array.isArray(citationsInResponse));
                             
-                            // Clean REF tags from content
+                            // Store original content with REF tags for reference
                             const originalContent = botContentBuffer;
-                            botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                            console.log('Content before cleaning:', originalContent);
-                            console.log('Content after cleaning:', botContentBuffer);
+                            console.log('Original content with REF tags:', originalContent);
                             
-                            // Map numeric references to actual citations
+                            // Extract REF tag numbers to map to citations
+                            const refMatches = originalContent.match(/\[REF\]([^[\]]+)\[\/REF\]/g);
+                            console.log('Found REF tags:', refMatches);
+                            
+                            // Clean REF tags from displayed content
+                            botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
+                            console.log('Content after cleaning REF tags:', botContentBuffer);
+                            
+                            // Process citations if we have them
                             if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
-                                console.log('Processing citations:', JSON.stringify(citationsInResponse));
-                                // Ensure citations have required fields with more robust validation
-                                const validCitations = citationsInResponse.filter(citation => {
-                                    // Only include citations that have at least a title and URL
-                                    return citation && citation.title && citation.url;
+                                console.log('Processing citations array with', citationsInResponse.length, 'items');
+                                
+                                // Validate and format citations
+                                const validCitations = citationsInResponse.filter((citation, index) => {
+                                    const isValid = citation && citation.title && citation.url;
+                                    if (!isValid) {
+                                        console.log(`Skipping invalid citation ${index}:`, citation);
+                                    }
+                                    return isValid;
                                 }).map((citation, index) => {
-                                    console.log('Processing citation:', JSON.stringify(citation));
+                                    console.log('Processing valid citation:', JSON.stringify(citation));
                                     const validatedCitation = {
                                         title: citation.title,
                                         url: citation.url,
@@ -957,15 +969,25 @@ async function fetchChatResponse(messages, botMessage) {
                                 
                                 if (validCitations.length > 0) {
                                     lastCitations = validCitations;
-                                    console.log('Final citations:', JSON.stringify(lastCitations));
+                                    console.log('Setting lastCitations to:', lastCitations.length, 'citations');
+                                    
+                                    // Immediately update the display with citations
+                                    const formattedContent = formatContent(botContentBuffer);
                                     const citationsHtml = formatCitations(lastCitations);
                                     if (citationsHtml) {
-                                        botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
+                                        botMessage.innerHTML = formattedContent + citationsHtml;
+                                        console.log('Updated message with citations');
+                                    } else {
+                                        console.log('Citations HTML was empty');
                                     }
                                 } else {
                                     console.log('No valid citations found after filtering');
                                 }
+                            } else {
+                                console.log('Citations response is not a valid array:', citationsInResponse);
                             }
+                        } else {
+                            console.log('No web_search_citations found in venice_parameters');
                         }
 
                         // Check for reasoning content in venice_parameters

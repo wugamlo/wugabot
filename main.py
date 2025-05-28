@@ -159,11 +159,6 @@ def chat_stream():
                 try:
                     json_data = json.loads(data)
 
-                    # Forward venice_parameters at the top level
-                    if 'venice_parameters' in json_data:
-                        logger.debug(f"Venice parameters found at top level: {json_data['venice_parameters']}")
-                        yield f"data: {json.dumps(json_data)}\n\n"
-
                     # Process content and reasoning_content if present
                     if 'content' in json_data:
                         yield f"data: {json.dumps({'content': json_data['content']})}\n\n"
@@ -185,10 +180,24 @@ def chat_stream():
                         if 'reasoning_content' in delta and delta['reasoning_content']:
                             yield f"data: {json.dumps({'reasoning_content': delta['reasoning_content']})}\n\n"
 
-                        # Stream venice parameters
-                        if 'venice_parameters' in delta:
-                            logger.debug(f"Venice parameters found in delta: {delta['venice_parameters']}")
-                            yield f"data: {json.dumps(json_data)}\n\n"
+                    # Handle venice_parameters at any level (top level or in delta)
+                    venice_params = None
+                    if 'venice_parameters' in json_data:
+                        venice_params = json_data['venice_parameters']
+                    elif 'choices' in json_data and json_data['choices'] and 'delta' in json_data['choices'][0] and 'venice_parameters' in json_data['choices'][0]['delta']:
+                        venice_params = json_data['choices'][0]['delta']['venice_parameters']
+
+                    if venice_params:
+                        logger.debug(f"Venice parameters found: {list(venice_params.keys())}")
+                        
+                        # Check for citations specifically
+                        if 'web_search_citations' in venice_params:
+                            citations = venice_params['web_search_citations']
+                            logger.info(f"Found {len(citations) if isinstance(citations, list) else 0} citations")
+                            yield f"data: {json.dumps({'venice_parameters': venice_params})}\n\n"
+                        else:
+                            # Still forward venice_parameters even without citations
+                            yield f"data: {json.dumps({'venice_parameters': venice_params})}\n\n"
 
                 except json.JSONDecodeError as e:
                     logger.warning(f"JSON decode error: {str(e)}, data: {data[:100]}...")
