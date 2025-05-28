@@ -421,7 +421,7 @@ def generate_visualization():
 
         # Create a deep copy to avoid modifying the original
         sanitized_data = {}
-        
+
         try:
             # Validate key structure and fill in missing fields with defaults
             if visualization_type == 'chart':
@@ -429,19 +429,19 @@ def generate_visualization():
                 sanitized_data["chart_type"] = viz_data.get("chart_type", "bar")
                 if not isinstance(sanitized_data["chart_type"], str):
                     sanitized_data["chart_type"] = "bar"
-                    
+
                 sanitized_data["title"] = viz_data.get("title", "Chart")
                 if not isinstance(sanitized_data["title"], str):
                     sanitized_data["title"] = "Chart"
-                    
+
                 sanitized_data["labels"] = viz_data.get("labels", ["A", "B", "C"])
                 if not isinstance(sanitized_data["labels"], list):
                     sanitized_data["labels"] = ["A", "B", "C"]
-                    
+
                 sanitized_data["values"] = viz_data.get("values", [10, 20, 30])
                 if not isinstance(sanitized_data["values"], list):
                     sanitized_data["values"] = [10, 20, 30]
-                
+
                 # Ensure values are numeric with stronger validation
                 sanitized_data["values"] = []
                 for v in viz_data.get("values", [10, 20, 30]):
@@ -454,20 +454,20 @@ def generate_visualization():
                             sanitized_data["values"].append(0)
                     except:
                         sanitized_data["values"].append(0)
-                
+
                 # Make sure we have at least some data
                 if not sanitized_data["values"] or len(sanitized_data["values"]) == 0:
                     sanitized_data["values"] = [10, 20, 30]
-                
+
                 # Use sanitized data
                 viz_data = sanitized_data
                 logger.info(f"Validated chart data: {viz_data}")
-                
+
             elif visualization_type == 'diagram':
                 sanitized_data["diagram_type"] = viz_data.get("diagram_type", "flowchart")
                 if not isinstance(sanitized_data["diagram_type"], str):
                     sanitized_data["diagram_type"] = "flowchart"
-                    
+
                 sanitized_data["elements"] = []
                 # Validate each element
                 for elem in viz_data.get("elements", [{"text": "Start"}, {"text": "Process"}, {"text": "End"}]):
@@ -476,19 +476,19 @@ def generate_visualization():
                     else:
                         # Skip invalid elements
                         logger.warning(f"Skipping invalid diagram element: {elem}")
-                
+
                 # If no valid elements, use defaults
                 if not sanitized_data["elements"]:
                     sanitized_data["elements"] = [{"text": "Start"}, {"text": "Process"}, {"text": "End"}]
-                    
+
                 # Use sanitized data
                 viz_data = sanitized_data
-                
+
             elif visualization_type == 'drawing':
                 sanitized_data["description"] = str(viz_data.get("description", "A simple drawing"))
                 # Use sanitized data
                 viz_data = sanitized_data
-                
+
         except Exception as validation_error:
             logger.error(f"Error during data validation: {str(validation_error)}")
             # Fall back to safe defaults
@@ -725,32 +725,32 @@ def generate_visualization():
             if 'cat' in description.lower():
                 # Draw cat face
                 draw.ellipse((100, 100, 400, 400), outline='black', width=3)  # Face
-                
+
                 # Draw cat ears
                 draw.polygon([(150, 150), (200, 50), (250, 150)], fill='white', outline='black', width=3)  # Left ear
                 draw.polygon([(350, 150), (300, 50), (250, 150)], fill='white', outline='black', width=3)  # Right ear
-                
+
                 # Draw cat eyes
                 draw.ellipse((175, 200, 225, 250), fill='white', outline='black', width=2)  # Left eye
                 draw.ellipse((275, 200, 325, 250), fill='white', outline='black', width=2)  # Right eye
-                
+
                 # Draw pupils
                 draw.ellipse((190, 215, 210, 235), fill='black')  # Left pupil
                 draw.ellipse((290, 215, 310, 235), fill='black')  # Right pupil
-                
+
                 # Draw nose
                 draw.polygon([(250, 270), (230, 290), (270, 290)], fill='pink', outline='black')
-                
+
                 # Draw whiskers
                 for i in range(3):
                     # Left whiskers
                     draw.line((170, 290 + i*15, 70, 270 + i*15), fill='black', width=2)
                     # Right whiskers
                     draw.line((330, 290 + i*15, 430, 270 + i*15), fill='black', width=2)
-                
+
                 # Draw smile
                 draw.arc((200, 280, 300, 350), 0, 180, fill='black', width=3)
-            
+
             elif 'circle' in description.lower():
                 draw.ellipse((100, 100, 400, 400), outline='black', width=3, fill='#FFEEEE')
             elif 'square' in description.lower():
@@ -768,7 +768,7 @@ def generate_visualization():
                 draw.ellipse((200, 150, 230, 180), fill='black')  # Left eye
                 draw.ellipse((270, 150, 300, 180), fill='black')  # Right eye
                 draw.arc((200, 200, 300, 250), 0, 180, fill='black', width=3)  # Smile
-                
+
                 # Add a label with the description
                 try:
                     # Try to load a font, but don't fail if not available
@@ -777,7 +777,7 @@ def generate_visualization():
                     except:
                         # Fall back to default font
                         font = ImageFont.load_default()
-                    
+
                     # Add description text at the bottom
                     draw.text((250, 450), description, fill="black", anchor="ms", font=font)
                 except Exception as font_error:
