@@ -926,6 +926,20 @@ async function fetchChatResponse(messages, botMessage) {
                         }
                     }
 
+                    // Debug: Log the entire parsed object structure for citation debugging
+                    if (parsed.venice_parameters || parsed.choices || parsed.web_search_citations) {
+                        console.log('🔍 CITATION DEBUG - Full parsed keys:', Object.keys(parsed));
+                        if (parsed.venice_parameters) {
+                            console.log('🔍 Venice parameters keys:', Object.keys(parsed.venice_parameters));
+                        }
+                        if (parsed.choices && parsed.choices[0]) {
+                            console.log('🔍 Choice 0 keys:', Object.keys(parsed.choices[0]));
+                            if (parsed.choices[0].message) {
+                                console.log('🔍 Message keys:', Object.keys(parsed.choices[0].message));
+                            }
+                        }
+                    }
+
                     // Handle citations and other venice parameters
                     if (parsed.venice_parameters) {
                         console.log('Venice parameters found with keys:', Object.keys(parsed.venice_parameters));
@@ -933,7 +947,7 @@ async function fetchChatResponse(messages, botMessage) {
                         // Directly use web_search_citations if available
                         if (parsed.venice_parameters.web_search_citations) {
                             lastCitations = parsed.venice_parameters.web_search_citations;
-                            console.log('Citations directly assigned:', lastCitations.length, 'citations');
+                            console.log('✅ Citations directly assigned from venice_parameters:', lastCitations.length, 'citations');
                         }
 
                         // Check for reasoning content in venice_parameters
@@ -948,14 +962,47 @@ async function fetchChatResponse(messages, botMessage) {
                         // Check if citations are embedded in the message
                         if (message.venice_parameters && message.venice_parameters.web_search_citations) {
                             lastCitations = message.venice_parameters.web_search_citations;
-                            console.log('Citations found in message venice_parameters:', lastCitations.length, 'citations');
+                            console.log('✅ Citations found in message venice_parameters:', lastCitations.length, 'citations');
                         }
                     }
 
                     // Check for citations at the root level of parsed response
                     if (parsed.web_search_citations) {
                         lastCitations = parsed.web_search_citations;
-                        console.log('Citations found at root level:', lastCitations.length, 'citations');
+                        console.log('✅ Citations found at root level:', lastCitations.length, 'citations');
+                    }
+
+                    // Additional comprehensive citation search
+                    if (!lastCitations) {
+                        console.log('🔍 No citations found yet, searching deeper...');
+                        
+                        // Search for any field containing "citation" or "search"
+                        const searchForCitations = (obj, path = '') => {
+                            if (!obj || typeof obj !== 'object') return null;
+                            
+                            for (const [key, value] of Object.entries(obj)) {
+                                const currentPath = path ? `${path}.${key}` : key;
+                                
+                                if (key.toLowerCase().includes('citation') || key.toLowerCase().includes('search')) {
+                                    console.log(`🔍 Found potential citation field at ${currentPath}:`, Array.isArray(value) ? `Array(${value.length})` : typeof value);
+                                    if (Array.isArray(value) && value.length > 0) {
+                                        return value;
+                                    }
+                                }
+                                
+                                if (typeof value === 'object' && value !== null) {
+                                    const result = searchForCitations(value, currentPath);
+                                    if (result) return result;
+                                }
+                            }
+                            return null;
+                        };
+                        
+                        const foundCitations = searchForCitations(parsed);
+                        if (foundCitations) {
+                            lastCitations = foundCitations;
+                            console.log('✅ Citations found via deep search:', lastCitations.length, 'citations');
+                        }
                     }
 
                     // Update the message with all available content
