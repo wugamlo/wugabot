@@ -945,8 +945,8 @@ async function fetchChatResponse(messages, botMessage) {
                                     const validatedCitation = {
                                         title: citation.title || `Search Result ${index + 1}`,
                                         url: citation.url || '#',
-                                        content: citation.snippet || citation.content || '',
-                                        published_date: citation.published_date || citation.date || ''
+                                        content: citation.content || citation.snippet || '',
+                                        published_date: citation.date || citation.published_date || ''
                                     };
                                     console.log('Validated citation:', validatedCitation);
                                     return validatedCitation;
