@@ -927,15 +927,18 @@ async function fetchChatResponse(messages, botMessage) {
                     }
 
                     // Debug: Log the entire parsed object structure for citation debugging
-                    if (parsed.venice_parameters || parsed.choices || parsed.web_search_citations) {
+                    if (parsed.venice_parameters || parsed.choices || parsed.web_search_citations || Object.keys(parsed).some(key => key.toLowerCase().includes('citation') || key.toLowerCase().includes('search'))) {
+                        console.log('🔍 CITATION DEBUG - Full parsed object:', JSON.stringify(parsed, null, 2).substring(0, 1000));
                         console.log('🔍 CITATION DEBUG - Full parsed keys:', Object.keys(parsed));
                         if (parsed.venice_parameters) {
                             console.log('🔍 Venice parameters keys:', Object.keys(parsed.venice_parameters));
+                            console.log('🔍 Venice parameters content:', JSON.stringify(parsed.venice_parameters, null, 2).substring(0, 500));
                         }
                         if (parsed.choices && parsed.choices[0]) {
                             console.log('🔍 Choice 0 keys:', Object.keys(parsed.choices[0]));
                             if (parsed.choices[0].message) {
                                 console.log('🔍 Message keys:', Object.keys(parsed.choices[0].message));
+                                console.log('🔍 Message content:', JSON.stringify(parsed.choices[0].message, null, 2).substring(0, 500));
                             }
                         }
                     }
