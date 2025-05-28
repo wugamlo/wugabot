@@ -188,16 +188,22 @@ def chat_stream():
                         venice_params = json_data['choices'][0]['delta']['venice_parameters']
 
                     if venice_params:
-                        logger.debug(f"Venice parameters found: {list(venice_params.keys())}")
+                        logger.info(f"🔍 Venice parameters found: {list(venice_params.keys())}")
                         
-                        # Check for citations specifically
-                        if 'web_search_citations' in venice_params:
-                            citations = venice_params['web_search_citations']
-                            logger.info(f"Found {len(citations) if isinstance(citations, list) else 0} citations")
-                            yield f"data: {json.dumps({'venice_parameters': venice_params})}\n\n"
-                        else:
-                            # Still forward venice_parameters even without citations
-                            yield f"data: {json.dumps({'venice_parameters': venice_params})}\n\n"
+                        # Log all venice_parameters content for debugging
+                        for key, value in venice_params.items():
+                            if key == 'web_search_citations':
+                                logger.info(f"🔍 Citations field type: {type(value)}")
+                                logger.info(f"🔍 Citations field content: {json.dumps(value, indent=2)}")
+                                if isinstance(value, list):
+                                    logger.info(f"🔍 Citations count: {len(value)}")
+                                    for i, citation in enumerate(value):
+                                        logger.info(f"🔍 Citation {i}: {citation}")
+                            else:
+                                logger.debug(f"🔍 Venice param {key}: {value}")
+                        
+                        # Always forward venice_parameters for debugging
+                        yield f"data: {json.dumps({'venice_parameters': venice_params})}\n\n"
 
                 except json.JSONDecodeError as e:
                     logger.warning(f"JSON decode error: {str(e)}, data: {data[:100]}...")
