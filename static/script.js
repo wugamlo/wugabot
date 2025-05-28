@@ -839,9 +839,14 @@ async function fetchChatResponse(messages, botMessage) {
 
                 if (data === '[DONE]') {
                     // Final check to ensure all content is displayed before completing
-                    if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
-                        const finalContent = formatContent(botContentBuffer);
-                        botMessage.innerHTML = finalContent + formatCitations(lastCitations);
+                    const finalContent = formatContent(botContentBuffer);
+                    if (lastCitations?.length > 0) {
+                        console.log('Adding citations to final content:', lastCitations.length, 'citations');
+                        const citationsHtml = formatCitations(lastCitations);
+                        botMessage.innerHTML = finalContent + citationsHtml;
+                    } else {
+                        console.log('No citations to add to final content');
+                        botMessage.innerHTML = finalContent;
                     }
 
                     showLoading(false);
@@ -923,6 +928,8 @@ async function fetchChatResponse(messages, botMessage) {
 
                     // Handle citations and other venice parameters
                     if (parsed.venice_parameters) {
+                        console.log('Venice parameters found:', JSON.stringify(parsed.venice_parameters, null, 2));
+                        
                         // Get citations if available - check multiple possible field names
                         const citationsInResponse = parsed.venice_parameters?.web_search_citations || 
                                                   parsed.venice_parameters?.citations ||
@@ -933,9 +940,8 @@ async function fetchChatResponse(messages, botMessage) {
                             console.log('Citations type:', typeof citationsInResponse);
                             console.log('Citations is array:', Array.isArray(citationsInResponse));
                             
-                            // Clean REF tags from content
-                            const originalContent = botContentBuffer;
-                            botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
+                            // Don't clean REF tags from content - keep them for reference
+                            // botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
                             
                             // Map numeric references to actual citations
                             if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
@@ -956,6 +962,8 @@ async function fetchChatResponse(messages, botMessage) {
                                 lastCitations = validCitations;
                                 console.log('Final citations set:', JSON.stringify(lastCitations));
                             }
+                        } else {
+                            console.log('No citations found in venice_parameters');
                         }
 
                         // Check for reasoning content in venice_parameters
@@ -1032,14 +1040,22 @@ async function fetchChatResponse(messages, botMessage) {
 }
 
 function formatCitations(citations) {
-    if (!citations || !citations.length) return '';
+    console.log('formatCitations called with:', citations);
+    if (!citations || !citations.length) {
+        console.log('No citations or empty citations array');
+        return '';
+    }
 
     console.log('Formatting citations:', citations);
     
     // Filter out citations that have no useful information
     const validCitations = citations.filter(c => c.title || c.url || c.content);
+    console.log('Valid citations after filtering:', validCitations.length);
     
-    if (validCitations.length === 0) return '';
+    if (validCitations.length === 0) {
+        console.log('No valid citations after filtering');
+        return '';
+    }
 
     let citationsHtml = '\n\n<div class="citations-section">';
     citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
@@ -1051,6 +1067,8 @@ function formatCitations(citations) {
         const title = citation.title || 'Search Result';
         const url = citation.url || '#';
         const hasContent = citation.content && citation.content.trim() !== '';
+        
+        console.log(`Processing citation ${index + 1}:`, { title, url, hasContent });
         
         citationsHtml += `
             <div class="citation-item">
@@ -1064,6 +1082,7 @@ function formatCitations(citations) {
             </div>`;
     });
     citationsHtml += '</div></div>';
+    console.log('Generated citations HTML length:', citationsHtml.length);
     return citationsHtml;
 }
 
