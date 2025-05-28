@@ -928,42 +928,29 @@ async function fetchChatResponse(messages, botMessage) {
 
                     // Handle citations and other venice parameters
                     if (parsed.venice_parameters) {
-                        console.log('Venice parameters found:', JSON.stringify(parsed.venice_parameters, null, 2));
+                        console.log('Venice parameters found with keys:', Object.keys(parsed.venice_parameters));
                         
-                        // Get citations if available - check multiple possible field names
-                        const citationsInResponse = parsed.venice_parameters?.web_search_citations || 
-                                                  parsed.venice_parameters?.citations ||
-                                                  parsed.venice_parameters?.search_results;
+                        // Get citations - specifically look for web_search_citations
+                        const citationsInResponse = parsed.venice_parameters.web_search_citations;
                         
-                        if (citationsInResponse) {
-                            console.log('Found citations (raw):', JSON.stringify(citationsInResponse, null, 2));
-                            console.log('Citations type:', typeof citationsInResponse);
-                            console.log('Citations is array:', Array.isArray(citationsInResponse));
+                        if (citationsInResponse && Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
+                            console.log('Found web_search_citations:', citationsInResponse.length, 'citations');
                             
-                            // Don't clean REF tags from content - keep them for reference
-                            // botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
+                            // Process citations with proper error handling
+                            const validCitations = citationsInResponse.map((citation, index) => {
+                                return {
+                                    title: citation.title || `Search Result ${index + 1}`,
+                                    url: citation.url || '#',
+                                    content: citation.content || '',
+                                    published_date: citation.date || ''
+                                };
+                            });
                             
-                            // Map numeric references to actual citations
-                            if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
-                                console.log('Processing citations:', JSON.stringify(citationsInResponse));
-                                // Ensure citations have required fields
-                                const validCitations = citationsInResponse.map((citation, index) => {
-                                    console.log('Processing citation:', JSON.stringify(citation));
-                                    const validatedCitation = {
-                                        title: citation.title || citation.name || `Search Result ${index + 1}`,
-                                        url: citation.url || citation.link || '#',
-                                        content: citation.snippet || citation.content || citation.description || '',
-                                        published_date: citation.published_date || citation.date || citation.timestamp || ''
-                                    };
-                                    console.log('Validated citation:', validatedCitation);
-                                    return validatedCitation;
-                                });
-                                
-                                lastCitations = validCitations;
-                                console.log('Final citations set:', JSON.stringify(lastCitations));
-                            }
+                            // Set citations for later use
+                            lastCitations = validCitations;
+                            console.log('Citations processed and stored:', lastCitations.length, 'citations');
                         } else {
-                            console.log('No citations found in venice_parameters');
+                            console.log('No web_search_citations found or empty array');
                         }
 
                         // Check for reasoning content in venice_parameters
