@@ -24,6 +24,9 @@
             </div>
             <div class="header-center">
                 <select id="headerModelSelect" class="model-select"></select>
+                <button id="modelInfoButton" class="icon-button" onclick="toggleModelInfoPopup()">
+                    <i class="fas fa-info-circle"></i>
+                </button>
             </div>
             <div class="header-right">
                 <button id="headerClearChat" class="icon-button" onclick="clearChatHistory()">
@@ -171,6 +174,36 @@
             </div>
             <div id="loading" class="loading hidden">
                 <div class="loading-dots"></div>
+            </div>
+            
+            <!-- Model Info Popup -->
+            <div id="modelInfoPopup" class="model-info-popup hidden">
+                <div class="model-info-content">
+                    <div class="model-info-header">
+                        <h2>Model Information</h2>
+                        <button class="icon-button" onclick="toggleModelInfoPopup()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="model-info-table-container">
+                        <table id="modelInfoTable" class="model-info-table">
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th>Context</th>
+                                    <th>Reasoning</th>
+                                    <th>Vision</th>
+                                    <th>Web Search</th>
+                                    <th>Code</th>
+                                    <th>Functions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> <!-- Font Awesome for icons -->

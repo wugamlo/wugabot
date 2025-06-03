@@ -459,6 +459,9 @@ function populateModelDropdown(models) {
         const supportsReasoning = capabilities.supportsReasoning === true;
         const supportsWebSearch = capabilities.supportsWebSearch === true;
         const supportsVision = capabilities.supportsVision === true;
+        const optimizedForCode = capabilities.optimizedForCode === true;
+        const supportsFunctionCalling = capabilities.supportsFunctionCalling === true;
+        const availableContextTokens = model.model_spec?.availableContextTokens || 0;
         
         // Get default temperature if available
         const defaultTemperature = model.model_spec?.constraints?.temperature?.default || 0.7;
@@ -475,6 +478,9 @@ function populateModelDropdown(models) {
         option.dataset.supportsWebSearch = String(supportsWebSearch || false);
         option.dataset.supportsReasoning = String(supportsReasoning || false);
         option.dataset.supportsVision = String(supportsVision || false);
+        option.dataset.optimizedForCode = String(optimizedForCode || false);
+        option.dataset.supportsFunctionCalling = String(supportsFunctionCalling || false);
+        option.dataset.availableContextTokens = String(availableContextTokens);
         option.dataset.defaultTemperature = defaultTemperature;
         console.log(`Setting model ${model.id} vision support:`, option.dataset.supportsVision);
         modelSelect.appendChild(option);
@@ -483,8 +489,12 @@ function populateModelDropdown(models) {
         const headerOption = document.createElement('option');
         headerOption.value = model.id;
         headerOption.text = displayText;
-        headerOption.dataset.supportsWebSearch = supportsWebSearch || false;
-        headerOption.dataset.supportsReasoning = supportsReasoning || false;
+        headerOption.dataset.supportsWebSearch = String(supportsWebSearch || false);
+        headerOption.dataset.supportsReasoning = String(supportsReasoning || false);
+        headerOption.dataset.supportsVision = String(supportsVision || false);
+        headerOption.dataset.optimizedForCode = String(optimizedForCode || false);
+        headerOption.dataset.supportsFunctionCalling = String(supportsFunctionCalling || false);
+        headerOption.dataset.availableContextTokens = String(availableContextTokens);
         headerModelSelect.appendChild(headerOption);
     });
 
@@ -1661,6 +1671,7 @@ window.togglePromptComposer = togglePromptComposer;
 window.clearFields = clearFields;
 window.transferPrompt = transferPrompt;
 window.showChatContext = showChatContext;
+window.toggleModelInfoPopup = toggleModelInfoPopup;
 
 function toggleWebSearch(button) {
     button.classList.toggle('active');
@@ -1736,3 +1747,86 @@ function displayFullChatHistory() {
 
 // Add to window object for global access
 window.displayFullChatHistory = displayFullChatHistory;
+
+/**
+ * Toggles the model information popup window
+ * Shows/hides a table with all available models and their capabilities
+ */
+function toggleModelInfoPopup() {
+    const popup = document.getElementById('modelInfoPopup');
+    const isHidden = popup.classList.contains('hidden');
+    
+    if (isHidden) {
+        // Show popup and populate table
+        populateModelInfoTable();
+        popup.classList.remove('hidden');
+    } else {
+        // Hide popup
+        popup.classList.add('hidden');
+    }
+}
+
+/**
+ * Populates the model information table with current model data
+ */
+function populateModelInfoTable() {
+    const tableBody = document.querySelector('#modelInfoTable tbody');
+    const modelSelect = document.getElementById('modelSelect');
+    
+    // Clear existing rows
+    tableBody.innerHTML = '';
+    
+    // Get all models from the dropdown options
+    const models = Array.from(modelSelect.options).map(option => {
+        const modelId = option.value;
+        const capabilities = {
+            supportsReasoning: option.dataset.supportsReasoning === 'true',
+            supportsVision: option.dataset.supportsVision === 'true',
+            supportsWebSearch: option.dataset.supportsWebSearch === 'true',
+            optimizedForCode: option.dataset.optimizedForCode === 'true',
+            supportsFunctionCalling: option.dataset.supportsFunctionCalling === 'true',
+            availableContextTokens: parseInt(option.dataset.availableContextTokens) || 0
+        };
+        
+        return {
+            id: modelId,
+            displayText: option.text.split(' - ')[0], // Remove capability indicators from display
+            ...capabilities
+        };
+    });
+    
+    // Sort models alphabetically
+    models.sort((a, b) => a.id.localeCompare(b.id));
+    
+    // Create table rows
+    models.forEach(model => {
+        const row = document.createElement('tr');
+        
+        // Format context tokens (convert to K format)
+        const contextDisplay = model.availableContextTokens > 0 
+            ? `${Math.floor(model.availableContextTokens / 1000)}K`
+            : 'N/A';
+        
+        row.innerHTML = `
+            <td class="model-name" title="${model.id}">${model.id}</td>
+            <td class="context-tokens">${contextDisplay}</td>
+            <td class="capability-icon ${model.supportsReasoning ? 'capability-yes' : 'capability-no'}">
+                <i class="fas ${model.supportsReasoning ? 'fa-brain' : 'fa-times'}"></i>
+            </td>
+            <td class="capability-icon ${model.supportsVision ? 'capability-yes' : 'capability-no'}">
+                <i class="fas ${model.supportsVision ? 'fa-eye' : 'fa-times'}"></i>
+            </td>
+            <td class="capability-icon ${model.supportsWebSearch ? 'capability-yes' : 'capability-no'}">
+                <i class="fas ${model.supportsWebSearch ? 'fa-globe' : 'fa-times'}"></i>
+            </td>
+            <td class="capability-icon ${model.optimizedForCode ? 'capability-yes' : 'capability-no'}">
+                <i class="fas ${model.optimizedForCode ? 'fa-code' : 'fa-times'}"></i>
+            </td>
+            <td class="capability-icon ${model.supportsFunctionCalling ? 'capability-yes' : 'capability-no'}">
+                <i class="fas ${model.supportsFunctionCalling ? 'fa-cogs' : 'fa-times'}"></i>
+            </td>
+        `;
+        
+        tableBody.appendChild(row);
+    });
+}
