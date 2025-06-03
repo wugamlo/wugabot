@@ -1811,19 +1811,19 @@ function populateModelInfoTable() {
             <td class="model-name" title="${model.id}">${model.id}</td>
             <td class="context-tokens">${contextDisplay}</td>
             <td class="capability-dot ${model.supportsReasoning ? 'capability-yes' : 'capability-no'}">
-                ${model.supportsReasoning ? '✓' : '✗'}
+                ${model.supportsReasoning ? '✓' : ''}
             </td>
             <td class="capability-dot ${model.supportsVision ? 'capability-yes' : 'capability-no'}">
-                ${model.supportsVision ? '✓' : '✗'}
+                ${model.supportsVision ? '✓' : ''}
             </td>
             <td class="capability-dot ${model.supportsWebSearch ? 'capability-yes' : 'capability-no'}">
-                ${model.supportsWebSearch ? '✓' : '✗'}
+                ${model.supportsWebSearch ? '✓' : ''}
             </td>
             <td class="capability-dot ${model.optimizedForCode ? 'capability-yes' : 'capability-no'}">
-                ${model.optimizedForCode ? '✓' : '✗'}
+                ${model.optimizedForCode ? '✓' : ''}
             </td>
             <td class="capability-dot ${model.supportsFunctionCalling ? 'capability-yes' : 'capability-no'}">
-                ${model.supportsFunctionCalling ? '✓' : '✗'}
+                ${model.supportsFunctionCalling ? '✓' : ''}
             </td>
         `;
         

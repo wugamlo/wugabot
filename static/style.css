@@ -1196,7 +1196,7 @@ input[type="number"] {
 }
 
 .capability-no {
-  color: #f44336;
+  color: transparent;
 }
 
 /* Mobile responsive */
