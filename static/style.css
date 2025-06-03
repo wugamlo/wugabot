@@ -1128,6 +1128,7 @@ input[type="number"] {
   text-align: center;
   border-bottom: 1px solid #333;
   color: var(--text-color);
+  vertical-align: middle;
 }
 
 .model-info-table th {
@@ -1147,30 +1148,47 @@ input[type="number"] {
   background: #252525;
 }
 
+.model-name-header {
+  text-align: left !important;
+  min-width: 140px;
+}
+
+.context-header {
+  min-width: 70px;
+}
+
+.capability-header {
+  min-width: 50px;
+  font-size: 16px;
+  color: var(--secondary-color);
+}
+
 .model-name {
   text-align: left !important;
   font-family: monospace;
   font-weight: bold;
   color: var(--secondary-color);
-  max-width: 120px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding-right: 16px;
 }
 
 .context-tokens {
   font-family: monospace;
   color: #74b9ff;
   font-weight: bold;
+  text-align: center;
 }
 
-.capability-icon {
-  font-size: 16px;
-  width: 20px;
+.capability-dot {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  width: 50px;
   height: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  line-height: 20px;
 }
 
 .capability-yes {
@@ -1178,7 +1196,7 @@ input[type="number"] {
 }
 
 .capability-no {
-  color: #666;
+  color: transparent;
 }
 
 /* Mobile responsive */

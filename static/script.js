@@ -1810,20 +1810,20 @@ function populateModelInfoTable() {
         row.innerHTML = `
             <td class="model-name" title="${model.id}">${model.id}</td>
             <td class="context-tokens">${contextDisplay}</td>
-            <td class="capability-icon ${model.supportsReasoning ? 'capability-yes' : 'capability-no'}">
-                <i class="fas ${model.supportsReasoning ? 'fa-brain' : 'fa-times'}"></i>
+            <td class="capability-dot ${model.supportsReasoning ? 'capability-yes' : 'capability-no'}">
+                ${model.supportsReasoning ? '•' : ''}
             </td>
-            <td class="capability-icon ${model.supportsVision ? 'capability-yes' : 'capability-no'}">
-                <i class="fas ${model.supportsVision ? 'fa-eye' : 'fa-times'}"></i>
+            <td class="capability-dot ${model.supportsVision ? 'capability-yes' : 'capability-no'}">
+                ${model.supportsVision ? '•' : ''}
             </td>
-            <td class="capability-icon ${model.supportsWebSearch ? 'capability-yes' : 'capability-no'}">
-                <i class="fas ${model.supportsWebSearch ? 'fa-globe' : 'fa-times'}"></i>
+            <td class="capability-dot ${model.supportsWebSearch ? 'capability-yes' : 'capability-no'}">
+                ${model.supportsWebSearch ? '•' : ''}
             </td>
-            <td class="capability-icon ${model.optimizedForCode ? 'capability-yes' : 'capability-no'}">
-                <i class="fas ${model.optimizedForCode ? 'fa-code' : 'fa-times'}"></i>
+            <td class="capability-dot ${model.optimizedForCode ? 'capability-yes' : 'capability-no'}">
+                ${model.optimizedForCode ? '•' : ''}
             </td>
-            <td class="capability-icon ${model.supportsFunctionCalling ? 'capability-yes' : 'capability-no'}">
-                <i class="fas ${model.supportsFunctionCalling ? 'fa-cogs' : 'fa-times'}"></i>
+            <td class="capability-dot ${model.supportsFunctionCalling ? 'capability-yes' : 'capability-no'}">
+                ${model.supportsFunctionCalling ? '•' : ''}
             </td>
         `;
         
