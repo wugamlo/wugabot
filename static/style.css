@@ -139,9 +139,9 @@ body {
 
 textarea#userInput {
   flex: 1;
-  padding: 12px;
+  padding: 8px;
   border: 2px solid #444; /* Dark Input Border */
-  border-radius: 25px;
+  border-radius: 5px;
   font-size: 16px;
   color: #fff; /* Input Text Color */
   background: #1e1e1e; /* Input Background */
@@ -202,7 +202,7 @@ button {
   width: 100%;
   padding: 10px;
   margin-bottom: 15px;
-  border-radius: 8px;
+  border-radius: 5px;
   border: 2px solid #444;
   font-size: 14px;
   background: #2a2a2a;
