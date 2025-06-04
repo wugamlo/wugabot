@@ -1477,80 +1477,6 @@ async function generateVisualization(type, data, placeholderId) {
 }
 
 /**
- * Copies text to clipboard and provides visual feedback
- * 
- * @param {string} text - The text to copy
- * @param {HTMLElement} button - The button element for visual feedback
- * @returns {Promise<void>}
- */
-async function copyToClipboard(text, button) {
-    try {
-        await navigator.clipboard.writeText(text);
-        
-        // Visual feedback
-        const originalHTML = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-check"></i>';
-        button.style.background = 'rgba(76, 175, 80, 0.9)';
-        
-        setTimeout(() => {
-            button.innerHTML = originalHTML;
-            button.style.background = 'rgba(68, 68, 68, 0.9)';
-        }, 1500);
-    } catch (err) {
-        console.error('Failed to copy text: ', err);
-        
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        
-        // Error feedback
-        const originalHTML = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-exclamation"></i>';
-        button.style.background = 'rgba(231, 76, 60, 0.9)';
-        
-        setTimeout(() => {
-            button.innerHTML = originalHTML;
-            button.style.background = 'rgba(68, 68, 68, 0.9)';
-        }, 1500);
-    }
-}
-
-/**
- * Extracts clean text content from a message element
- * 
- * @param {HTMLElement} messageElement - The message DOM element
- * @returns {string} Clean text content
- */
-function extractMessageText(messageElement) {
-    // Clone the element to avoid modifying the original
-    const clone = messageElement.cloneNode(true);
-    
-    // Remove the copy button from the clone
-    const copyButton = clone.querySelector('.copy-button');
-    if (copyButton) {
-        copyButton.remove();
-    }
-    
-    // Remove any citations sections
-    const citations = clone.querySelector('.citations-section');
-    if (citations) {
-        citations.remove();
-    }
-    
-    // Get text content, preserving line breaks
-    let text = clone.innerText || clone.textContent || '';
-    
-    // Clean up extra whitespace
-    text = text.replace(/\n{3,}/g, '\n\n').trim();
-    
-    return text;
-}
-
-/**
  * Appends a new message to the chat interface
  * 
  * @param {string} content - The message content
@@ -1572,23 +1498,6 @@ function appendMessage(content, role, returnElement = false) {
         }
     }
     messageDiv.innerHTML = content;
-    
-    // Add copy button for assistant messages
-    if (role === 'assistant') {
-        const copyButton = document.createElement('button');
-        copyButton.className = 'copy-button';
-        copyButton.innerHTML = '<i class="fas fa-copy"></i>';
-        copyButton.title = 'Copy message';
-        copyButton.setAttribute('aria-label', 'Copy message to clipboard');
-        
-        copyButton.addEventListener('click', () => {
-            const messageText = extractMessageText(messageDiv);
-            copyToClipboard(messageText, copyButton);
-        });
-        
-        messageDiv.appendChild(copyButton);
-    }
-    
     chatBox.appendChild(messageDiv);
     if (returnElement) {
         return messageDiv;
