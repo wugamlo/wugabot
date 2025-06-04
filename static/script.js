@@ -508,9 +508,13 @@ function populateModelDropdown(models) {
         const supportsVision = selectedOption.dataset.supportsVision === 'true';
         const defaultTemperature = selectedOption.dataset.defaultTemperature || 0.7;
         
-        // Update search button visibility
+        // Update search button visibility and enable by default for web-enabled models
         searchButton.style.display = supportsWebSearch ? 'block' : 'none';
-        searchButton.classList.remove('active');
+        if (supportsWebSearch) {
+            searchButton.classList.add('active');
+        } else {
+            searchButton.classList.remove('active');
+        }
         
         // Update image upload buttons visibility using proper query selectors
         const galleryButton = document.querySelector('button[onclick*="galleryInput"]');
@@ -553,7 +557,15 @@ function populateModelDropdown(models) {
             
             if (galleryButton) galleryButton.style.display = supportsVision ? 'inline-block' : 'none';
             if (cameraButton) cameraButton.style.display = supportsVision ? 'inline-block' : 'none';
-            if (searchButton) searchButton.style.display = supportsWebSearch ? 'block' : 'none';
+            if (searchButton) {
+                searchButton.style.display = supportsWebSearch ? 'block' : 'none';
+                // Enable web search by default for web-enabled models
+                if (supportsWebSearch) {
+                    searchButton.classList.add('active');
+                } else {
+                    searchButton.classList.remove('active');
+                }
+            }
             
             // Update temperature to model default
             temperatureInput.value = defaultTemperature;
