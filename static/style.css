@@ -1204,62 +1204,31 @@ input[type="number"] {
   .model-info-popup {
     padding: 10px;
   }
-
+  
   .model-info-content {
     max-height: 90vh;
   }
-
+  
   .model-info-header {
     padding: 15px;
   }
-
+  
   .model-info-table-container {
     padding: 15px;
     max-height: calc(90vh - 70px);
   }
-
+  
   .model-info-table th,
   .model-info-table td {
     padding: 8px 4px;
     font-size: 12px;
   }
-
+  
   .model-info-header h2 {
     font-size: 18px;
   }
-
+  
   .model-name {
     max-width: 80px;
   }
-}
-
-.copy-button {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: rgba(68, 68, 68, 0.9);
-    border: none;
-    color: #fff;
-    padding: 6px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    opacity: 0;
-    transition: all 0.2s ease;
-    backdrop-filter: blur(2px);
-    z-index: 10;
-    min-width: 32px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.copy-button:hover {
-    background: rgba(85, 85, 85, 0.95);
-    transform: translateY(-1px);
-}
-
-.copy-button:active {
-    transform: translateY(0);
 }
