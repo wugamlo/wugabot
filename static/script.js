@@ -902,8 +902,22 @@ async function fetchChatResponse(messages, botMessage) {
                 try {
                     const parsed = JSON.parse(data);
 
-                    // Log important parts of the response for debugging
-                    if (parsed.error || parsed.venice_parameters) {
+                    // Enhanced debug logging for citation investigation
+                    if (parsed.error || parsed.venice_parameters || parsed.choices) {
+                        console.log('🔍 STREAMING DEBUG - Response chunk keys:', Object.keys(parsed));
+                        
+                        if (parsed.venice_parameters) {
+                            console.log('🔍 STREAMING DEBUG - Venice parameters keys:', Object.keys(parsed.venice_parameters));
+                        }
+                        
+                        if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                            const delta = parsed.choices[0].delta;
+                            console.log('🔍 STREAMING DEBUG - Delta keys:', Object.keys(delta));
+                            if (delta.venice_parameters) {
+                                console.log('🔍 STREAMING DEBUG - Delta venice_parameters:', Object.keys(delta.venice_parameters));
+                            }
+                        }
+                        
                         // Only log a portion of potentially very large responses to avoid console errors
                         const truncatedResponse = {...parsed};
                         if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
@@ -912,7 +926,7 @@ async function fetchChatResponse(messages, botMessage) {
                                 web_search_citations: parsed.venice_parameters.web_search_citations.slice(0, 2)
                             };
                         }
-                        console.log('Parsed response chunk:', truncatedResponse);
+                        console.log('🔍 STREAMING DEBUG - Parsed response chunk:', truncatedResponse);
                     }
 
                     // Handle errors
@@ -945,42 +959,66 @@ async function fetchChatResponse(messages, botMessage) {
 
                     // Handle citations and other venice parameters
                     if (parsed.venice_parameters) {
+                        console.log('🔍 CITATION DEBUG - Full venice_parameters:', JSON.stringify(parsed.venice_parameters, null, 2));
+                        
                         // Get citations if available
                         const citationsInResponse = parsed.venice_parameters?.web_search_citations;
                         if (citationsInResponse) {
-                            console.log('Found citations (raw):', JSON.stringify(citationsInResponse, null, 2));
-                            console.log('Citations type:', typeof citationsInResponse);
-                            console.log('Citations is array:', Array.isArray(citationsInResponse));
+                            console.log('🔍 CITATION DEBUG - Found citations (raw):', JSON.stringify(citationsInResponse, null, 2));
+                            console.log('🔍 CITATION DEBUG - Citations type:', typeof citationsInResponse);
+                            console.log('🔍 CITATION DEBUG - Citations is array:', Array.isArray(citationsInResponse));
+                            console.log('🔍 CITATION DEBUG - Citations length:', citationsInResponse.length);
+                            
+                            // Check each citation structure
+                            if (Array.isArray(citationsInResponse)) {
+                                citationsInResponse.forEach((citation, index) => {
+                                    console.log(`🔍 CITATION DEBUG - Citation ${index}:`, JSON.stringify(citation, null, 2));
+                                    console.log(`🔍 CITATION DEBUG - Citation ${index} keys:`, Object.keys(citation));
+                                });
+                            }
                             
                             // Clean REF tags from content
                             const originalContent = botContentBuffer;
+                            const refMatches = originalContent.match(/\[REF\].*?\[\/REF\]/g);
+                            console.log('🔍 CITATION DEBUG - REF tags found:', refMatches);
+                            
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                            console.log('Content before cleaning:', originalContent);
-                            console.log('Content after cleaning:', botContentBuffer);
+                            console.log('🔍 CITATION DEBUG - Content before cleaning:', originalContent.substring(0, 200) + '...');
+                            console.log('🔍 CITATION DEBUG - Content after cleaning:', botContentBuffer.substring(0, 200) + '...');
                             
                             // Map numeric references to actual citations
                             if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
-                                console.log('Processing citations:', JSON.stringify(citationsInResponse));
+                                console.log('🔍 CITATION DEBUG - Processing citations array');
+                                
                                 // Ensure citations have required fields
                                 const validCitations = citationsInResponse.map((citation, index) => {
-                                    console.log('Processing citation:', JSON.stringify(citation));
+                                    console.log(`🔍 CITATION DEBUG - Raw citation ${index}:`, citation);
+                                    
                                     const validatedCitation = {
-                                        title: citation.title || `Search Result ${index + 1}`,
-                                        url: citation.url || '#',
-                                        content: citation.content || citation.snippet || '',
-                                        published_date: citation.date || citation.published_date || ''
+                                        title: citation.title || citation.name || `Search Result ${index + 1}`,
+                                        url: citation.url || citation.link || '#',
+                                        content: citation.content || citation.snippet || citation.description || '',
+                                        published_date: citation.date || citation.published_date || citation.timestamp || ''
                                     };
-                                    console.log('Validated citation:', validatedCitation);
+                                    
+                                    console.log(`🔍 CITATION DEBUG - Validated citation ${index}:`, validatedCitation);
                                     return validatedCitation;
                                 });
                                 
                                 lastCitations = validCitations;
-                                console.log('Final citations:', JSON.stringify(lastCitations));
+                                console.log('🔍 CITATION DEBUG - Final citations stored:', JSON.stringify(lastCitations, null, 2));
+                                
                                 const citationsHtml = formatCitations(lastCitations);
+                                console.log('🔍 CITATION DEBUG - Generated citations HTML length:', citationsHtml ? citationsHtml.length : 0);
+                                
                                 if (citationsHtml) {
                                     botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
                                 }
+                            } else {
+                                console.log('🔍 CITATION DEBUG - No valid citations array found');
                             }
+                        } else {
+                            console.log('🔍 CITATION DEBUG - No web_search_citations found in venice_parameters');
                         }
 
                         // Check for reasoning content in venice_parameters
