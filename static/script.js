@@ -903,30 +903,50 @@ async function fetchChatResponse(messages, botMessage) {
                     const parsed = JSON.parse(data);
 
                     // Enhanced debug logging for citation investigation
-                    if (parsed.error || parsed.venice_parameters || parsed.choices) {
-                        console.log('🔍 STREAMING DEBUG - Response chunk keys:', Object.keys(parsed));
-                        
-                        if (parsed.venice_parameters) {
-                            console.log('🔍 STREAMING DEBUG - Venice parameters keys:', Object.keys(parsed.venice_parameters));
+                    console.log('🔍 CITATION DEBUG - Every streaming chunk keys:', Object.keys(parsed));
+                    
+                    // Log any venice_parameters at top level
+                    if (parsed.venice_parameters) {
+                        console.log('🔍 CITATION DEBUG - Top level venice_parameters found:', Object.keys(parsed.venice_parameters));
+                        if (parsed.venice_parameters.web_search_citations) {
+                            console.log('🔍 CITATION DEBUG - TOP LEVEL CITATIONS FOUND:', parsed.venice_parameters.web_search_citations.length, 'citations');
+                            console.log('🔍 CITATION DEBUG - Citation sample:', JSON.stringify(parsed.venice_parameters.web_search_citations[0], null, 2));
                         }
+                    }
+                    
+                    // Log any choices structure
+                    if (parsed.choices && parsed.choices[0]) {
+                        const choice = parsed.choices[0];
+                        console.log('🔍 CITATION DEBUG - Choice keys:', Object.keys(choice));
                         
-                        if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
-                            const delta = parsed.choices[0].delta;
-                            console.log('🔍 STREAMING DEBUG - Delta keys:', Object.keys(delta));
-                            if (delta.venice_parameters) {
-                                console.log('🔍 STREAMING DEBUG - Delta venice_parameters:', Object.keys(delta.venice_parameters));
+                        if (choice.delta) {
+                            console.log('🔍 CITATION DEBUG - Delta keys:', Object.keys(choice.delta));
+                            if (choice.delta.venice_parameters) {
+                                console.log('🔍 CITATION DEBUG - Delta venice_parameters keys:', Object.keys(choice.delta.venice_parameters));
+                                if (choice.delta.venice_parameters.web_search_citations) {
+                                    console.log('🔍 CITATION DEBUG - DELTA CITATIONS FOUND:', choice.delta.venice_parameters.web_search_citations.length, 'citations');
+                                }
                             }
                         }
                         
-                        // Only log a portion of potentially very large responses to avoid console errors
-                        const truncatedResponse = {...parsed};
-                        if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
-                            truncatedResponse.venice_parameters = {
-                                ...parsed.venice_parameters,
-                                web_search_citations: parsed.venice_parameters.web_search_citations.slice(0, 2)
-                            };
+                        if (choice.message) {
+                            console.log('🔍 CITATION DEBUG - Choice message keys:', Object.keys(choice.message));
+                            if (choice.message.venice_parameters) {
+                                console.log('🔍 CITATION DEBUG - Message venice_parameters keys:', Object.keys(choice.message.venice_parameters));
+                                if (choice.message.venice_parameters.web_search_citations) {
+                                    console.log('🔍 CITATION DEBUG - MESSAGE CITATIONS FOUND:', choice.message.venice_parameters.web_search_citations.length, 'citations');
+                                }
+                            }
                         }
-                        console.log('🔍 STREAMING DEBUG - Parsed response chunk:', truncatedResponse);
+                    }
+                    
+                    // Log complete structure for any chunk containing citations
+                    const hasAnyCitations = (parsed.venice_parameters?.web_search_citations) ||
+                                          (parsed.choices?.[0]?.delta?.venice_parameters?.web_search_citations) ||
+                                          (parsed.choices?.[0]?.message?.venice_parameters?.web_search_citations);
+                    
+                    if (hasAnyCitations) {
+                        console.log('🔍 CITATION DEBUG - FULL CHUNK WITH CITATIONS:', JSON.stringify(parsed, null, 2));
                     }
 
                     // Handle errors
