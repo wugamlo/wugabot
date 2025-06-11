@@ -902,51 +902,22 @@ async function fetchChatResponse(messages, botMessage) {
                 try {
                     const parsed = JSON.parse(data);
 
-                    // Enhanced debug logging for citation investigation
-                    console.log('🔍 CITATION DEBUG - Every streaming chunk keys:', Object.keys(parsed));
-                    
-                    // Log any venice_parameters at top level
-                    if (parsed.venice_parameters) {
-                        console.log('🔍 CITATION DEBUG - Top level venice_parameters found:', Object.keys(parsed.venice_parameters));
-                        if (parsed.venice_parameters.web_search_citations) {
-                            console.log('🔍 CITATION DEBUG - TOP LEVEL CITATIONS FOUND:', parsed.venice_parameters.web_search_citations.length, 'citations');
-                            console.log('🔍 CITATION DEBUG - Citation sample:', JSON.stringify(parsed.venice_parameters.web_search_citations[0], null, 2));
-                        }
+                    // Simplified citation debug - only log when we find actual citation data
+                    if (parsed.venice_parameters?.web_search_citations) {
+                        console.log('🔍 CITATIONS FOUND - Top level:', parsed.venice_parameters.web_search_citations);
                     }
                     
-                    // Log any choices structure
-                    if (parsed.choices && parsed.choices[0]) {
-                        const choice = parsed.choices[0];
-                        console.log('🔍 CITATION DEBUG - Choice keys:', Object.keys(choice));
-                        
-                        if (choice.delta) {
-                            console.log('🔍 CITATION DEBUG - Delta keys:', Object.keys(choice.delta));
-                            if (choice.delta.venice_parameters) {
-                                console.log('🔍 CITATION DEBUG - Delta venice_parameters keys:', Object.keys(choice.delta.venice_parameters));
-                                if (choice.delta.venice_parameters.web_search_citations) {
-                                    console.log('🔍 CITATION DEBUG - DELTA CITATIONS FOUND:', choice.delta.venice_parameters.web_search_citations.length, 'citations');
-                                }
-                            }
-                        }
-                        
-                        if (choice.message) {
-                            console.log('🔍 CITATION DEBUG - Choice message keys:', Object.keys(choice.message));
-                            if (choice.message.venice_parameters) {
-                                console.log('🔍 CITATION DEBUG - Message venice_parameters keys:', Object.keys(choice.message.venice_parameters));
-                                if (choice.message.venice_parameters.web_search_citations) {
-                                    console.log('🔍 CITATION DEBUG - MESSAGE CITATIONS FOUND:', choice.message.venice_parameters.web_search_citations.length, 'citations');
-                                }
-                            }
-                        }
+                    if (parsed.choices?.[0]?.delta?.venice_parameters?.web_search_citations) {
+                        console.log('🔍 CITATIONS FOUND - Delta:', parsed.choices[0].delta.venice_parameters.web_search_citations);
                     }
                     
-                    // Log complete structure for any chunk containing citations
-                    const hasAnyCitations = (parsed.venice_parameters?.web_search_citations) ||
-                                          (parsed.choices?.[0]?.delta?.venice_parameters?.web_search_citations) ||
-                                          (parsed.choices?.[0]?.message?.venice_parameters?.web_search_citations);
+                    if (parsed.choices?.[0]?.message?.venice_parameters?.web_search_citations) {
+                        console.log('🔍 CITATIONS FOUND - Message:', parsed.choices[0].message.venice_parameters.web_search_citations);
+                    }
                     
-                    if (hasAnyCitations) {
-                        console.log('🔍 CITATION DEBUG - FULL CHUNK WITH CITATIONS:', JSON.stringify(parsed, null, 2));
+                    // Check if the content contains REF tags but we have no citations
+                    if (parsed.content && parsed.content.includes('[REF]') && !lastCitations) {
+                        console.log('🚨 REF TAGS FOUND but no citations stored:', parsed.content.match(/\[REF\].*?\[\/REF\]/g));
                     }
 
                     // Handle errors
