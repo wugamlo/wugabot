@@ -902,22 +902,17 @@ async function fetchChatResponse(messages, botMessage) {
                 try {
                     const parsed = JSON.parse(data);
 
-                    // Simplified citation debug - only log when we find actual citation data
-                    if (parsed.venice_parameters?.web_search_citations) {
-                        console.log('🔍 CITATIONS FOUND - Top level:', parsed.venice_parameters.web_search_citations);
-                    }
-                    
-                    if (parsed.choices?.[0]?.delta?.venice_parameters?.web_search_citations) {
-                        console.log('🔍 CITATIONS FOUND - Delta:', parsed.choices[0].delta.venice_parameters.web_search_citations);
-                    }
-                    
-                    if (parsed.choices?.[0]?.message?.venice_parameters?.web_search_citations) {
-                        console.log('🔍 CITATIONS FOUND - Message:', parsed.choices[0].message.venice_parameters.web_search_citations);
-                    }
-                    
-                    // Check if the content contains REF tags but we have no citations
-                    if (parsed.content && parsed.content.includes('[REF]') && !lastCitations) {
-                        console.log('🚨 REF TAGS FOUND but no citations stored:', parsed.content.match(/\[REF\].*?\[\/REF\]/g));
+                    // Log important parts of the response for debugging
+                    if (parsed.error || parsed.venice_parameters) {
+                        // Only log a portion of potentially very large responses to avoid console errors
+                        const truncatedResponse = {...parsed};
+                        if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
+                            truncatedResponse.venice_parameters = {
+                                ...parsed.venice_parameters,
+                                web_search_citations: parsed.venice_parameters.web_search_citations.slice(0, 2)
+                            };
+                        }
+                        console.log('Parsed response chunk:', truncatedResponse);
                     }
 
                     // Handle errors
@@ -950,66 +945,42 @@ async function fetchChatResponse(messages, botMessage) {
 
                     // Handle citations and other venice parameters
                     if (parsed.venice_parameters) {
-                        console.log('🔍 CITATION DEBUG - Full venice_parameters:', JSON.stringify(parsed.venice_parameters, null, 2));
-                        
                         // Get citations if available
                         const citationsInResponse = parsed.venice_parameters?.web_search_citations;
                         if (citationsInResponse) {
-                            console.log('🔍 CITATION DEBUG - Found citations (raw):', JSON.stringify(citationsInResponse, null, 2));
-                            console.log('🔍 CITATION DEBUG - Citations type:', typeof citationsInResponse);
-                            console.log('🔍 CITATION DEBUG - Citations is array:', Array.isArray(citationsInResponse));
-                            console.log('🔍 CITATION DEBUG - Citations length:', citationsInResponse.length);
-                            
-                            // Check each citation structure
-                            if (Array.isArray(citationsInResponse)) {
-                                citationsInResponse.forEach((citation, index) => {
-                                    console.log(`🔍 CITATION DEBUG - Citation ${index}:`, JSON.stringify(citation, null, 2));
-                                    console.log(`🔍 CITATION DEBUG - Citation ${index} keys:`, Object.keys(citation));
-                                });
-                            }
+                            console.log('Found citations (raw):', JSON.stringify(citationsInResponse, null, 2));
+                            console.log('Citations type:', typeof citationsInResponse);
+                            console.log('Citations is array:', Array.isArray(citationsInResponse));
                             
                             // Clean REF tags from content
                             const originalContent = botContentBuffer;
-                            const refMatches = originalContent.match(/\[REF\].*?\[\/REF\]/g);
-                            console.log('🔍 CITATION DEBUG - REF tags found:', refMatches);
-                            
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                            console.log('🔍 CITATION DEBUG - Content before cleaning:', originalContent.substring(0, 200) + '...');
-                            console.log('🔍 CITATION DEBUG - Content after cleaning:', botContentBuffer.substring(0, 200) + '...');
+                            console.log('Content before cleaning:', originalContent);
+                            console.log('Content after cleaning:', botContentBuffer);
                             
                             // Map numeric references to actual citations
                             if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
-                                console.log('🔍 CITATION DEBUG - Processing citations array');
-                                
+                                console.log('Processing citations:', JSON.stringify(citationsInResponse));
                                 // Ensure citations have required fields
                                 const validCitations = citationsInResponse.map((citation, index) => {
-                                    console.log(`🔍 CITATION DEBUG - Raw citation ${index}:`, citation);
-                                    
+                                    console.log('Processing citation:', JSON.stringify(citation));
                                     const validatedCitation = {
-                                        title: citation.title || citation.name || `Search Result ${index + 1}`,
-                                        url: citation.url || citation.link || '#',
-                                        content: citation.content || citation.snippet || citation.description || '',
-                                        published_date: citation.date || citation.published_date || citation.timestamp || ''
+                                        title: citation.title || `Search Result ${index + 1}`,
+                                        url: citation.url || '#',
+                                        content: citation.content || citation.snippet || '',
+                                        published_date: citation.date || citation.published_date || ''
                                     };
-                                    
-                                    console.log(`🔍 CITATION DEBUG - Validated citation ${index}:`, validatedCitation);
+                                    console.log('Validated citation:', validatedCitation);
                                     return validatedCitation;
                                 });
                                 
                                 lastCitations = validCitations;
-                                console.log('🔍 CITATION DEBUG - Final citations stored:', JSON.stringify(lastCitations, null, 2));
-                                
+                                console.log('Final citations:', JSON.stringify(lastCitations));
                                 const citationsHtml = formatCitations(lastCitations);
-                                console.log('🔍 CITATION DEBUG - Generated citations HTML length:', citationsHtml ? citationsHtml.length : 0);
-                                
                                 if (citationsHtml) {
                                     botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
                                 }
-                            } else {
-                                console.log('🔍 CITATION DEBUG - No valid citations array found');
                             }
-                        } else {
-                            console.log('🔍 CITATION DEBUG - No web_search_citations found in venice_parameters');
                         }
 
                         // Check for reasoning content in venice_parameters
