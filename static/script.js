@@ -912,25 +912,13 @@ async function fetchChatResponse(messages, botMessage) {
                 }
 
                 try {
-                    // Pre-process the JSON data to handle potential parsing issues
-                    let cleanData = data;
-                    
-                    // Handle cases where the data might have unescaped quotes or control characters
-                    if (data.includes('"web_search_citations"')) {
-                        try {
-                            // Try to clean up common JSON issues in citations
-                            cleanData = data
-                                .replace(/\\"/g, '\\"')  // Ensure quotes are properly escaped
-                                .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters
-                                .replace(/\n/g, '\\n')   // Escape newlines
-                                .replace(/\r/g, '\\r')   // Escape carriage returns
-                                .replace(/\t/g, '\\t');  // Escape tabs
-                        } catch (cleanError) {
-                            console.warn('Error cleaning data:', cleanError);
-                        }
+                    // Skip processing if this looks like malformed citation data
+                    if (data.includes('"web_search_citations"') && data.includes('Unterminated string')) {
+                        console.log('Skipping malformed citation chunk');
+                        continue;
                     }
                     
-                    const parsed = JSON.parse(cleanData);
+                    const parsed = JSON.parse(data);
 
                     // Log important parts of the response for debugging
                     if (parsed.error || parsed.venice_parameters) {
@@ -977,48 +965,39 @@ async function fetchChatResponse(messages, botMessage) {
                     if (parsed.venice_parameters) {
                         console.log('Found venice_parameters:', Object.keys(parsed.venice_parameters));
                         
-                        // Get citations if available
-                        const citationsInResponse = parsed.venice_parameters.web_search_citations;
-                        if (citationsInResponse && Array.isArray(citationsInResponse)) {
-                            console.log('Found web search citations:', citationsInResponse.length, 'items');
+                        // Get citations if available - only process if it's actually an array
+                        if (parsed.venice_parameters.web_search_citations && 
+                            Array.isArray(parsed.venice_parameters.web_search_citations) &&
+                            parsed.venice_parameters.web_search_citations.length > 0) {
                             
-                            // Clean REF tags from content only after we have citations
-                            if (citationsInResponse.length > 0) {
-                                console.log('Cleaning REF tags from content');
-                                botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                                
-                                // Process and validate citations with better error handling
-                                const validCitations = [];
-                                citationsInResponse.forEach((citation, index) => {
-                                    try {
-                                        // Safely extract citation data with fallbacks
+                            console.log('Found web search citations:', parsed.venice_parameters.web_search_citations.length, 'items');
+                            
+                            // Clean REF tags from content
+                            console.log('Cleaning REF tags from content');
+                            botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
+                            
+                            // Process citations safely
+                            const validCitations = [];
+                            parsed.venice_parameters.web_search_citations.forEach((citation, index) => {
+                                try {
+                                    // Only process if citation is an object with required fields
+                                    if (citation && typeof citation === 'object' && citation.title && citation.url) {
                                         const safeCitation = {
-                                            title: (citation.title && typeof citation.title === 'string') 
-                                                ? citation.title.replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
-                                                : `Search Result ${index + 1}`,
-                                            url: (citation.url && typeof citation.url === 'string') 
-                                                ? citation.url : '#',
-                                            content: (citation.content && typeof citation.content === 'string') 
-                                                ? citation.content.replace(/[\x00-\x1F\x7F-\x9F]/g, '').substring(0, 500) // Limit content length
-                                                : '',
-                                            published_date: (citation.date && typeof citation.date === 'string') 
-                                                ? citation.date : ''
+                                            title: String(citation.title).replace(/[\x00-\x1F\x7F-\x9F]/g, '') || `Search Result ${index + 1}`,
+                                            url: String(citation.url) || '#',
+                                            content: citation.content ? String(citation.content).replace(/[\x00-\x1F\x7F-\x9F]/g, '').substring(0, 500) : '',
+                                            published_date: citation.date ? String(citation.date) : ''
                                         };
                                         validCitations.push(safeCitation);
-                                    } catch (citationError) {
-                                        console.warn('Error processing citation:', citationError, citation);
-                                        // Add a fallback citation
-                                        validCitations.push({
-                                            title: `Search Result ${index + 1}`,
-                                            url: '#',
-                                            content: '',
-                                            published_date: ''
-                                        });
                                     }
-                                });
-                                
+                                } catch (citationError) {
+                                    console.warn('Error processing citation at index', index, ':', citationError.message);
+                                }
+                            });
+                            
+                            if (validCitations.length > 0) {
                                 lastCitations = validCitations;
-                                console.log('Processed', lastCitations.length, 'citations');
+                                console.log('Processed', lastCitations.length, 'valid citations');
                             }
                         }
 
@@ -1070,29 +1049,9 @@ async function fetchChatResponse(messages, botMessage) {
                             }
                         }
                         
-                        // If this looks like a citation chunk that failed to parse, try to extract citations manually
-                        if (data.includes('web_search_citations') && !lastCitations) {
-                            console.log('Attempting manual citation extraction from malformed JSON');
-                            try {
-                                // Simple fallback citation extraction
-                                const citationMatches = data.match(/"title":"([^"]*)".*?"url":"([^"]*)"/g);
-                                if (citationMatches && citationMatches.length > 0) {
-                                    const fallbackCitations = citationMatches.map((match, index) => {
-                                        const titleMatch = match.match(/"title":"([^"]*)"/);
-                                        const urlMatch = match.match(/"url":"([^"]*)"/);
-                                        return {
-                                            title: titleMatch ? titleMatch[1] : `Search Result ${index + 1}`,
-                                            url: urlMatch ? urlMatch[1] : '#',
-                                            content: '',
-                                            published_date: ''
-                                        };
-                                    });
-                                    lastCitations = fallbackCitations;
-                                    console.log('Extracted', lastCitations.length, 'citations via fallback method');
-                                }
-                            } catch (fallbackError) {
-                                console.warn('Fallback citation extraction failed:', fallbackError.message);
-                            }
+                        // Skip malformed citation chunks - they will be processed when properly formatted
+                        if (data.includes('web_search_citations')) {
+                            console.log('Skipping malformed citation data - will process when complete');
                         }
                     }
                 }
