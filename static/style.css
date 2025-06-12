@@ -495,12 +495,12 @@ input[type="number"] {
 
 .citations-content {
     padding: 15px 20px;
-    display: none;
+    display: none !important;
     overflow: hidden;
 }
 
 .citations-content.expanded {
-    display: block;
+    display: block !important;
 }
 
 .citations-header .toggle-icon {

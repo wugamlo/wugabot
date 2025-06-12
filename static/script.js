@@ -115,6 +115,19 @@ window.addEventListener('load', () => {
     fetchModels();
     populateCharacterDropdown();
 
+    // Ensure citation toggle is available globally
+    window.toggleCitations = toggleCitations;
+    
+    // Add event delegation for citation headers that might be added dynamically
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.citations-header')) {
+            const header = e.target.closest('.citations-header');
+            toggleCitations(header);
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+
     // Load chat history from localStorage if available
     try {
         const savedChatHistory = localStorage.getItem('chatHistory');
@@ -1144,7 +1157,7 @@ function formatCitations(citations) {
     }
     
     let citationsHtml = '\n\n<div class="citations-section">';
-    citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
+    citationsHtml += `<div class="citations-header" onclick="window.toggleCitations && window.toggleCitations(this)">
         <h3>Web Search Results (${citations.length})</h3>
         <span class="toggle-icon"></span>
     </div><div class="citations-content">`;
@@ -1198,6 +1211,11 @@ function toggleCitations(header) {
 
 // Export the toggle function for global access
 window.toggleCitations = toggleCitations;
+
+// Ensure the function is available immediately
+if (typeof window !== 'undefined') {
+    window.toggleCitations = toggleCitations;
+}
 
 function scrollToCitation(citationNumber) {
     const citationElement = document.getElementById(`citation-${citationNumber}`);
