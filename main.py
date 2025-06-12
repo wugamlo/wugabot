@@ -162,7 +162,25 @@ def chat_stream():
 
                     # Forward venice_parameters at the top level
                     if 'venice_parameters' in json_data:
-                        logger.debug(f"Venice parameters found at top level: {json_data['venice_parameters']}")
+                        logger.info(f"=== VENICE PARAMETERS FOUND ===")
+                        logger.info(f"Venice parameters keys: {list(json_data['venice_parameters'].keys())}")
+                        
+                        # Log citation data specifically
+                        if 'web_search_citations' in json_data['venice_parameters']:
+                            citations = json_data['venice_parameters']['web_search_citations']
+                            logger.info(f"=== CITATIONS DATA ===")
+                            logger.info(f"Citations type: {type(citations)}")
+                            logger.info(f"Citations length: {len(citations) if isinstance(citations, list) else 'Not a list'}")
+                            
+                            if isinstance(citations, list):
+                                for i, citation in enumerate(citations):
+                                    logger.info(f"Citation [{i}]: {json.dumps(citation, indent=2)}")
+                            else:
+                                logger.info(f"Citations data (not a list): {citations}")
+                        else:
+                            logger.info("No web_search_citations found in venice_parameters")
+                        
+                        logger.debug(f"Full venice_parameters: {json.dumps(json_data['venice_parameters'], indent=2)}")
                         yield f"data: {json.dumps(json_data)}\n\n"
 
                     # Process content and reasoning_content if present
@@ -188,11 +206,35 @@ def chat_stream():
 
                         # Stream venice parameters
                         if 'venice_parameters' in delta:
-                            logger.debug(f"Venice parameters found in delta: {delta['venice_parameters']}")
+                            logger.info(f"=== DELTA VENICE PARAMETERS ===")
+                            logger.info(f"Delta venice parameters keys: {list(delta['venice_parameters'].keys())}")
+                            
+                            if 'web_search_citations' in delta['venice_parameters']:
+                                citations = delta['venice_parameters']['web_search_citations']
+                                logger.info(f"=== DELTA CITATIONS DATA ===")
+                                logger.info(f"Delta citations type: {type(citations)}")
+                                logger.info(f"Delta citations length: {len(citations) if isinstance(citations, list) else 'Not a list'}")
+                                
+                                if isinstance(citations, list):
+                                    for i, citation in enumerate(citations):
+                                        logger.info(f"Delta Citation [{i}]: {json.dumps(citation, indent=2)}")
+                                else:
+                                    logger.info(f"Delta citations data (not a list): {citations}")
+                            
+                            logger.debug(f"Full delta venice_parameters: {json.dumps(delta['venice_parameters'], indent=2)}")
                             yield f"data: {json.dumps(json_data)}\n\n"
 
                 except json.JSONDecodeError as e:
                     logger.warning(f"JSON decode error: {str(e)}, data: {data[:100]}...")
+                    
+                    # Log if this might contain citation data
+                    if 'web_search_citations' in data:
+                        logger.info(f"=== MALFORMED JSON WITH CITATIONS ===")
+                        logger.info(f"Malformed data length: {len(data)}")
+                        logger.info(f"Contains 'web_search_citations': True")
+                        logger.info(f"Error position: {e.pos if hasattr(e, 'pos') else 'Unknown'}")
+                        logger.info(f"Data around citations: {data[max(0, data.find('web_search_citations')-100):data.find('web_search_citations')+500]}")
+                    
                     continue
 
         except Exception as e:
