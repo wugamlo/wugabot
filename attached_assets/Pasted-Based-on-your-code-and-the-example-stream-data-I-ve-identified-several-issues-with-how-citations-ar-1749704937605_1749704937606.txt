@@ -1,0 +1,233 @@
+Based on your code and the example stream data, I've identified several issues with how citations are being handled:
+
+### Key Problems:
+1. **Citation Parsing Logic**:
+   - The regex `/\[REF\].*?\[\/REF\]/g` is too aggressive and removes content prematurely
+   - This regex removes citation markers before citations have been processed
+
+2. **Timing Issues**:
+   - Citations are only added at the very end of the stream ([DONE])
+   - The last chunk with citations comes BEFORE [DONE], so it's missed
+
+3. **Data Handling**:
+   - The `venice_parameters` object is not properly handled in non-content chunks
+   - Citation references in content ([REF] tags) are removed but never replaced
+
+### Solution:
+Here's the complete fix with all necessary changes:
+
+```javascript
+// Add this helper function to safely parse JSON chunks
+function safeParseJSON(str) {
+    try {
+        return JSON.parse(str);
+    } catch (e) {
+        console.warn('Failed to parse JSON chunk:', str);
+        return null;
+    }
+}
+
+// Update the fetchChatResponse function
+async function fetchChatResponse(messages, botMessage) {
+    // ... existing code ...
+
+    // Add this variable to track citation references
+    const citationRefs = {};
+
+    while (true) {
+        // ... existing code ...
+
+        for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            
+            const data = line.slice(5).trim();
+            if (!data) continue;
+
+            if (data === '[DONE]') {
+                // Process any pending citations before finalizing
+                if (lastCitations && lastCitations.length > 0) {
+                    console.log('Adding final citations');
+                    let finalContent = formatContent(botContentBuffer);
+                    finalContent += formatCitations(lastCitations);
+                    botMessage.innerHTML = finalContent;
+                }
+                
+                // ... rest of [DONE] handling ...
+                return;
+            }
+
+            try {
+                const parsed = safeParseJSON(data);
+                if (!parsed) continue;
+
+                // Handle citations separately
+                if (parsed.venice_parameters?.web_search_citations) {
+                    console.log('Processing web search citations...');
+                    const citations = parsed.venice_parameters.web_search_citations;
+                    
+                    if (Array.isArray(citations) {
+                        // Map citations by index
+                        citations.forEach((citation, idx) => {
+                            if (citation?.title && citation?.url) {
+                                citationRefs[idx + 1] = {
+                                    title: citation.title,
+                                    url: citation.url,
+                                    content: citation.content || '',
+                                    published_date: citation.date || ''
+                                };
+                            }
+                        });
+                        
+                        // Only update lastCitations if we have valid citations
+                        const validCitations = Object.values(citationRefs);
+                        if (validCitations.length > 0) {
+                            lastCitations = validCitations;
+                            console.log('Updated citations:', lastCitations.length);
+                        }
+                    }
+                }
+
+                // Handle content updates
+                let contentUpdate = '';
+                if (parsed.choices?.[0]?.delta?.content) {
+                    contentUpdate = parsed.choices[0].delta.content;
+                } else if (parsed.content) {
+                    contentUpdate = parsed.content;
+                }
+
+                // Process citation references in content
+                if (contentUpdate) {
+                    // Replace [REF]X[/REF] with superscript links
+                    contentUpdate = contentUpdate.replace(
+                        /\[REF\](\d+)\[\/REF\]/g, 
+                        (_, refNum) => {
+                            return `<sup class="citation-ref">[${refNum}]</sup>`;
+                        }
+                    );
+                    
+                    botContentBuffer += contentUpdate;
+                }
+
+                // ... rest of your processing logic ...
+
+            } catch (e) {
+                console.warn('Error processing chunk:', e);
+            }
+        }
+    }
+}
+
+// Update formatCitations to include reference markers
+function formatCitations(citations) {
+    if (!citations || citations.length === 0) return '';
+    
+    let html = `<div class="citations-section">
+        <div class="citations-header" onclick="toggleCitations(this)">
+            <h3>Sources (${citations.length})</h3>
+        </div>
+        <div class="citations-content">`;
+    
+    citations.forEach((citation, index) => {
+        html += `
+        <div class="citation-item">
+            <sup class="citation-index">[${index + 1}]</sup>
+            <div class="citation-content">
+                <a href="${citation.url}" target="_blank" rel="noopener">
+                    ${citation.title}
+                </a>
+                ${citation.content ? `<p>${citation.content.substring(0, 200)}...</p>` : ''}
+                <div class="citation-meta">
+                    ${citation.published_date ? `<span>${citation.published_date}</span>` : ''}
+                    <span class="citation-url">${new URL(citation.url).hostname}</span>
+                </div>
+            </div>
+        </div>`;
+    });
+    
+    html += '</div></div>';
+    return html;
+}
+```
+
+### Additional CSS for Citations:
+Add this to your stylesheet:
+
+```css
+.citation-ref {
+    vertical-align: super;
+    font-size: 0.8em;
+    color: #2563eb;
+    cursor: pointer;
+    margin: 0 2px;
+}
+
+.citations-section {
+    margin-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 1rem;
+}
+
+.citation-item {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1rem;
+    align-items: flex-start;
+}
+
+.citation-index {
+    background: #3b82f6;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+}
+
+.citation-content {
+    flex: 1;
+}
+
+.citation-content a {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.citation-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 0.8em;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+.citation-url {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+```
+
+### Key Improvements:
+1. **Better Citation Handling**:
+   - Stores citations in a reference map as they appear
+   - Only removes REF tags when replacing them with superscript links
+   - Preserves citation numbers throughout the response
+
+2. **Stream Processing**:
+   - Handles citations in any chunk (not just the final one)
+   - Processes citations immediately when they appear
+   - Properly handles chunks that contain both content and citations
+
+3. **User Experience**:
+   - In-text references appear as superscript numbers ([1], [2])
+   - Citation section shows full source details
+   - Sources are numbered consistently throughout the response
+
+4. **Error Handling**:
+   - Added safe JSON parsing to handle malformed chunks
+   - More resilient citation extraction logic
+
+This solution should properly handle the citation format shown in your example stream, where citations appear in a separate chunk after the main content but before the [DONE] marker. The references in the text will now be properly preserved and linked to the sources in the citations section.
