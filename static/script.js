@@ -912,6 +912,12 @@ async function fetchChatResponse(messages, botMessage) {
                 }
 
                 try {
+                    // Skip processing if this looks like malformed citation data
+                    if (data.includes('"web_search_citations"') && data.includes('Unterminated string')) {
+                        console.log('Skipping malformed citation chunk');
+                        continue;
+                    }
+                    
                     const parsed = JSON.parse(data);
 
                     // Log important parts of the response for debugging
@@ -959,28 +965,33 @@ async function fetchChatResponse(messages, botMessage) {
                     if (parsed.venice_parameters) {
                         console.log('Found venice_parameters:', Object.keys(parsed.venice_parameters));
                         
-                        // Get citations if available
-                        const citationsInResponse = parsed.venice_parameters.web_search_citations;
-                        if (citationsInResponse && Array.isArray(citationsInResponse)) {
-                            console.log('Found web search citations:', citationsInResponse.length, 'items');
+                        // Check for web search citations
+                        if (parsed.venice_parameters.web_search_citations) {
+                            console.log('Processing web search citations...');
                             
-                            // Clean REF tags from content only after we have citations
-                            if (citationsInResponse.length > 0) {
-                                console.log('Cleaning REF tags from content');
-                                botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
+                            // Clean REF tags from content first
+                            botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
+                            
+                            // Simple citation extraction
+                            const citations = parsed.venice_parameters.web_search_citations;
+                            if (Array.isArray(citations) && citations.length > 0) {
+                                const processedCitations = [];
                                 
-                                // Process and validate citations
-                                const validCitations = citationsInResponse.map((citation, index) => {
-                                    return {
-                                        title: citation.title || `Search Result ${index + 1}`,
-                                        url: citation.url || '#',
-                                        content: citation.content || '',
-                                        published_date: citation.date || ''
-                                    };
+                                citations.forEach((citation, index) => {
+                                    if (citation && citation.title && citation.url) {
+                                        processedCitations.push({
+                                            title: citation.title,
+                                            url: citation.url,
+                                            content: citation.content || '',
+                                            published_date: citation.date || ''
+                                        });
+                                    }
                                 });
                                 
-                                lastCitations = validCitations;
-                                console.log('Processed', lastCitations.length, 'citations');
+                                if (processedCitations.length > 0) {
+                                    lastCitations = processedCitations;
+                                    console.log('Successfully processed', lastCitations.length, 'citations');
+                                }
                             }
                         }
 
@@ -1006,23 +1017,9 @@ async function fetchChatResponse(messages, botMessage) {
                     scrollToBottom();
                 } catch (e) {
                     if (data !== '[DONE]') {
-                        // Only log a portion of potentially large data to avoid console overflow
-                        const truncatedData = data.length > 500 ? data.substring(0, 500) + '...' : data;
-                        console.error('Error parsing chunk:', e, 'Data:', truncatedData);
-
-                        // Try to recover and continue - don't let a parsing error break the entire response
-                        if (data.includes('"content":')) {
-                            try {
-                                // Simple extraction of content if available
-                                const contentMatch = /"content":"([^"]*)"/.exec(data);
-                                if (contentMatch && contentMatch[1]) {
-                                    botContentBuffer += contentMatch[1];
-                                    botMessage.innerHTML = formatContent(botContentBuffer);
-                                }
-                            } catch (extractError) {
-                                // Silent fail for extraction attempt
-                            }
-                        }
+                        console.log('Skipping malformed JSON chunk:', e.message);
+                        // Simply skip malformed chunks and continue
+                        continue;
                     }
                 }
             }
