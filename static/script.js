@@ -912,7 +912,25 @@ async function fetchChatResponse(messages, botMessage) {
                 }
 
                 try {
-                    const parsed = JSON.parse(data);
+                    // Pre-process the JSON data to handle potential parsing issues
+                    let cleanData = data;
+                    
+                    // Handle cases where the data might have unescaped quotes or control characters
+                    if (data.includes('"web_search_citations"')) {
+                        try {
+                            // Try to clean up common JSON issues in citations
+                            cleanData = data
+                                .replace(/\\"/g, '\\"')  // Ensure quotes are properly escaped
+                                .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters
+                                .replace(/\n/g, '\\n')   // Escape newlines
+                                .replace(/\r/g, '\\r')   // Escape carriage returns
+                                .replace(/\t/g, '\\t');  // Escape tabs
+                        } catch (cleanError) {
+                            console.warn('Error cleaning data:', cleanError);
+                        }
+                    }
+                    
+                    const parsed = JSON.parse(cleanData);
 
                     // Log important parts of the response for debugging
                     if (parsed.error || parsed.venice_parameters) {
@@ -969,14 +987,34 @@ async function fetchChatResponse(messages, botMessage) {
                                 console.log('Cleaning REF tags from content');
                                 botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
                                 
-                                // Process and validate citations
-                                const validCitations = citationsInResponse.map((citation, index) => {
-                                    return {
-                                        title: citation.title || `Search Result ${index + 1}`,
-                                        url: citation.url || '#',
-                                        content: citation.content || '',
-                                        published_date: citation.date || ''
-                                    };
+                                // Process and validate citations with better error handling
+                                const validCitations = [];
+                                citationsInResponse.forEach((citation, index) => {
+                                    try {
+                                        // Safely extract citation data with fallbacks
+                                        const safeCitation = {
+                                            title: (citation.title && typeof citation.title === 'string') 
+                                                ? citation.title.replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
+                                                : `Search Result ${index + 1}`,
+                                            url: (citation.url && typeof citation.url === 'string') 
+                                                ? citation.url : '#',
+                                            content: (citation.content && typeof citation.content === 'string') 
+                                                ? citation.content.replace(/[\x00-\x1F\x7F-\x9F]/g, '').substring(0, 500) // Limit content length
+                                                : '',
+                                            published_date: (citation.date && typeof citation.date === 'string') 
+                                                ? citation.date : ''
+                                        };
+                                        validCitations.push(safeCitation);
+                                    } catch (citationError) {
+                                        console.warn('Error processing citation:', citationError, citation);
+                                        // Add a fallback citation
+                                        validCitations.push({
+                                            title: `Search Result ${index + 1}`,
+                                            url: '#',
+                                            content: '',
+                                            published_date: ''
+                                        });
+                                    }
                                 });
                                 
                                 lastCitations = validCitations;
@@ -1008,7 +1046,8 @@ async function fetchChatResponse(messages, botMessage) {
                     if (data !== '[DONE]') {
                         // Only log a portion of potentially large data to avoid console overflow
                         const truncatedData = data.length > 500 ? data.substring(0, 500) + '...' : data;
-                        console.error('Error parsing chunk:', e, 'Data:', truncatedData);
+                        console.error('Error parsing chunk:', e.message, 'Position:', e.message.match(/position (\d+)/)?.[1] || 'unknown');
+                        console.error('Problematic data snippet:', truncatedData);
 
                         // Try to recover and continue - don't let a parsing error break the entire response
                         if (data.includes('"content":')) {
@@ -1016,11 +1055,43 @@ async function fetchChatResponse(messages, botMessage) {
                                 // Simple extraction of content if available
                                 const contentMatch = /"content":"([^"]*)"/.exec(data);
                                 if (contentMatch && contentMatch[1]) {
-                                    botContentBuffer += contentMatch[1];
+                                    // Unescape the content properly
+                                    const content = contentMatch[1]
+                                        .replace(/\\"/g, '"')
+                                        .replace(/\\n/g, '\n')
+                                        .replace(/\\r/g, '\r')
+                                        .replace(/\\t/g, '\t')
+                                        .replace(/\\\\/g, '\\');
+                                    botContentBuffer += content;
                                     botMessage.innerHTML = formatContent(botContentBuffer);
                                 }
                             } catch (extractError) {
-                                // Silent fail for extraction attempt
+                                console.warn('Content extraction failed:', extractError.message);
+                            }
+                        }
+                        
+                        // If this looks like a citation chunk that failed to parse, try to extract citations manually
+                        if (data.includes('web_search_citations') && !lastCitations) {
+                            console.log('Attempting manual citation extraction from malformed JSON');
+                            try {
+                                // Simple fallback citation extraction
+                                const citationMatches = data.match(/"title":"([^"]*)".*?"url":"([^"]*)"/g);
+                                if (citationMatches && citationMatches.length > 0) {
+                                    const fallbackCitations = citationMatches.map((match, index) => {
+                                        const titleMatch = match.match(/"title":"([^"]*)"/);
+                                        const urlMatch = match.match(/"url":"([^"]*)"/);
+                                        return {
+                                            title: titleMatch ? titleMatch[1] : `Search Result ${index + 1}`,
+                                            url: urlMatch ? urlMatch[1] : '#',
+                                            content: '',
+                                            published_date: ''
+                                        };
+                                    });
+                                    lastCitations = fallbackCitations;
+                                    console.log('Extracted', lastCitations.length, 'citations via fallback method');
+                                }
+                            } catch (fallbackError) {
+                                console.warn('Fallback citation extraction failed:', fallbackError.message);
                             }
                         }
                     }
