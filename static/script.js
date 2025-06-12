@@ -933,6 +933,7 @@ async function fetchChatResponse(messages, botMessage) {
                     // Handle the new citations format - they come in a complete chunk
                     if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
                         const citationsInResponse = parsed.venice_parameters.web_search_citations;
+                        console.log('Citations found in response:', citationsInResponse.length);
                         
                         // Process valid citations
                         if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
@@ -944,9 +945,15 @@ async function fetchChatResponse(messages, botMessage) {
                             }));
                             
                             lastCitations = validCitations;
+                            console.log('Processed citations:', lastCitations.length);
                             
                             // Clean REF tags from content
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
+                            
+                            // Immediately update the message with citations
+                            let updatedContent = formatContent(botContentBuffer);
+                            botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
+                            console.log('Citations displayed immediately');
                         }
                     }
 
