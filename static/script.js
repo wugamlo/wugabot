@@ -911,100 +911,118 @@ async function fetchChatResponse(messages, botMessage) {
                     return;
                 }
 
-                // Check if this chunk contains citation data
-                if (data.includes('"web_search_citations"')) {
-                    console.log('🔍 Found citation data in chunk');
-                    
-                    // IMMEDIATELY show the raw data in chat interface for easy inspection
-                    const rawDataMessage = `🔍 CITATION CHUNK DETECTED:\n\nLength: ${data.length} chars\n\nFirst 500 chars:\n${data.substring(0, 500)}\n\nLast 500 chars:\n${data.substring(Math.max(0, data.length - 500))}\n\nCharacter at position 4084: "${data.charAt(4084)}" (code: ${data.charCodeAt(4084)})`;
-                    appendMessage(rawDataMessage, 'system');
-                    
-                    // Store the problematic data for inspection
-                    window.problematicCitationData = data;
-                    
-                    try {
-                        const parsed = JSON.parse(data);
-                        
-                        if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
-                            const citations = parsed.venice_parameters.web_search_citations;
-                            console.log('Found citations:', citations.length);
-                            
-                            if (Array.isArray(citations) && citations.length > 0) {
-                                lastCitations = citations
-                                    .filter(citation => citation.title && citation.url)
-                                    .map(citation => ({
-                                        title: citation.title,
-                                        url: citation.url
-                                    }));
-                                
-                                console.log('Successfully processed citations:', lastCitations.length);
-                                appendMessage(`✅ Successfully parsed ${lastCitations.length} citations!`, 'system');
-                            }
-                        }
-                    } catch (parseError) {
-                        console.error('JSON parse failed:', parseError.message);
-                        
-                        // IMMEDIATELY show the parsing error in chat
-                        const errorPos = parseError.message.match(/position (\d+)/)?.[1] || 'unknown';
-                        let errorMessage = `❌ JSON PARSING FAILED!\n\nError: ${parseError.message}\nPosition: ${errorPos}\n\n`;
-                        
-                        if (errorPos !== 'unknown') {
-                            const pos = parseInt(errorPos);
-                            const start = Math.max(0, pos - 50);
-                            const end = Math.min(data.length, pos + 50);
-                            
-                            errorMessage += `Context around error (position ${pos}):\n`;
-                            errorMessage += `"${data.substring(start, end)}"\n\n`;
-                            
-                            errorMessage += `Character at error position: "${data.charAt(pos)}" (code: ${data.charCodeAt(pos)})\n\n`;
-                        }
-                        
-                        errorMessage += `Data sample around position 4000-4200:\n"${data.substring(4000, 4200)}"`;
-                        
-                        appendMessage(errorMessage, 'system');
-                    }
-                }
-
-                // Try to parse JSON for other content
                 try {
                     const parsed = JSON.parse(data);
 
-                    // Handle content from streaming
+                    // Log important parts of the response for debugging
+                    if (parsed.error || parsed.venice_parameters) {
+                        // Only log a portion of potentially very large responses to avoid console errors
+                        const truncatedResponse = {...parsed};
+                        if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
+                            truncatedResponse.venice_parameters = {
+                                ...parsed.venice_parameters,
+                                web_search_citations: parsed.venice_parameters.web_search_citations.slice(0, 2)
+                            };
+                        }
+                        console.log('Parsed response chunk:', truncatedResponse);
+                    }
+
+                    // Handle errors
+                    if (parsed.error) {
+                        appendMessage(`Error: ${parsed.error}`, 'error');
+                        showLoading(false);
+                        return;
+                    }
+
+                    // Handle content from different parts of the response
                     if (parsed.content) {
                         botContentBuffer += parsed.content;
                     }
 
-                    // Handle delta content
+                    // Handle delta if present (for streaming responses)
                     if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
                         const delta = parsed.choices[0].delta;
+
+                        // Append content from delta
                         if (delta.content) {
                             botContentBuffer += delta.content;
                         }
+
+                        // Check for reasoning content
                         if (delta.reasoning_content) {
                             reasoningContent = reasoningContent || '';
                             reasoningContent += delta.reasoning_content;
                         }
                     }
 
-                    // Handle reasoning content
-                    if (parsed.reasoning_content) {
-                        reasoningContent = parsed.reasoning_content;
+                    // Handle citations and other venice parameters
+                    if (parsed.venice_parameters) {
+                        console.log('Found venice_parameters:', Object.keys(parsed.venice_parameters));
+                        
+                        // Get citations if available
+                        const citationsInResponse = parsed.venice_parameters.web_search_citations;
+                        if (citationsInResponse && Array.isArray(citationsInResponse)) {
+                            console.log('Found web search citations:', citationsInResponse.length, 'items');
+                            
+                            // Clean REF tags from content only after we have citations
+                            if (citationsInResponse.length > 0) {
+                                console.log('Cleaning REF tags from content');
+                                botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
+                                
+                                // Process and validate citations
+                                const validCitations = citationsInResponse.map((citation, index) => {
+                                    return {
+                                        title: citation.title || `Search Result ${index + 1}`,
+                                        url: citation.url || '#',
+                                        content: citation.content || '',
+                                        published_date: citation.date || ''
+                                    };
+                                });
+                                
+                                lastCitations = validCitations;
+                                console.log('Processed', lastCitations.length, 'citations');
+                            }
+                        }
+
+                        // Check for reasoning content in venice_parameters
+                        if (parsed.venice_parameters.reasoning_content) {
+                            reasoningContent = parsed.venice_parameters.reasoning_content;
+                        }
                     }
 
-                    // Update display
+                    // Update the message with all available content
                     let updatedContent = formatContent(botContentBuffer);
+
+                    // Add reasoning content if available and not already in the content
                     if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
                         updatedContent = updatedContent + 
                             `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
                     }
+
+                    // Update display (citations will be added at the end)
                     botMessage.innerHTML = updatedContent;
 
                     Prism.highlightAll();
                     scrollToBottom();
                 } catch (e) {
-                    // Skip malformed JSON but continue processing
                     if (data !== '[DONE]') {
-                        continue;
+                        // Only log a portion of potentially large data to avoid console overflow
+                        const truncatedData = data.length > 500 ? data.substring(0, 500) + '...' : data;
+                        console.error('Error parsing chunk:', e, 'Data:', truncatedData);
+
+                        // Try to recover and continue - don't let a parsing error break the entire response
+                        if (data.includes('"content":')) {
+                            try {
+                                // Simple extraction of content if available
+                                const contentMatch = /"content":"([^"]*)"/.exec(data);
+                                if (contentMatch && contentMatch[1]) {
+                                    botContentBuffer += contentMatch[1];
+                                    botMessage.innerHTML = formatContent(botContentBuffer);
+                                }
+                            } catch (extractError) {
+                                // Silent fail for extraction attempt
+                            }
+                        }
                     }
                 }
             }
@@ -1031,7 +1049,7 @@ async function fetchChatResponse(messages, botMessage) {
 }
 
 function formatCitations(citations) {
-    if (!citations || !citations.length) return '';
+    if (!citations || !citations.length || citations.every(c => !c.title && !c.url)) return '';
 
     console.log('Formatting citations:', citations);
     let citationsHtml = '\n\n<div class="citations-section">';
@@ -1040,14 +1058,18 @@ function formatCitations(citations) {
         <span class="toggle-icon"></span>
     </div><div class="citations-content">`;
     citations.forEach((citation, index) => {
-        citationsHtml += `
-            <div class="citation-item">
-                <div class="citation-number">[${index + 1}]</div>
-                <div class="citation-content">
-                    <a href="${citation.url}" class="citation-title" target="_blank">${citation.title}</a>
-                    <div class="citation-url">${citation.url}</div>
-                </div>
-            </div>`;
+        if (citation.title && citation.url) {
+            citationsHtml += `
+                <div class="citation-item">
+                    <div class="citation-number">[${index + 1}]</div>
+                    <div class="citation-content">
+                        <a href="${citation.url}" class="citation-title" target="_blank">${citation.title}</a>
+                        ${citation.content ? `<div class="citation-snippet">${citation.content}</div>` : ''}
+                        <div class="citation-url">${citation.url}</div>
+                        ${citation.published_date ? `<div class="citation-date">Published: ${citation.published_date}</div>` : ''}
+                    </div>
+                </div>`;
+        }
     });
     citationsHtml += '</div></div>';
     return citationsHtml;
@@ -1734,108 +1756,6 @@ function displayFullChatHistory() {
 
 // Add to window object for global access
 window.displayFullChatHistory = displayFullChatHistory;
-
-/**
- * Debug utility: Shows the citation error data that was captured
- * Displays the problematic JSON chunk and error details for inspection
- */
-function showCitationError() {
-    console.log('=== CITATION ERROR DEBUGGING ===');
-    
-    if (window.problematicCitationData) {
-        console.log('🔍 Problematic citation data found:');
-        console.log('Length:', window.problematicCitationData.length);
-        console.log('Full data:', window.problematicCitationData);
-        
-        // Try to find the error position
-        try {
-            JSON.parse(window.problematicCitationData);
-        } catch (e) {
-            const positionMatch = e.message.match(/position (\d+)/);
-            if (positionMatch) {
-                const errorPos = parseInt(positionMatch[1]);
-                console.log('❌ Error at position:', errorPos);
-                console.log('Character at error:', JSON.stringify(window.problematicCitationData.charAt(errorPos)));
-                console.log('Character code:', window.problematicCitationData.charCodeAt(errorPos));
-                
-                // Show context around error
-                const start = Math.max(0, errorPos - 50);
-                const end = Math.min(window.problematicCitationData.length, errorPos + 50);
-                console.log('Context around error:');
-                console.log(window.problematicCitationData.substring(start, end));
-            }
-        }
-        
-        // Also display in chat for easy viewing
-        const errorData = window.problematicCitationData;
-        let displayText = `📋 CITATION ERROR DATA 📋\n\n`;
-        displayText += `Length: ${errorData.length} characters\n`;
-        displayText += `Contains "web_search_citations": ${errorData.includes('"web_search_citations"')}\n\n`;
-        displayText += `First 500 characters:\n${errorData.substring(0, 500)}\n\n`;
-        displayText += `Last 500 characters:\n${errorData.substring(Math.max(0, errorData.length - 500))}\n\n`;
-        displayText += `Character at position 4084: "${errorData.charAt(4084)}" (code: ${errorData.charCodeAt(4084)})\n`;
-        
-        appendMessage(displayText, 'system');
-    } else {
-        console.log('❌ No problematic citation data found');
-        appendMessage('No citation error data captured yet. Try asking a web search question first.', 'system');
-    }
-    
-    if (window.lastCitationChunks) {
-        console.log('📝 Last citation chunks:', window.lastCitationChunks);
-    }
-}
-
-/**
- * Store citation chunks for debugging
- */
-window.lastCitationChunks = [];
-
-// Add to window object for global access
-window.showCitationError = showCitationError;
-
-/**
- * Automatically shows citation error data when detected
- */
-function displayCitationErrorInChat() {
-    if (window.problematicCitationData) {
-        const errorData = window.problematicCitationData;
-        
-        // Create a detailed error message for the chat
-        let errorMessage = "🚨 CITATION PARSING ERROR DETECTED 🚨\n\n";
-        errorMessage += `Data length: ${errorData.length} characters\n`;
-        errorMessage += `Error at position 4084\n\n`;
-        
-        // Show the problematic character
-        errorMessage += `Character at position 4084: "${errorData.charAt(4084)}"\n`;
-        errorMessage += `Character code: ${errorData.charCodeAt(4084)}\n\n`;
-        
-        // Show context around the error
-        errorMessage += "Context around position 4084:\n";
-        const start = Math.max(0, 4080);
-        const end = Math.min(errorData.length, 4090);
-        for (let i = start; i < end; i++) {
-            const char = errorData.charAt(i);
-            const marker = i === 4084 ? " <-- ERROR" : "";
-            errorMessage += `${i}: "${char}" (${errorData.charCodeAt(i)})${marker}\n`;
-        }
-        
-        errorMessage += "\n--- RAW DATA SAMPLE ---\n";
-        errorMessage += `First 200 chars: ${errorData.substring(0, 200)}\n\n`;
-        errorMessage += `Around error (4000-4200): ${errorData.substring(4000, 4200)}\n\n`;
-        errorMessage += `Last 200 chars: ${errorData.substring(Math.max(0, errorData.length - 200))}`;
-        
-        // Display in chat
-        appendMessage(errorMessage, 'system');
-        
-        console.log("📋 Citation error data displayed in chat interface");
-        return true;
-    }
-    return false;
-}
-
-// Add to window object for global access
-window.displayCitationErrorInChat = displayCitationErrorInChat;
 
 /**
  * Toggles the model information popup window
