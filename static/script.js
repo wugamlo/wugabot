@@ -914,9 +914,14 @@ async function fetchChatResponse(messages, botMessage) {
                 // Check if this chunk contains citation data
                 if (data.includes('"web_search_citations"')) {
                     console.log('Found citation data in chunk');
-                    console.log('Raw chunk data (first 200 chars):', data.substring(0, 200));
-                    console.log('Raw chunk data (last 200 chars):', data.substring(Math.max(0, data.length - 200)));
+                    console.log('Raw chunk data (first 500 chars):', data.substring(0, 500));
+                    console.log('Raw chunk data (last 500 chars):', data.substring(Math.max(0, data.length - 500)));
                     console.log('Full chunk length:', data.length);
+                    
+                    // Log the ENTIRE chunk for inspection
+                    console.log('=== FULL CHUNK DATA START ===');
+                    console.log(data);
+                    console.log('=== FULL CHUNK DATA END ===');
                     
                     try {
                         const parsed = JSON.parse(data);
@@ -944,12 +949,22 @@ async function fetchChatResponse(messages, botMessage) {
                         const positionMatch = parseError.message.match(/position (\d+)/);
                         if (positionMatch) {
                             const errorPos = parseInt(positionMatch[1]);
-                            const start = Math.max(0, errorPos - 50);
-                            const end = Math.min(data.length, errorPos + 50);
-                            console.error('Context around error position:');
-                            console.error('Before error:', JSON.stringify(data.substring(start, errorPos)));
-                            console.error('At error pos:', JSON.stringify(data.charAt(errorPos)));
-                            console.error('After error:', JSON.stringify(data.substring(errorPos + 1, end)));
+                            const start = Math.max(0, errorPos - 100);
+                            const end = Math.min(data.length, errorPos + 100);
+                            
+                            console.error('=== ERROR CONTEXT ANALYSIS ===');
+                            console.error('Error position:', errorPos);
+                            console.error('Before error (100 chars):', JSON.stringify(data.substring(start, errorPos)));
+                            console.error('Character at error position:', JSON.stringify(data.charAt(errorPos)));
+                            console.error('Character code at error:', data.charCodeAt(errorPos));
+                            console.error('After error (100 chars):', JSON.stringify(data.substring(errorPos + 1, end)));
+                            
+                            // Show a larger context window
+                            console.error('=== LARGE CONTEXT WINDOW (500 chars) ===');
+                            const largeStart = Math.max(0, errorPos - 250);
+                            const largeEnd = Math.min(data.length, errorPos + 250);
+                            console.error(data.substring(largeStart, largeEnd));
+                            console.error('=== END CONTEXT WINDOW ===');
                         }
                         
                         // Log the full problematic data for debugging
