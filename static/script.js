@@ -913,10 +913,14 @@ async function fetchChatResponse(messages, botMessage) {
 
                 // Check if this chunk contains citation data
                 if (data.includes('"web_search_citations"')) {
-                    console.log('Found citation data in chunk');
-                    console.log('Raw chunk data (first 500 chars):', data.substring(0, 500));
-                    console.log('Raw chunk data (last 500 chars):', data.substring(Math.max(0, data.length - 500)));
-                    console.log('Full chunk length:', data.length);
+                    console.log('🔍 Found citation data in chunk');
+                    console.log('🔍 Raw chunk data (first 500 chars):', data.substring(0, 500));
+                    console.log('🔍 Raw chunk data (last 500 chars):', data.substring(Math.max(0, data.length - 500)));
+                    console.log('🔍 Full chunk length:', data.length);
+                    
+                    // Store the problematic data IMMEDIATELY for inspection
+                    window.problematicCitationData = data;
+                    console.log('🔍 Data stored in window.problematicCitationData for inspection');
                     
                     // Log the ENTIRE chunk for inspection - BEFORE any parsing attempts
                     console.log('=== FULL CHUNK DATA START ===');
@@ -955,11 +959,14 @@ async function fetchChatResponse(messages, botMessage) {
                         console.error('JSON parse failed:', parseError.message);
                         console.error('Parse error at position:', parseError.message.match(/position (\d+)/)?.[1]);
                         
-                        // CRITICAL: Log the EXACT problematic data segment
-                        console.error('=== CRITICAL ERROR DATA ===');
-                        console.error('Error occurred in this data chunk:');
+                        // CRITICAL: Log the EXACT problematic data segment with maximum visibility
+                        console.error('🚨🚨🚨 CRITICAL ERROR DATA START 🚨🚨🚨');
+                        console.error('JSON parsing failed for this exact chunk:');
                         console.error(data);
-                        console.error('=== END CRITICAL ERROR DATA ===');
+                        console.error('🚨🚨🚨 CRITICAL ERROR DATA END 🚨🚨🚨');
+                        
+                        // Also log as a warning to increase visibility
+                        console.warn('🚨 PROBLEMATIC JSON CHUNK 🚨', data);
                         
                         // Show the problematic area around the error position
                         const positionMatch = parseError.message.match(/position (\d+)/);
@@ -984,7 +991,16 @@ async function fetchChatResponse(messages, botMessage) {
                             
                             // Also save this data to the global window object for manual inspection
                             window.problematicJsonData = data;
-                            console.error('Data saved to window.problematicJsonData for manual inspection');
+                            console.error('🔧 Data saved to window.problematicJsonData for manual inspection');
+                            
+                            // Try to show a more detailed breakdown
+                            console.error('🔧 Character breakdown around error:');
+                            for (let i = Math.max(0, errorPos - 5); i <= Math.min(data.length - 1, errorPos + 5); i++) {
+                                const char = data.charAt(i);
+                                const code = data.charCodeAt(i);
+                                const marker = i === errorPos ? ' <-- ERROR HERE' : '';
+                                console.error(`Position ${i}: "${char}" (code: ${code})${marker}`);
+                            }
                         }
                         
                         // Log the full problematic data for debugging
