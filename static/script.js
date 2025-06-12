@@ -915,44 +915,12 @@ async function fetchChatResponse(messages, botMessage) {
                 if (data.includes('"web_search_citations"')) {
                     console.log('🔍 Found citation data in chunk');
                     
-                    // IMMEDIATELY log the full raw data to console
-                    console.log('🚨 RAW CITATION CHUNK (FULL DATA):');
-                    console.log(data);
-                    console.log('🚨 END RAW CITATION CHUNK');
+                    // IMMEDIATELY show the raw data in chat interface for easy inspection
+                    const rawDataMessage = `🔍 CITATION CHUNK DETECTED:\n\nLength: ${data.length} chars\n\nFirst 500 chars:\n${data.substring(0, 500)}\n\nLast 500 chars:\n${data.substring(Math.max(0, data.length - 500))}\n\nCharacter at position 4084: "${data.charAt(4084)}" (code: ${data.charCodeAt(4084)})`;
+                    appendMessage(rawDataMessage, 'system');
                     
-                    // Log character-by-character around position 4084
-                    console.log('🔍 Characters around position 4084:');
-                    for (let i = 4080; i <= 4090; i++) {
-                        if (i < data.length) {
-                            const char = data.charAt(i);
-                            const code = data.charCodeAt(i);
-                            const marker = i === 4084 ? ' <-- POSITION 4084' : '';
-                            console.log(`Position ${i}: "${char}" (code: ${code})${marker}`);
-                        }
-                    }
-                    
-                    // Store the problematic data IMMEDIATELY for inspection
+                    // Store the problematic data for inspection
                     window.problematicCitationData = data;
-                    console.log('🔍 Data stored in window.problematicCitationData for inspection');
-                    
-                    // Also store in the chunks array for debugging
-                    if (!window.lastCitationChunks) window.lastCitationChunks = [];
-                    window.lastCitationChunks.push({
-                        timestamp: new Date().toISOString(),
-                        length: data.length,
-                        data: data
-                    });
-                    console.log('🔍 Added to citation chunks array, total:', window.lastCitationChunks.length);
-                    
-                    // Also log it as a more readable table format
-                    console.table([{
-                        'Data Length': data.length,
-                        'First 100 chars': data.substring(0, 100),
-                        'Last 100 chars': data.substring(Math.max(0, data.length - 100)),
-                        'Contains web_search_citations': data.includes('"web_search_citations"'),
-                        'Character at position 4084': data.charAt(4084) || 'N/A',
-                        'Character code at 4084': data.charCodeAt(4084) || 'N/A'
-                    }]);
                     
                     try {
                         const parsed = JSON.parse(data);
@@ -970,61 +938,30 @@ async function fetchChatResponse(messages, botMessage) {
                                     }));
                                 
                                 console.log('Successfully processed citations:', lastCitations.length);
+                                appendMessage(`✅ Successfully parsed ${lastCitations.length} citations!`, 'system');
                             }
                         }
                     } catch (parseError) {
                         console.error('JSON parse failed:', parseError.message);
-                        console.error('Parse error at position:', parseError.message.match(/position (\d+)/)?.[1]);
                         
-                        // CRITICAL: Log the EXACT problematic data segment with maximum visibility
-                        console.error('🚨🚨🚨 CRITICAL ERROR DATA START 🚨🚨🚨');
-                        console.error('JSON parsing failed for this exact chunk:');
-                        console.error(data);
-                        console.error('🚨🚨🚨 CRITICAL ERROR DATA END 🚨🚨🚨');
+                        // IMMEDIATELY show the parsing error in chat
+                        const errorPos = parseError.message.match(/position (\d+)/)?.[1] || 'unknown';
+                        let errorMessage = `❌ JSON PARSING FAILED!\n\nError: ${parseError.message}\nPosition: ${errorPos}\n\n`;
                         
-                        // AUTOMATICALLY display the error data in the chat interface
-                        displayCitationErrorInChat();
-                        
-                        // Also log as a warning to increase visibility
-                        console.warn('🚨 PROBLEMATIC JSON CHUNK 🚨', data);
-                        
-                        // Show the problematic area around the error position
-                        const positionMatch = parseError.message.match(/position (\d+)/);
-                        if (positionMatch) {
-                            const errorPos = parseInt(positionMatch[1]);
-                            const start = Math.max(0, errorPos - 100);
-                            const end = Math.min(data.length, errorPos + 100);
+                        if (errorPos !== 'unknown') {
+                            const pos = parseInt(errorPos);
+                            const start = Math.max(0, pos - 50);
+                            const end = Math.min(data.length, pos + 50);
                             
-                            console.error('=== ERROR CONTEXT ANALYSIS ===');
-                            console.error('Error position:', errorPos);
-                            console.error('Before error (100 chars):', JSON.stringify(data.substring(start, errorPos)));
-                            console.error('Character at error position:', JSON.stringify(data.charAt(errorPos)));
-                            console.error('Character code at error:', data.charCodeAt(errorPos));
-                            console.error('After error (100 chars):', JSON.stringify(data.substring(errorPos + 1, end)));
+                            errorMessage += `Context around error (position ${pos}):\n`;
+                            errorMessage += `"${data.substring(start, end)}"\n\n`;
                             
-                            // Show a larger context window
-                            console.error('=== LARGE CONTEXT WINDOW (500 chars) ===');
-                            const largeStart = Math.max(0, errorPos - 250);
-                            const largeEnd = Math.min(data.length, errorPos + 250);
-                            console.error(data.substring(largeStart, largeEnd));
-                            console.error('=== END CONTEXT WINDOW ===');
-                            
-                            // Also save this data to the global window object for manual inspection
-                            window.problematicJsonData = data;
-                            console.error('🔧 Data saved to window.problematicJsonData for manual inspection');
-                            
-                            // Try to show a more detailed breakdown
-                            console.error('🔧 Character breakdown around error:');
-                            for (let i = Math.max(0, errorPos - 5); i <= Math.min(data.length - 1, errorPos + 5); i++) {
-                                const char = data.charAt(i);
-                                const code = data.charCodeAt(i);
-                                const marker = i === errorPos ? ' <-- ERROR HERE' : '';
-                                console.error(`Position ${i}: "${char}" (code: ${code})${marker}`);
-                            }
+                            errorMessage += `Character at error position: "${data.charAt(pos)}" (code: ${data.charCodeAt(pos)})\n\n`;
                         }
                         
-                        // Log the full problematic data for debugging
-                        console.error('Full problematic chunk:', data);
+                        errorMessage += `Data sample around position 4000-4200:\n"${data.substring(4000, 4200)}"`;
+                        
+                        appendMessage(errorMessage, 'system');
                     }
                 }
 
