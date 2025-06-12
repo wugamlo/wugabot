@@ -165,23 +165,41 @@ def chat_stream():
                         logger.info(f"=== VENICE PARAMETERS FOUND ===")
                         logger.info(f"Venice parameters keys: {list(json_data['venice_parameters'].keys())}")
                         
-                        # Log citation data specifically
+                        # Handle citations separately to ensure proper JSON formatting
                         if 'web_search_citations' in json_data['venice_parameters']:
                             citations = json_data['venice_parameters']['web_search_citations']
                             logger.info(f"=== CITATIONS DATA ===")
                             logger.info(f"Citations type: {type(citations)}")
                             logger.info(f"Citations length: {len(citations) if isinstance(citations, list) else 'Not a list'}")
                             
-                            if isinstance(citations, list):
-                                for i, citation in enumerate(citations):
+                            if isinstance(citations, list) and len(citations) > 0:
+                                # Send citations as a separate, well-formed JSON chunk
+                                try:
+                                    citations_chunk = {
+                                        "venice_parameters": {
+                                            "web_search_citations": citations
+                                        }
+                                    }
+                                    citations_json = json.dumps(citations_chunk)
+                                    logger.info(f"Sending {len(citations)} citations to frontend")
+                                    yield f"data: {citations_json}\n\n"
+                                except Exception as citation_error:
+                                    logger.error(f"Error formatting citations: {citation_error}")
+                                
+                                # Log first few citations for debugging
+                                for i, citation in enumerate(citations[:3]):
                                     logger.info(f"Citation [{i}]: {json.dumps(citation, indent=2)}")
                             else:
-                                logger.info(f"Citations data (not a list): {citations}")
-                        else:
-                            logger.info("No web_search_citations found in venice_parameters")
+                                logger.info("No valid citations to send")
                         
-                        logger.debug(f"Full venice_parameters: {json.dumps(json_data['venice_parameters'], indent=2)}")
-                        yield f"data: {json.dumps(json_data)}\n\n"
+                        # Send other venice_parameters without citations to avoid duplication
+                        other_params = {k: v for k, v in json_data['venice_parameters'].items() 
+                                      if k != 'web_search_citations'}
+                        if other_params:
+                            other_chunk = {
+                                "venice_parameters": other_params
+                            }
+                            yield f"data: {json.dumps(other_chunk)}\n\n"
 
                     # Process content and reasoning_content if present
                     if 'content' in json_data:
@@ -209,20 +227,38 @@ def chat_stream():
                             logger.info(f"=== DELTA VENICE PARAMETERS ===")
                             logger.info(f"Delta venice parameters keys: {list(delta['venice_parameters'].keys())}")
                             
+                            # Handle delta citations separately
                             if 'web_search_citations' in delta['venice_parameters']:
                                 citations = delta['venice_parameters']['web_search_citations']
                                 logger.info(f"=== DELTA CITATIONS DATA ===")
                                 logger.info(f"Delta citations type: {type(citations)}")
                                 logger.info(f"Delta citations length: {len(citations) if isinstance(citations, list) else 'Not a list'}")
                                 
-                                if isinstance(citations, list):
-                                    for i, citation in enumerate(citations):
+                                if isinstance(citations, list) and len(citations) > 0:
+                                    # Send delta citations as separate chunk
+                                    try:
+                                        delta_citations_chunk = {
+                                            "venice_parameters": {
+                                                "web_search_citations": citations
+                                            }
+                                        }
+                                        delta_citations_json = json.dumps(delta_citations_chunk)
+                                        logger.info(f"Sending {len(citations)} delta citations to frontend")
+                                        yield f"data: {delta_citations_json}\n\n"
+                                    except Exception as delta_citation_error:
+                                        logger.error(f"Error formatting delta citations: {delta_citation_error}")
+                                    
+                                    # Log first few delta citations
+                                    for i, citation in enumerate(citations[:3]):
                                         logger.info(f"Delta Citation [{i}]: {json.dumps(citation, indent=2)}")
-                                else:
-                                    logger.info(f"Delta citations data (not a list): {citations}")
                             
-                            logger.debug(f"Full delta venice_parameters: {json.dumps(delta['venice_parameters'], indent=2)}")
-                            yield f"data: {json.dumps(json_data)}\n\n"
+                            # Send other delta venice_parameters without citations
+                            other_delta_params = {k: v for k, v in delta['venice_parameters'].items() 
+                                                if k != 'web_search_citations'}
+                            if other_delta_params:
+                                other_delta_chunk = json_data.copy()
+                                other_delta_chunk['choices'][0]['delta']['venice_parameters'] = other_delta_params
+                                yield f"data: {json.dumps(other_delta_chunk)}\n\n"
 
                 except json.JSONDecodeError as e:
                     logger.warning(f"JSON decode error: {str(e)}, data: {data[:100]}...")
