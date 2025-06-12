@@ -861,9 +861,13 @@ async function fetchChatResponse(messages, botMessage) {
 
                 if (data === '[DONE]') {
                     // Final check to ensure all content is displayed before completing
+                    const finalContent = formatContent(botContentBuffer);
                     if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
-                        const finalContent = formatContent(botContentBuffer);
                         botMessage.innerHTML = finalContent + formatCitations(lastCitations);
+                        console.log('Citations displayed in final content');
+                    } else {
+                        botMessage.innerHTML = finalContent;
+                        console.log('No citations to display in final content');
                     }
 
                     showLoading(false);
@@ -902,49 +906,42 @@ async function fetchChatResponse(messages, botMessage) {
                 try {
                     let parsed;
                     
-                    // Special handling for citation data which often contains problematic JSON
-                    if (data.includes('web_search_citations')) {
-                        try {
-                            // Try to extract and safely parse just the citations part
-                            const citationsMatch = data.match(/"web_search_citations":\s*(\[.*?\])/s);
-                            if (citationsMatch) {
-                                const citationsJson = citationsMatch[1];
-                                // Clean the citations JSON more aggressively
-                                const cleanedCitations = citationsJson
-                                    .replace(/\\n/g, ' ')
-                                    .replace(/\\r/g, ' ')
-                                    .replace(/\\t/g, ' ')
-                                    .replace(/[\x00-\x1F\x7F]/g, ' ')  // Remove control characters
-                                    .replace(/\\"/g, '"')  // Unescape quotes
-                                    .replace(/\\\\/g, '\\');  // Fix double backslashes
-                                
-                                // Try to parse the cleaned citations
-                                const citations = JSON.parse(cleanedCitations);
-                                
-                                // Create a minimal parsed object with just the citations
-                                parsed = {
-                                    venice_parameters: {
-                                        web_search_citations: citations
-                                    }
-                                };
-                                console.log('Successfully extracted citations from problematic JSON');
-                            } else {
-                                // Fallback: try parsing the whole thing with basic cleaning
-                                const basicClean = data
-                                    .replace(/[\x00-\x1F\x7F]/g, ' ')
-                                    .replace(/\\n/g, ' ')
-                                    .replace(/\\r/g, ' ');
-                                parsed = JSON.parse(basicClean);
-                            }
-                        } catch (citationError) {
-                            console.warn('Citation-specific parsing failed, trying basic parse:', citationError.message);
-                            // Last resort: basic cleaning and parse
-                            const basicClean = data.replace(/[\x00-\x1F\x7F]/g, ' ');
-                            parsed = JSON.parse(basicClean);
-                        }
-                    } else {
-                        // Normal parsing for non-citation data
+                    // Try normal JSON parsing first, with fallback for citation data
+                    try {
                         parsed = JSON.parse(data);
+                    } catch (basicParseError) {
+                        // Special handling for citation data which often contains problematic JSON
+                        if (data.includes('web_search_citations')) {
+                            console.log('Attempting citation-specific parsing...');
+                            try {
+                                // More targeted citation extraction
+                                const citationsMatch = data.match(/"web_search_citations":\s*(\[[\s\S]*?\])/);
+                                if (citationsMatch) {
+                                    // Try to fix common JSON issues in citations
+                                    let cleanCitationsJson = citationsMatch[1]
+                                        .replace(/\\n/g, ' ')
+                                        .replace(/\\r/g, ' ')
+                                        .replace(/\\t/g, ' ')
+                                        .replace(/\\\\/g, '\\')
+                                        .replace(/\\"/g, '"');
+                                    
+                                    const citations = JSON.parse(cleanCitationsJson);
+                                    parsed = {
+                                        venice_parameters: {
+                                            web_search_citations: citations
+                                        }
+                                    };
+                                    console.log('Successfully extracted citations');
+                                } else {
+                                    throw new Error('No citations found in problematic JSON');
+                                }
+                            } catch (citationError) {
+                                console.warn('Citation extraction failed:', citationError.message);
+                                throw basicParseError; // Re-throw original error
+                            }
+                        } else {
+                            throw basicParseError; // Re-throw original error
+                        }
                     }
 
                     // Handle errors
@@ -1010,6 +1007,7 @@ async function fetchChatResponse(messages, botMessage) {
                             
                             lastCitations = validCitations;
                             console.log('Processed citations:', lastCitations.length);
+                            console.log('Citation titles:', lastCitations.map(c => c.title));
                             
                             // Clean REF tags from content
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
