@@ -860,12 +860,24 @@ async function fetchChatResponse(messages, botMessage) {
                 if (!data) continue;
 
                 if (data === '[DONE]') {
-                    // Final check to ensure all content is displayed before completing
-                    if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
-                        const finalContent = formatContent(botContentBuffer);
-                        botMessage.innerHTML = finalContent + formatCitations(lastCitations);
+                    // Final processing when stream is complete
+                    console.log('Stream completed. Final citations check:', lastCitations?.length || 0);
+                    
+                    // Format final content
+                    let finalContent = formatContent(botContentBuffer);
+                    
+                    // Add citations if available
+                    if (lastCitations && lastCitations.length > 0) {
+                        console.log('Adding citations to final content');
+                        const citationsHtml = formatCitations(lastCitations);
+                        if (citationsHtml) {
+                            finalContent += citationsHtml;
+                        }
+                    } else {
+                        console.log('No citations to display in final content');
                     }
-
+                    
+                    botMessage.innerHTML = finalContent;
                     showLoading(false);
 
                     // ALWAYS add the assistant's response to the chat history when streaming is done
@@ -945,41 +957,30 @@ async function fetchChatResponse(messages, botMessage) {
 
                     // Handle citations and other venice parameters
                     if (parsed.venice_parameters) {
+                        console.log('Found venice_parameters:', Object.keys(parsed.venice_parameters));
+                        
                         // Get citations if available
-                        const citationsInResponse = parsed.venice_parameters?.web_search_citations;
-                        if (citationsInResponse) {
-                            console.log('Found citations (raw):', JSON.stringify(citationsInResponse, null, 2));
-                            console.log('Citations type:', typeof citationsInResponse);
-                            console.log('Citations is array:', Array.isArray(citationsInResponse));
+                        const citationsInResponse = parsed.venice_parameters.web_search_citations;
+                        if (citationsInResponse && Array.isArray(citationsInResponse)) {
+                            console.log('Found web search citations:', citationsInResponse.length, 'items');
                             
-                            // Clean REF tags from content
-                            const originalContent = botContentBuffer;
-                            botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                            console.log('Content before cleaning:', originalContent);
-                            console.log('Content after cleaning:', botContentBuffer);
-                            
-                            // Map numeric references to actual citations
-                            if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
-                                console.log('Processing citations:', JSON.stringify(citationsInResponse));
-                                // Ensure citations have required fields
+                            // Clean REF tags from content only after we have citations
+                            if (citationsInResponse.length > 0) {
+                                console.log('Cleaning REF tags from content');
+                                botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
+                                
+                                // Process and validate citations
                                 const validCitations = citationsInResponse.map((citation, index) => {
-                                    console.log('Processing citation:', JSON.stringify(citation));
-                                    const validatedCitation = {
+                                    return {
                                         title: citation.title || `Search Result ${index + 1}`,
                                         url: citation.url || '#',
-                                        content: citation.content || citation.snippet || '',
-                                        published_date: citation.date || citation.published_date || ''
+                                        content: citation.content || '',
+                                        published_date: citation.date || ''
                                     };
-                                    console.log('Validated citation:', validatedCitation);
-                                    return validatedCitation;
                                 });
                                 
                                 lastCitations = validCitations;
-                                console.log('Final citations:', JSON.stringify(lastCitations));
-                                const citationsHtml = formatCitations(lastCitations);
-                                if (citationsHtml) {
-                                    botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
-                                }
+                                console.log('Processed', lastCitations.length, 'citations');
                             }
                         }
 
@@ -998,12 +999,8 @@ async function fetchChatResponse(messages, botMessage) {
                             `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
                     }
 
-                    // Add citations if available
-                    if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
-                        botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
-                    } else {
-                        botMessage.innerHTML = updatedContent;
-                    }
+                    // Update display (citations will be added at the end)
+                    botMessage.innerHTML = updatedContent;
 
                     Prism.highlightAll();
                     scrollToBottom();
