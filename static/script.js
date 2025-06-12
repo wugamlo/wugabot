@@ -115,11 +115,21 @@ window.addEventListener('load', () => {
     fetchModels();
     populateCharacterDropdown();
 
-    // Ensure citation toggle is available globally
+    // Ensure citation toggle is available globally with multiple fallbacks
     window.toggleCitations = toggleCitations;
     
-    // Add event delegation for citation headers that might be added dynamically
+    // Add multiple event delegation approaches for mobile compatibility
     document.addEventListener('click', function(e) {
+        if (e.target.closest('.citations-header')) {
+            const header = e.target.closest('.citations-header');
+            toggleCitations(header);
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+    
+    // Additional touch event for mobile devices
+    document.addEventListener('touchend', function(e) {
         if (e.target.closest('.citations-header')) {
             const header = e.target.closest('.citations-header');
             toggleCitations(header);
@@ -1156,11 +1166,12 @@ function formatCitations(citations) {
         return '';
     }
     
+    const citationId = `citations-${Date.now()}`;
     let citationsHtml = '\n\n<div class="citations-section">';
-    citationsHtml += `<div class="citations-header" onclick="window.toggleCitations && window.toggleCitations(this)">
+    citationsHtml += `<div class="citations-header" id="${citationId}-header" data-citation-id="${citationId}">
         <h3>Web Search Results (${citations.length})</h3>
         <span class="toggle-icon"></span>
-    </div><div class="citations-content">`;
+    </div><div class="citations-content" id="${citationId}-content">`;
 
     let validCitationCount = 0;
     citations.forEach((citation, index) => {
@@ -1186,6 +1197,23 @@ function formatCitations(citations) {
         return '';
     }
     
+    // Attach event listeners after DOM insertion
+    setTimeout(() => {
+        const header = document.getElementById(`${citationId}-header`);
+        if (header) {
+            header.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleCitations(this);
+            });
+            header.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleCitations(this);
+            });
+        }
+    }, 100);
+    
     return citationsHtml;
 }
 
@@ -1193,19 +1221,43 @@ function toggleCitations(header) {
     // Ensure we have the header element
     if (!header) return;
     
-    // Toggle the expanded class on the header
-    header.classList.toggle('expanded');
-    
-    // Get the citations content element
-    const citationsContent = header.nextElementSibling;
-    if (citationsContent && citationsContent.classList.contains('citations-content')) {
-        citationsContent.classList.toggle('expanded');
-    }
-    
-    // Prevent event bubbling on mobile
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
+    try {
+        // Toggle the expanded class on the header
+        header.classList.toggle('expanded');
+        
+        // Get the citations content element using multiple methods
+        let citationsContent = header.nextElementSibling;
+        
+        // Fallback: try using data attribute if direct sibling doesn't work
+        if (!citationsContent || !citationsContent.classList.contains('citations-content')) {
+            const citationId = header.getAttribute('data-citation-id');
+            if (citationId) {
+                citationsContent = document.getElementById(`${citationId}-content`);
+            }
+        }
+        
+        // Additional fallback: find within parent
+        if (!citationsContent || !citationsContent.classList.contains('citations-content')) {
+            const parent = header.parentElement;
+            if (parent) {
+                citationsContent = parent.querySelector('.citations-content');
+            }
+        }
+        
+        if (citationsContent && citationsContent.classList.contains('citations-content')) {
+            citationsContent.classList.toggle('expanded');
+            
+            // Force style recalculation for mobile apps
+            if (citationsContent.classList.contains('expanded')) {
+                citationsContent.style.display = 'block';
+            } else {
+                citationsContent.style.display = 'none';
+            }
+        }
+        
+        console.log('Citation toggle executed successfully');
+    } catch (error) {
+        console.error('Error in toggleCitations:', error);
     }
 }
 

@@ -486,6 +486,12 @@ input[type="number"] {
     min-height: 20px;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    position: relative;
+    z-index: 1;
 }
 
 .citations-header:hover,
@@ -497,10 +503,28 @@ input[type="number"] {
     padding: 15px 20px;
     display: none !important;
     overflow: hidden;
+    transition: none !important;
 }
 
 .citations-content.expanded {
     display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+}
+
+/* Additional mobile-specific rules */
+@supports (-webkit-touch-callout: none) {
+    .citations-content {
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+    }
+    
+    .citations-content.expanded {
+        display: block !important;
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+    }
 }
 
 .citations-header .toggle-icon {
