@@ -1142,11 +1142,16 @@ function formatCitations(citations) {
     if (!citations || !Array.isArray(citations) || citations.length === 0) {
         return '';
     }
+    
+    // Check if we're on mobile
+    const isMobile = window.innerWidth <= 600;
+    const expandedClass = isMobile ? 'expanded' : ''; // Auto-expand on mobile
+    
     let citationsHtml = '\n\n<div class="citations-section">';
-    citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
+    citationsHtml += `<div class="citations-header ${expandedClass}" onclick="toggleCitations(this)">
         <h3>Web Search Results (${citations.length})</h3>
         <span class="toggle-icon"></span>
-    </div><div class="citations-content">`;
+    </div><div class="citations-content ${expandedClass}">`;
 
     let validCitationCount = 0;
     citations.forEach((citation, index) => {
@@ -1159,7 +1164,7 @@ function formatCitations(citations) {
                 <div class="citation-item" id="citation-${index + 1}">
                     <div class="citation-number">[${index + 1}]</div>
                     <div class="citation-content">
-                        <a href="${url}" class="citation-title" target="_blank">${title}</a>
+                        <a href="${url}" class="citation-title" target="_blank" rel="noopener noreferrer">${title}</a>
                     </div>
                 </div>`;
             validCitationCount++;
@@ -1176,8 +1181,23 @@ function formatCitations(citations) {
 }
 
 function toggleCitations(header) {
+    // Ensure we have the header element
+    if (!header) return;
+    
+    // Toggle the expanded class on the header
     header.classList.toggle('expanded');
-    header.nextElementSibling.classList.toggle('expanded');
+    
+    // Get the citations content element
+    const citationsContent = header.nextElementSibling;
+    if (citationsContent && citationsContent.classList.contains('citations-content')) {
+        citationsContent.classList.toggle('expanded');
+    }
+    
+    // Prevent event bubbling on mobile
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
 }
 
 // Export the toggle function for global access
