@@ -900,7 +900,21 @@ async function fetchChatResponse(messages, botMessage) {
                 }
 
                 try {
-                    const parsed = JSON.parse(data);
+                    // First, try to clean the data string to fix common JSON issues
+                    let cleanData = data;
+                    
+                    // Handle potential issues with escaped quotes and newlines in citation content
+                    if (data.includes('web_search_citations')) {
+                        // Replace problematic characters that might break JSON parsing
+                        cleanData = data
+                            .replace(/\\n/g, ' ')
+                            .replace(/\\r/g, ' ')
+                            .replace(/\\t/g, ' ')
+                            .replace(/\\\\/g, '\\')
+                            .replace(/\\"/g, '\\"');
+                    }
+                    
+                    const parsed = JSON.parse(cleanData);
 
                     // Handle errors
                     if (parsed.error) {
@@ -932,24 +946,37 @@ async function fetchChatResponse(messages, botMessage) {
 
                     // Handle the new citations format - they come in a complete chunk
                     if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
-                        const citationsInResponse = parsed.venice_parameters.web_search_citations;
-                        console.log('Citations found in response:', citationsInResponse.length);
-                        
-                        // Process valid citations
-                        if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
-                            const validCitations = citationsInResponse.map((citation, index) => ({
-                                title: citation.title || `Search Result ${index + 1}`,
-                                url: citation.url || '#',
-                                content: citation.content || citation.snippet || '',
-                                published_date: citation.date || citation.published_date || ''
-                            }));
+                        try {
+                            const citationsInResponse = parsed.venice_parameters.web_search_citations;
+                            console.log('Citations found in response:', citationsInResponse.length);
                             
-                            lastCitations = validCitations;
-                            console.log('Processed citations:', lastCitations.length);
-                            
-                            // Clean REF tags from content
-                            botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                            console.log('Citations processed and will be displayed at end of stream');
+                            // Process valid citations with safer string handling
+                            if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
+                                const validCitations = citationsInResponse.map((citation, index) => {
+                                    // Safely extract and clean citation data
+                                    const cleanTitle = (citation.title || `Search Result ${index + 1}`).replace(/[\x00-\x1F\x7F]/g, '');
+                                    const cleanUrl = (citation.url || '#').replace(/[\x00-\x1F\x7F]/g, '');
+                                    const cleanContent = (citation.content || citation.snippet || '').replace(/[\x00-\x1F\x7F]/g, '').substring(0, 500);
+                                    const cleanDate = (citation.date || citation.published_date || '').replace(/[\x00-\x1F\x7F]/g, '');
+                                    
+                                    return {
+                                        title: cleanTitle,
+                                        url: cleanUrl,
+                                        content: cleanContent,
+                                        published_date: cleanDate
+                                    };
+                                });
+                                
+                                lastCitations = validCitations;
+                                console.log('Processed citations:', lastCitations.length);
+                                
+                                // Clean REF tags from content
+                                botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
+                                console.log('Citations processed and will be displayed at end of stream');
+                            }
+                        } catch (citationError) {
+                            console.warn('Error processing citations:', citationError.message);
+                            // Continue without citations rather than failing
                         }
                     }
 
@@ -981,15 +1008,45 @@ async function fetchChatResponse(messages, botMessage) {
                         // Only log if it's actually unexpected data, not empty chunks
                         if (data.trim() && !data.includes('data:')) {
                             console.warn('JSON parsing failed for chunk, continuing...', e.message);
+                            console.warn('Problematic data chunk:', data.substring(0, 200) + '...');
                         }
                         
-                        // Extract content using simple pattern matching for malformed JSON
-                        if (data.includes('"content":')) {
-                            const contentMatch = /"content":"([^"]*)"/.exec(data);
-                            if (contentMatch && contentMatch[1]) {
-                                botContentBuffer += contentMatch[1];
-                                botMessage.innerHTML = formatContent(botContentBuffer);
+                        // Try to extract content using regex even if JSON parsing fails
+                        try {
+                            // Extract content using simple pattern matching for malformed JSON
+                            if (data.includes('"content":')) {
+                                const contentMatch = /"content":"([^"]*)"/.exec(data);
+                                if (contentMatch && contentMatch[1]) {
+                                    // Unescape the content
+                                    const unescapedContent = contentMatch[1]
+                                        .replace(/\\n/g, '\n')
+                                        .replace(/\\r/g, '\r')
+                                        .replace(/\\t/g, '\t')
+                                        .replace(/\\"/g, '"')
+                                        .replace(/\\\\/g, '\\');
+                                    
+                                    botContentBuffer += unescapedContent;
+                                    botMessage.innerHTML = formatContent(botContentBuffer);
+                                }
                             }
+                            
+                            // Try to extract delta content as well
+                            if (data.includes('"delta":') && data.includes('"content":')) {
+                                const deltaContentMatch = /"delta":\s*\{[^}]*"content":"([^"]*)"/.exec(data);
+                                if (deltaContentMatch && deltaContentMatch[1]) {
+                                    const unescapedContent = deltaContentMatch[1]
+                                        .replace(/\\n/g, '\n')
+                                        .replace(/\\r/g, '\r')
+                                        .replace(/\\t/g, '\t')
+                                        .replace(/\\"/g, '"')
+                                        .replace(/\\\\/g, '\\');
+                                    
+                                    botContentBuffer += unescapedContent;
+                                    botMessage.innerHTML = formatContent(botContentBuffer);
+                                }
+                            }
+                        } catch (extractError) {
+                            console.warn('Failed to extract content from malformed JSON:', extractError.message);
                         }
                     }
                 }
