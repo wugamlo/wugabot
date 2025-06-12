@@ -982,6 +982,9 @@ async function fetchChatResponse(messages, botMessage) {
                         console.error(data);
                         console.error('🚨🚨🚨 CRITICAL ERROR DATA END 🚨🚨🚨');
                         
+                        // AUTOMATICALLY display the error data in the chat interface
+                        displayCitationErrorInChat();
+                        
                         // Also log as a warning to increase visibility
                         console.warn('🚨 PROBLEMATIC JSON CHUNK 🚨', data);
                         
@@ -1853,6 +1856,49 @@ window.lastCitationChunks = [];
 
 // Add to window object for global access
 window.showCitationError = showCitationError;
+
+/**
+ * Automatically shows citation error data when detected
+ */
+function displayCitationErrorInChat() {
+    if (window.problematicCitationData) {
+        const errorData = window.problematicCitationData;
+        
+        // Create a detailed error message for the chat
+        let errorMessage = "🚨 CITATION PARSING ERROR DETECTED 🚨\n\n";
+        errorMessage += `Data length: ${errorData.length} characters\n`;
+        errorMessage += `Error at position 4084\n\n`;
+        
+        // Show the problematic character
+        errorMessage += `Character at position 4084: "${errorData.charAt(4084)}"\n`;
+        errorMessage += `Character code: ${errorData.charCodeAt(4084)}\n\n`;
+        
+        // Show context around the error
+        errorMessage += "Context around position 4084:\n";
+        const start = Math.max(0, 4080);
+        const end = Math.min(errorData.length, 4090);
+        for (let i = start; i < end; i++) {
+            const char = errorData.charAt(i);
+            const marker = i === 4084 ? " <-- ERROR" : "";
+            errorMessage += `${i}: "${char}" (${errorData.charCodeAt(i)})${marker}\n`;
+        }
+        
+        errorMessage += "\n--- RAW DATA SAMPLE ---\n";
+        errorMessage += `First 200 chars: ${errorData.substring(0, 200)}\n\n`;
+        errorMessage += `Around error (4000-4200): ${errorData.substring(4000, 4200)}\n\n`;
+        errorMessage += `Last 200 chars: ${errorData.substring(Math.max(0, errorData.length - 200))}`;
+        
+        // Display in chat
+        appendMessage(errorMessage, 'system');
+        
+        console.log("📋 Citation error data displayed in chat interface");
+        return true;
+    }
+    return false;
+}
+
+// Add to window object for global access
+window.displayCitationErrorInChat = displayCitationErrorInChat;
 
 /**
  * Toggles the model information popup window
