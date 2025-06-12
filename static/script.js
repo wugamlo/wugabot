@@ -860,7 +860,10 @@ async function fetchChatResponse(messages, botMessage) {
                 if (!data) continue;
 
                 if (data === '[DONE]') {
-                    console.log('Stream completed. Final citations:', lastCitations?.length || 0, lastCitations);
+                    console.log('Stream completed. Final citations check:', lastCitations?.length || 0);
+                    if (lastCitations) {
+                        console.log('Citation details:', lastCitations.map(c => ({ title: c.title, url: c.url })));
+                    }
                     
                     // Clean REF tags from content before final processing
                     botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
@@ -870,15 +873,16 @@ async function fetchChatResponse(messages, botMessage) {
                     
                     // Add citations if available
                     if (lastCitations && Array.isArray(lastCitations) && lastCitations.length > 0) {
-                        console.log('Appending citations to final content');
+                        console.log('Formatting and appending citations to final content');
                         const citationsHtml = formatCitations(lastCitations);
-                        if (citationsHtml) {
+                        if (citationsHtml && citationsHtml.trim() !== '') {
                             finalContent += citationsHtml;
+                            console.log('Citations successfully added to final content');
                         } else {
-                            console.warn('Citations HTML is empty');
+                            console.error('Citations HTML is empty despite having citations data');
                         }
                     } else {
-                        console.log('No citations to append');
+                        console.log('No citations to display in final content');
                     }
                     
                     // Update DOM
@@ -986,20 +990,20 @@ async function fetchChatResponse(messages, botMessage) {
                                 
                                 citations.forEach((citation, index) => {
                                     try {
-                                        // Require at least a URL or title
-                                        if (citation && (citation.title || citation.url)) {
+                                        // More lenient validation - accept if any required field exists
+                                        if (citation && (citation.title || citation.url || citation.content)) {
                                             processedCitations.push({
-                                                title: citation.title || '',
-                                                url: citation.url || '',
+                                                title: citation.title || citation.url || 'Untitled',
+                                                url: citation.url || '#',
                                                 content: citation.content || '',
-                                                published_date: citation.date || ''
+                                                published_date: citation.date || citation.published_date || ''
                                             });
                                             console.log(`Processed citation [${index + 1}]:`, {
-                                                title: citation.title,
-                                                url: citation.url
+                                                title: citation.title || citation.url || 'Untitled',
+                                                url: citation.url || '#'
                                             });
                                         } else {
-                                            console.warn(`Skipping citation [${index}] due to missing title or url`);
+                                            console.warn(`Skipping citation [${index}] - no valid data:`, citation);
                                         }
                                     } catch (e) {
                                         console.error(`Error processing citation [${index}]:`, e);
@@ -1008,15 +1012,15 @@ async function fetchChatResponse(messages, botMessage) {
                                 
                                 if (processedCitations.length > 0) {
                                     lastCitations = processedCitations;
-                                    console.log('Successfully stored', lastCitations.length, 'citations');
+                                    console.log('Successfully stored', lastCitations.length, 'citations for final display');
                                 } else {
                                     console.warn('No valid citations after processing');
-                                    lastCitations = null;
                                 }
                             } else {
-                                console.log('No citations found in venice_parameters');
-                                lastCitations = null;
+                                console.log('Citations array is empty or invalid');
                             }
+                        } else {
+                            console.log('No web_search_citations found in venice_parameters');
                         }
 
                         // Check for reasoning content in venice_parameters
@@ -1071,21 +1075,22 @@ async function fetchChatResponse(messages, botMessage) {
 
 function formatCitations(citations) {
     if (!citations || !Array.isArray(citations) || citations.length === 0) {
-        console.log('No valid citations to format');
+        console.log('formatCitations: No valid citations to format');
         return '';
     }
 
-    console.log('Formatting citations:', citations.length);
+    console.log('formatCitations: Formatting', citations.length, 'citations');
     let citationsHtml = '\n\n<div class="citations-section">';
     citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
         <h3>Web Search Results (${citations.length})</h3>
         <span class="toggle-icon"></span>
     </div><div class="citations-content">`;
 
+    let validCitationCount = 0;
     citations.forEach((citation, index) => {
-        // Require at least a URL or title to include the citation
-        if (citation && (citation.url || citation.title)) {
-            const title = citation.title || 'Untitled';
+        // More lenient validation - accept if any data exists
+        if (citation && (citation.url || citation.title || citation.content)) {
+            const title = citation.title || citation.url || 'Untitled';
             const url = citation.url || '#';
             const content = citation.content || '';
             const date = citation.published_date || citation.date || '';
@@ -1095,17 +1100,25 @@ function formatCitations(citations) {
                     <div class="citation-number">[${index + 1}]</div>
                     <div class="citation-content">
                         <a href="${url}" class="citation-title" target="_blank">${title}</a>
-                        ${content ? `<div class="citation-snippet">${content}</div>` : ''}
-                        <div class="citation-url">${url}</div>
+                        ${content ? `<div class="citation-snippet">${content.substring(0, 200)}${content.length > 200 ? '...' : ''}</div>` : ''}
+                        ${url !== '#' ? `<div class="citation-url">${url}</div>` : ''}
                         ${date ? `<div class="citation-date">Published: ${date}</div>` : ''}
                     </div>
                 </div>`;
+            validCitationCount++;
         } else {
-            console.warn(`Skipping invalid citation at index ${index}:`, citation);
+            console.warn(`formatCitations: Skipping invalid citation at index ${index}:`, citation);
         }
     });
 
     citationsHtml += '</div></div>';
+    
+    if (validCitationCount === 0) {
+        console.warn('formatCitations: No valid citations were formatted');
+        return '';
+    }
+    
+    console.log(`formatCitations: Successfully formatted ${validCitationCount} citations`);
     return citationsHtml;
 }
 
