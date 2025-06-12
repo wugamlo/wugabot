@@ -911,18 +911,17 @@ async function fetchChatResponse(messages, botMessage) {
                     return;
                 }
 
-                // Simple citation extraction - check if this chunk contains citation data
+                // Check if this chunk contains citation data
                 if (data.includes('"web_search_citations"')) {
                     console.log('Found citation data in chunk');
                     
-                    // Extract citation data using regex instead of JSON parsing
-                    const citationMatch = data.match(/"web_search_citations":\s*\[(.*?)\]/s);
-                    if (citationMatch) {
-                        console.log('Extracted citation match');
-                        try {
-                            // Parse just the citations array
-                            const citationsJson = `[${citationMatch[1]}]`;
-                            const citations = JSON.parse(citationsJson);
+                    try {
+                        // Try to parse the full JSON first
+                        const parsed = JSON.parse(data);
+                        
+                        if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
+                            console.log('Found citations in venice_parameters');
+                            const citations = parsed.venice_parameters.web_search_citations;
                             
                             if (Array.isArray(citations) && citations.length > 0) {
                                 lastCitations = [];
@@ -946,8 +945,44 @@ async function fetchChatResponse(messages, botMessage) {
                                 
                                 console.log('Successfully processed citations:', lastCitations.length);
                             }
-                        } catch (citationError) {
-                            console.log('Citation extraction error:', citationError.message);
+                        }
+                    } catch (parseError) {
+                        console.log('Full JSON parse failed, trying regex extraction');
+                        
+                        // Fallback: Extract citation data using regex
+                        const citationMatch = data.match(/"web_search_citations":\s*\[(.*?)\]/s);
+                        if (citationMatch) {
+                            console.log('Extracted citation match with regex');
+                            try {
+                                // Parse just the citations array
+                                const citationsJson = `[${citationMatch[1]}]`;
+                                const citations = JSON.parse(citationsJson);
+                                
+                                if (Array.isArray(citations) && citations.length > 0) {
+                                    lastCitations = [];
+                                    
+                                    citations.forEach(citation => {
+                                        if (citation && typeof citation === 'object') {
+                                            const processedCitation = {};
+                                            
+                                            // Extract available fields
+                                            if (citation.title) processedCitation.title = citation.title;
+                                            if (citation.url) processedCitation.url = citation.url;
+                                            if (citation.content) processedCitation.content = citation.content;
+                                            if (citation.date) processedCitation.published_date = citation.date;
+                                            
+                                            // Add if we have title or URL
+                                            if (processedCitation.title || processedCitation.url) {
+                                                lastCitations.push(processedCitation);
+                                            }
+                                        }
+                                    });
+                                    
+                                    console.log('Successfully processed citations via regex:', lastCitations.length);
+                                }
+                            } catch (citationError) {
+                                console.log('Citation regex extraction error:', citationError.message);
+                            }
                         }
                     }
                 }
