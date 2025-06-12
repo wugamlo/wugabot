@@ -173,22 +173,44 @@ def chat_stream():
                             logger.info(f"Citations length: {len(citations) if isinstance(citations, list) else 'Not a list'}")
                             
                             if isinstance(citations, list) and len(citations) > 0:
-                                # Send citations as a separate, well-formed JSON chunk
-                                try:
-                                    citations_chunk = {
-                                        "venice_parameters": {
-                                            "web_search_citations": citations
+                                # Clean and validate each citation before sending
+                                cleaned_citations = []
+                                for citation in citations:
+                                    try:
+                                        # Ensure each citation has required fields and clean data
+                                        cleaned_citation = {
+                                            "title": str(citation.get("title", "")).strip() or "Untitled",
+                                            "url": str(citation.get("url", "")).strip() or "#",
+                                            "content": str(citation.get("content", "")).strip()[:500],  # Limit content length
+                                            "date": str(citation.get("date", citation.get("published_date", ""))).strip()
                                         }
-                                    }
-                                    citations_json = json.dumps(citations_chunk)
-                                    logger.info(f"Sending {len(citations)} citations to frontend")
-                                    yield f"data: {citations_json}\n\n"
-                                except Exception as citation_error:
-                                    logger.error(f"Error formatting citations: {citation_error}")
+                                        # Only add if we have at least a title or URL
+                                        if cleaned_citation["title"] != "Untitled" or cleaned_citation["url"] != "#":
+                                            cleaned_citations.append(cleaned_citation)
+                                    except Exception as clean_error:
+                                        logger.warning(f"Error cleaning citation: {clean_error}")
+                                        continue
                                 
-                                # Log first few citations for debugging
-                                for i, citation in enumerate(citations[:3]):
-                                    logger.info(f"Citation [{i}]: {json.dumps(citation, indent=2)}")
+                                if cleaned_citations:
+                                    # Send citations as a separate, well-formed JSON chunk
+                                    try:
+                                        citations_chunk = {
+                                            "venice_parameters": {
+                                                "web_search_citations": cleaned_citations
+                                            }
+                                        }
+                                        # Use separators to ensure compact, clean JSON
+                                        citations_json = json.dumps(citations_chunk, separators=(',', ':'), ensure_ascii=False)
+                                        logger.info(f"Sending {len(cleaned_citations)} cleaned citations to frontend")
+                                        yield f"data: {citations_json}\n\n"
+                                    except Exception as citation_error:
+                                        logger.error(f"Error formatting citations: {citation_error}")
+                                    
+                                    # Log first few citations for debugging
+                                    for i, citation in enumerate(cleaned_citations[:3]):
+                                        logger.info(f"Cleaned Citation [{i}]: {json.dumps(citation, indent=2)}")
+                                else:
+                                    logger.info("No valid citations after cleaning")
                             else:
                                 logger.info("No valid citations to send")
                         
@@ -235,22 +257,39 @@ def chat_stream():
                                 logger.info(f"Delta citations length: {len(citations) if isinstance(citations, list) else 'Not a list'}")
                                 
                                 if isinstance(citations, list) and len(citations) > 0:
-                                    # Send delta citations as separate chunk
-                                    try:
-                                        delta_citations_chunk = {
-                                            "venice_parameters": {
-                                                "web_search_citations": citations
+                                    # Clean and validate delta citations too
+                                    cleaned_delta_citations = []
+                                    for citation in citations:
+                                        try:
+                                            cleaned_citation = {
+                                                "title": str(citation.get("title", "")).strip() or "Untitled",
+                                                "url": str(citation.get("url", "")).strip() or "#",
+                                                "content": str(citation.get("content", "")).strip()[:500],
+                                                "date": str(citation.get("date", citation.get("published_date", ""))).strip()
                                             }
-                                        }
-                                        delta_citations_json = json.dumps(delta_citations_chunk)
-                                        logger.info(f"Sending {len(citations)} delta citations to frontend")
-                                        yield f"data: {delta_citations_json}\n\n"
-                                    except Exception as delta_citation_error:
-                                        logger.error(f"Error formatting delta citations: {delta_citation_error}")
+                                            if cleaned_citation["title"] != "Untitled" or cleaned_citation["url"] != "#":
+                                                cleaned_delta_citations.append(cleaned_citation)
+                                        except Exception as clean_error:
+                                            logger.warning(f"Error cleaning delta citation: {clean_error}")
+                                            continue
                                     
-                                    # Log first few delta citations
-                                    for i, citation in enumerate(citations[:3]):
-                                        logger.info(f"Delta Citation [{i}]: {json.dumps(citation, indent=2)}")
+                                    if cleaned_delta_citations:
+                                        # Send delta citations as separate chunk
+                                        try:
+                                            delta_citations_chunk = {
+                                                "venice_parameters": {
+                                                    "web_search_citations": cleaned_delta_citations
+                                                }
+                                            }
+                                            delta_citations_json = json.dumps(delta_citations_chunk, separators=(',', ':'), ensure_ascii=False)
+                                            logger.info(f"Sending {len(cleaned_delta_citations)} cleaned delta citations to frontend")
+                                            yield f"data: {delta_citations_json}\n\n"
+                                        except Exception as delta_citation_error:
+                                            logger.error(f"Error formatting delta citations: {delta_citation_error}")
+                                        
+                                        # Log first few delta citations
+                                        for i, citation in enumerate(cleaned_delta_citations[:3]):
+                                            logger.info(f"Cleaned Delta Citation [{i}]: {json.dumps(citation, indent=2)}")
                             
                             # Send other delta venice_parameters without citations
                             other_delta_params = {k: v for k, v in delta['venice_parameters'].items() 
