@@ -918,10 +918,20 @@ async function fetchChatResponse(messages, botMessage) {
                     console.log('Raw chunk data (last 500 chars):', data.substring(Math.max(0, data.length - 500)));
                     console.log('Full chunk length:', data.length);
                     
-                    // Log the ENTIRE chunk for inspection
+                    // Log the ENTIRE chunk for inspection - BEFORE any parsing attempts
                     console.log('=== FULL CHUNK DATA START ===');
                     console.log(data);
                     console.log('=== FULL CHUNK DATA END ===');
+                    
+                    // Also log it as a more readable table format
+                    console.table([{
+                        'Data Length': data.length,
+                        'First 100 chars': data.substring(0, 100),
+                        'Last 100 chars': data.substring(Math.max(0, data.length - 100)),
+                        'Contains web_search_citations': data.includes('"web_search_citations"'),
+                        'Character at position 4084': data.charAt(4084) || 'N/A',
+                        'Character code at 4084': data.charCodeAt(4084) || 'N/A'
+                    }]);
                     
                     try {
                         const parsed = JSON.parse(data);
@@ -945,6 +955,12 @@ async function fetchChatResponse(messages, botMessage) {
                         console.error('JSON parse failed:', parseError.message);
                         console.error('Parse error at position:', parseError.message.match(/position (\d+)/)?.[1]);
                         
+                        // CRITICAL: Log the EXACT problematic data segment
+                        console.error('=== CRITICAL ERROR DATA ===');
+                        console.error('Error occurred in this data chunk:');
+                        console.error(data);
+                        console.error('=== END CRITICAL ERROR DATA ===');
+                        
                         // Show the problematic area around the error position
                         const positionMatch = parseError.message.match(/position (\d+)/);
                         if (positionMatch) {
@@ -965,6 +981,10 @@ async function fetchChatResponse(messages, botMessage) {
                             const largeEnd = Math.min(data.length, errorPos + 250);
                             console.error(data.substring(largeStart, largeEnd));
                             console.error('=== END CONTEXT WINDOW ===');
+                            
+                            // Also save this data to the global window object for manual inspection
+                            window.problematicJsonData = data;
+                            console.error('Data saved to window.problematicJsonData for manual inspection');
                         }
                         
                         // Log the full problematic data for debugging
