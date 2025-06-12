@@ -1018,27 +1018,32 @@ async function fetchChatResponse(messages, botMessage) {
 }
 
 function formatCitations(citations) {
-    if (!citations || !citations.length || citations.every(c => !c.title && !c.url)) return '';
+    if (!citations || !citations.length) return '';
 
     console.log('Formatting citations:', citations);
     let citationsHtml = '\n\n<div class="citations-section">';
     citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
         <h3>Web Search Results (${citations.length})</h3>
         <span class="toggle-icon"></span>
-    </div><div class="citations-content">`;
+    </div><div class="citations-content expanded">`;
+    
     citations.forEach((citation, index) => {
-        if (citation.title && citation.url) {
-            citationsHtml += `
-                <div class="citation-item">
-                    <div class="citation-number">[${index + 1}]</div>
-                    <div class="citation-content">
-                        <a href="${citation.url}" class="citation-title" target="_blank">${citation.title}</a>
-                        ${citation.content ? `<div class="citation-snippet">${citation.content}</div>` : ''}
-                        <div class="citation-url">${citation.url}</div>
-                        ${citation.published_date ? `<div class="citation-date">Published: ${citation.published_date}</div>` : ''}
-                    </div>
-                </div>`;
-        }
+        // Use title and url from citation, with fallbacks
+        const title = citation.title || `Search Result ${index + 1}`;
+        const url = citation.url || '#';
+        const content = citation.content || citation.snippet || '';
+        const date = citation.published_date || citation.date || '';
+        
+        citationsHtml += `
+            <div class="citation-item">
+                <div class="citation-number">[${index + 1}]</div>
+                <div class="citation-content">
+                    <a href="${url}" class="citation-title" target="_blank">${title}</a>
+                    ${content ? `<div class="citation-snippet">${content.substring(0, 200)}${content.length > 200 ? '...' : ''}</div>` : ''}
+                    <div class="citation-url">${url}</div>
+                    ${date ? `<div class="citation-date">Published: ${date}</div>` : ''}
+                </div>
+            </div>`;
     });
     citationsHtml += '</div></div>';
     return citationsHtml;
