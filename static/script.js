@@ -1143,15 +1143,11 @@ function formatCitations(citations) {
         return '';
     }
     
-    // Check if we're on mobile
-    const isMobile = window.innerWidth <= 600;
-    const expandedClass = isMobile ? 'expanded' : ''; // Auto-expand on mobile
-    
     let citationsHtml = '\n\n<div class="citations-section">';
-    citationsHtml += `<div class="citations-header ${expandedClass}" onclick="toggleCitations(this)">
+    citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
         <h3>Web Search Results (${citations.length})</h3>
         <span class="toggle-icon"></span>
-    </div><div class="citations-content ${expandedClass}">`;
+    </div><div class="citations-content">`;
 
     let validCitationCount = 0;
     citations.forEach((citation, index) => {
