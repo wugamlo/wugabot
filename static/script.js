@@ -942,7 +942,12 @@ async function fetchChatResponse(messages, botMessage) {
 
                     // Handle content from different parts of the response
                     if (parsed.content) {
-                        botContentBuffer += parsed.content;
+                        // Process REF tags if citations are already available
+                        let contentToAdd = parsed.content;
+                        if (lastCitations && lastCitations.length > 0) {
+                            contentToAdd = contentToAdd.replace(/\[REF\](\d+)\[\/REF\]/g, '<sup class="citation-ref">[$1]</sup>');
+                        }
+                        botContentBuffer += contentToAdd;
                     }
 
                     // Handle delta if present (for streaming responses)
@@ -951,7 +956,12 @@ async function fetchChatResponse(messages, botMessage) {
 
                         // Append content from delta
                         if (delta.content) {
-                            botContentBuffer += delta.content;
+                            // Process REF tags if citations are already available
+                            let contentToAdd = delta.content;
+                            if (lastCitations && lastCitations.length > 0) {
+                                contentToAdd = contentToAdd.replace(/\[REF\](\d+)\[\/REF\]/g, '<sup class="citation-ref">[$1]</sup>');
+                            }
+                            botContentBuffer += contentToAdd;
                         }
 
                         // Check for reasoning content
@@ -969,10 +979,7 @@ async function fetchChatResponse(messages, botMessage) {
                         if (parsed.venice_parameters.web_search_citations) {
                             console.log('Processing web search citations...');
                             
-                            // Clean REF tags from content first
-                            botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                            
-                            // Simple citation extraction
+                            // Process citations immediately when they appear
                             const citations = parsed.venice_parameters.web_search_citations;
                             if (Array.isArray(citations) && citations.length > 0) {
                                 const processedCitations = [];
@@ -991,6 +998,9 @@ async function fetchChatResponse(messages, botMessage) {
                                 if (processedCitations.length > 0) {
                                     lastCitations = processedCitations;
                                     console.log('Successfully processed', lastCitations.length, 'citations');
+                                    
+                                    // Process REF tags in existing content
+                                    botContentBuffer = botContentBuffer.replace(/\[REF\](\d+)\[\/REF\]/g, '<sup class="citation-ref">[$1]</sup>');
                                 }
                             }
                         }
@@ -1051,19 +1061,23 @@ function formatCitations(citations) {
     console.log('Formatting citations:', citations);
     let citationsHtml = '\n\n<div class="citations-section">';
     citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
-        <h3>Web Search Results (${citations.length})</h3>
+        <h3>Sources (${citations.length})</h3>
         <span class="toggle-icon"></span>
     </div><div class="citations-content">`;
     citations.forEach((citation, index) => {
         if (citation.title && citation.url) {
+            const hostname = new URL(citation.url).hostname;
+            const snippet = citation.content ? citation.content.substring(0, 200) + (citation.content.length > 200 ? '...' : '') : '';
             citationsHtml += `
                 <div class="citation-item">
-                    <div class="citation-number">[${index + 1}]</div>
+                    <div class="citation-index">[${index + 1}]</div>
                     <div class="citation-content">
-                        <a href="${citation.url}" class="citation-title" target="_blank">${citation.title}</a>
-                        ${citation.content ? `<div class="citation-snippet">${citation.content}</div>` : ''}
-                        <div class="citation-url">${citation.url}</div>
-                        ${citation.published_date ? `<div class="citation-date">Published: ${citation.published_date}</div>` : ''}
+                        <a href="${citation.url}" class="citation-title" target="_blank" rel="noopener">${citation.title}</a>
+                        ${snippet ? `<p class="citation-snippet">${snippet}</p>` : ''}
+                        <div class="citation-meta">
+                            ${citation.published_date ? `<span class="citation-date">${citation.published_date}</span>` : ''}
+                            <span class="citation-url">${hostname}</span>
+                        </div>
                     </div>
                 </div>`;
         }
