@@ -933,7 +933,18 @@ async function fetchChatResponse(messages, botMessage) {
                         continue;
                     }
                     
-                    const parsed = JSON.parse(data);
+                    // Try to fix common JSON issues before parsing
+                    let cleanedData = data;
+                    
+                    // Fix unterminated strings by finding the last complete object
+                    if (data.includes('Unterminated string')) {
+                        const lastCompleteObject = data.lastIndexOf('}{');
+                        if (lastCompleteObject !== -1) {
+                            cleanedData = data.substring(0, lastCompleteObject + 1);
+                        }
+                    }
+                    
+                    const parsed = JSON.parse(cleanedData);
 
                     // Log important parts of the response for debugging
                     if (parsed.error || parsed.venice_parameters) {
@@ -1046,6 +1057,66 @@ async function fetchChatResponse(messages, botMessage) {
                 } catch (e) {
                     if (data !== '[DONE]') {
                         console.log('Skipping malformed JSON chunk:', e.message);
+                        
+                        // Try to extract citations from malformed JSON using regex
+                        if (data.includes('web_search_citations')) {
+                            try {
+                                console.log('Attempting to extract citations from malformed data...');
+                                
+                                // Extract citation data using regex patterns
+                                const citationPattern = /"web_search_citations"\s*:\s*\[(.*?)\]/s;
+                                const match = data.match(citationPattern);
+                                
+                                if (match) {
+                                    console.log('Found citation pattern, attempting to parse...');
+                                    
+                                    // Try to extract individual citation objects
+                                    const citationData = match[1];
+                                    const citationObjects = [];
+                                    
+                                    // Look for title and url patterns
+                                    const titlePattern = /"title"\s*:\s*"([^"]+)"/g;
+                                    const urlPattern = /"url"\s*:\s*"([^"]+)"/g;
+                                    const contentPattern = /"content"\s*:\s*"([^"]+)"/g;
+                                    
+                                    let titleMatch, urlMatch, contentMatch;
+                                    const titles = [];
+                                    const urls = [];
+                                    const contents = [];
+                                    
+                                    while ((titleMatch = titlePattern.exec(citationData)) !== null) {
+                                        titles.push(titleMatch[1]);
+                                    }
+                                    while ((urlMatch = urlPattern.exec(citationData)) !== null) {
+                                        urls.push(urlMatch[1]);
+                                    }
+                                    while ((contentMatch = contentPattern.exec(citationData)) !== null) {
+                                        contents.push(contentMatch[1]);
+                                    }
+                                    
+                                    // Create citation objects from extracted data
+                                    const maxCitations = Math.max(titles.length, urls.length);
+                                    for (let i = 0; i < maxCitations; i++) {
+                                        if (titles[i] || urls[i]) {
+                                            citationObjects.push({
+                                                title: titles[i] || urls[i] || 'Untitled',
+                                                url: urls[i] || '#',
+                                                content: contents[i] || '',
+                                                published_date: ''
+                                            });
+                                        }
+                                    }
+                                    
+                                    if (citationObjects.length > 0) {
+                                        lastCitations = citationObjects;
+                                        console.log('Successfully extracted', citationObjects.length, 'citations from malformed data');
+                                    }
+                                }
+                            } catch (extractError) {
+                                console.log('Could not extract citations from malformed data:', extractError.message);
+                            }
+                        }
+                        
                         // Simply skip malformed chunks and continue
                         continue;
                     }
