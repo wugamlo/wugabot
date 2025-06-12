@@ -912,12 +912,6 @@ async function fetchChatResponse(messages, botMessage) {
                 }
 
                 try {
-                    // Skip processing if this looks like malformed citation data
-                    if (data.includes('"web_search_citations"') && data.includes('Unterminated string')) {
-                        console.log('Skipping malformed citation chunk');
-                        continue;
-                    }
-                    
                     const parsed = JSON.parse(data);
 
                     // Log important parts of the response for debugging
@@ -969,30 +963,28 @@ async function fetchChatResponse(messages, botMessage) {
                         if (parsed.venice_parameters.web_search_citations) {
                             console.log('Processing web search citations:', parsed.venice_parameters.web_search_citations.length);
                             
-                            // Clean REF tags from content first
-                            botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                            
-                            // Simple citation extraction
                             const citations = parsed.venice_parameters.web_search_citations;
                             if (Array.isArray(citations) && citations.length > 0) {
-                                const processedCitations = [];
+                                lastCitations = [];
                                 
-                                citations.forEach((citation, index) => {
-                                    console.log('Processing citation:', index, citation);
-                                    if (citation && (citation.title || citation.url)) {
-                                        processedCitations.push({
-                                            title: citation.title || 'Untitled',
-                                            url: citation.url || '#',
-                                            content: citation.content || '',
-                                            published_date: citation.date || ''
-                                        });
+                                citations.forEach(citation => {
+                                    if (citation) {
+                                        const processedCitation = {};
+                                        
+                                        // Only add fields that exist and have content
+                                        if (citation.title) processedCitation.title = citation.title;
+                                        if (citation.url) processedCitation.url = citation.url;
+                                        if (citation.content) processedCitation.content = citation.content;
+                                        if (citation.date) processedCitation.published_date = citation.date;
+                                        
+                                        // Only add if we have at least title or URL
+                                        if (processedCitation.title || processedCitation.url) {
+                                            lastCitations.push(processedCitation);
+                                        }
                                     }
                                 });
                                 
-                                if (processedCitations.length > 0) {
-                                    lastCitations = processedCitations;
-                                    console.log('Successfully processed', lastCitations.length, 'citations:', lastCitations);
-                                }
+                                console.log('Processed citations:', lastCitations);
                             }
                         }
 
@@ -1018,8 +1010,7 @@ async function fetchChatResponse(messages, botMessage) {
                     scrollToBottom();
                 } catch (e) {
                     if (data !== '[DONE]') {
-                        console.log('Skipping malformed JSON chunk:', e.message);
-                        // Simply skip malformed chunks and continue
+                        console.log('JSON parse error:', e.message.substring(0, 50));
                         continue;
                     }
                 }
