@@ -923,12 +923,12 @@ async function fetchChatResponse(messages, botMessage) {
                             console.log('Found citations:', citations.length);
                             
                             if (Array.isArray(citations) && citations.length > 0) {
-                                lastCitations = citations.map(citation => ({
-                                    title: citation.title || '',
-                                    url: citation.url || '',
-                                    content: citation.content || '',
-                                    published_date: citation.date || ''
-                                }));
+                                lastCitations = citations
+                                    .filter(citation => citation.title && citation.url)
+                                    .map(citation => ({
+                                        title: citation.title,
+                                        url: citation.url
+                                    }));
                                 
                                 console.log('Successfully processed citations:', lastCitations.length);
                             }
@@ -1004,7 +1004,7 @@ async function fetchChatResponse(messages, botMessage) {
 }
 
 function formatCitations(citations) {
-    if (!citations || !citations.length || citations.every(c => !c.title && !c.url)) return '';
+    if (!citations || !citations.length) return '';
 
     console.log('Formatting citations:', citations);
     let citationsHtml = '\n\n<div class="citations-section">';
@@ -1013,18 +1013,14 @@ function formatCitations(citations) {
         <span class="toggle-icon"></span>
     </div><div class="citations-content">`;
     citations.forEach((citation, index) => {
-        if (citation.title && citation.url) {
-            citationsHtml += `
-                <div class="citation-item">
-                    <div class="citation-number">[${index + 1}]</div>
-                    <div class="citation-content">
-                        <a href="${citation.url}" class="citation-title" target="_blank">${citation.title}</a>
-                        ${citation.content ? `<div class="citation-snippet">${citation.content}</div>` : ''}
-                        <div class="citation-url">${citation.url}</div>
-                        ${citation.published_date ? `<div class="citation-date">Published: ${citation.published_date}</div>` : ''}
-                    </div>
-                </div>`;
-        }
+        citationsHtml += `
+            <div class="citation-item">
+                <div class="citation-number">[${index + 1}]</div>
+                <div class="citation-content">
+                    <a href="${citation.url}" class="citation-title" target="_blank">${citation.title}</a>
+                    <div class="citation-url">${citation.url}</div>
+                </div>
+            </div>`;
     });
     citationsHtml += '</div></div>';
     return citationsHtml;
