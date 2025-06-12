@@ -911,106 +911,86 @@ async function fetchChatResponse(messages, botMessage) {
                     return;
                 }
 
-                try {
-                    const parsed = JSON.parse(data);
-
-                    // Log important parts of the response for debugging
-                    if (parsed.error || parsed.venice_parameters) {
-                        // Only log a portion of potentially very large responses to avoid console errors
-                        const truncatedResponse = {...parsed};
-                        if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
-                            truncatedResponse.venice_parameters = {
-                                ...parsed.venice_parameters,
-                                web_search_citations: parsed.venice_parameters.web_search_citations.slice(0, 2)
-                            };
-                        }
-                        console.log('Parsed response chunk:', truncatedResponse);
-                    }
-
-                    // Handle errors
-                    if (parsed.error) {
-                        appendMessage(`Error: ${parsed.error}`, 'error');
-                        showLoading(false);
-                        return;
-                    }
-
-                    // Handle content from different parts of the response
-                    if (parsed.content) {
-                        botContentBuffer += parsed.content;
-                    }
-
-                    // Handle delta if present (for streaming responses)
-                    if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
-                        const delta = parsed.choices[0].delta;
-
-                        // Append content from delta
-                        if (delta.content) {
-                            botContentBuffer += delta.content;
-                        }
-
-                        // Check for reasoning content
-                        if (delta.reasoning_content) {
-                            reasoningContent = reasoningContent || '';
-                            reasoningContent += delta.reasoning_content;
-                        }
-                    }
-
-                    // Handle citations and other venice parameters
-                    if (parsed.venice_parameters) {
-                        console.log('Found venice_parameters:', Object.keys(parsed.venice_parameters));
-                        
-                        // Check for web search citations
-                        if (parsed.venice_parameters.web_search_citations) {
-                            console.log('Processing web search citations:', parsed.venice_parameters.web_search_citations.length);
+                // Simple citation extraction - check if this chunk contains citation data
+                if (data.includes('"web_search_citations"')) {
+                    console.log('Found citation data in chunk');
+                    
+                    // Extract citation data using regex instead of JSON parsing
+                    const citationMatch = data.match(/"web_search_citations":\s*\[(.*?)\]/s);
+                    if (citationMatch) {
+                        console.log('Extracted citation match');
+                        try {
+                            // Parse just the citations array
+                            const citationsJson = `[${citationMatch[1]}]`;
+                            const citations = JSON.parse(citationsJson);
                             
-                            const citations = parsed.venice_parameters.web_search_citations;
                             if (Array.isArray(citations) && citations.length > 0) {
                                 lastCitations = [];
                                 
                                 citations.forEach(citation => {
-                                    if (citation) {
+                                    if (citation && typeof citation === 'object') {
                                         const processedCitation = {};
                                         
-                                        // Only add fields that exist and have content
+                                        // Extract available fields
                                         if (citation.title) processedCitation.title = citation.title;
                                         if (citation.url) processedCitation.url = citation.url;
                                         if (citation.content) processedCitation.content = citation.content;
                                         if (citation.date) processedCitation.published_date = citation.date;
                                         
-                                        // Only add if we have at least title or URL
+                                        // Add if we have title or URL
                                         if (processedCitation.title || processedCitation.url) {
                                             lastCitations.push(processedCitation);
                                         }
                                     }
                                 });
                                 
-                                console.log('Processed citations:', lastCitations);
+                                console.log('Successfully processed citations:', lastCitations.length);
                             }
+                        } catch (citationError) {
+                            console.log('Citation extraction error:', citationError.message);
                         }
+                    }
+                }
 
-                        // Check for reasoning content in venice_parameters
-                        if (parsed.venice_parameters.reasoning_content) {
-                            reasoningContent = parsed.venice_parameters.reasoning_content;
+                // Try to parse JSON for other content
+                try {
+                    const parsed = JSON.parse(data);
+
+                    // Handle content from streaming
+                    if (parsed.content) {
+                        botContentBuffer += parsed.content;
+                    }
+
+                    // Handle delta content
+                    if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                        const delta = parsed.choices[0].delta;
+                        if (delta.content) {
+                            botContentBuffer += delta.content;
+                        }
+                        if (delta.reasoning_content) {
+                            reasoningContent = reasoningContent || '';
+                            reasoningContent += delta.reasoning_content;
                         }
                     }
 
-                    // Update the message with all available content
-                    let updatedContent = formatContent(botContentBuffer);
+                    // Handle reasoning content
+                    if (parsed.reasoning_content) {
+                        reasoningContent = parsed.reasoning_content;
+                    }
 
-                    // Add reasoning content if available and not already in the content
+                    // Update display
+                    let updatedContent = formatContent(botContentBuffer);
                     if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
                         updatedContent = updatedContent + 
                             `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
                     }
-
-                    // Update display (citations will be added at the end)
                     botMessage.innerHTML = updatedContent;
 
                     Prism.highlightAll();
                     scrollToBottom();
                 } catch (e) {
+                    // Skip malformed JSON but continue processing
                     if (data !== '[DONE]') {
-                        console.log('JSON parse error:', e.message.substring(0, 50));
                         continue;
                     }
                 }
