@@ -965,39 +965,33 @@ async function fetchChatResponse(messages, botMessage) {
                     if (parsed.venice_parameters) {
                         console.log('Found venice_parameters:', Object.keys(parsed.venice_parameters));
                         
-                        // Get citations if available - only process if it's actually an array
-                        if (parsed.venice_parameters.web_search_citations && 
-                            Array.isArray(parsed.venice_parameters.web_search_citations) &&
-                            parsed.venice_parameters.web_search_citations.length > 0) {
+                        // Check for web search citations
+                        if (parsed.venice_parameters.web_search_citations) {
+                            console.log('Processing web search citations...');
                             
-                            console.log('Found web search citations:', parsed.venice_parameters.web_search_citations.length, 'items');
-                            
-                            // Clean REF tags from content
-                            console.log('Cleaning REF tags from content');
+                            // Clean REF tags from content first
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
                             
-                            // Process citations safely
-                            const validCitations = [];
-                            parsed.venice_parameters.web_search_citations.forEach((citation, index) => {
-                                try {
-                                    // Only process if citation is an object with required fields
-                                    if (citation && typeof citation === 'object' && citation.title && citation.url) {
-                                        const safeCitation = {
-                                            title: String(citation.title).replace(/[\x00-\x1F\x7F-\x9F]/g, '') || `Search Result ${index + 1}`,
-                                            url: String(citation.url) || '#',
-                                            content: citation.content ? String(citation.content).replace(/[\x00-\x1F\x7F-\x9F]/g, '').substring(0, 500) : '',
-                                            published_date: citation.date ? String(citation.date) : ''
-                                        };
-                                        validCitations.push(safeCitation);
+                            // Simple citation extraction
+                            const citations = parsed.venice_parameters.web_search_citations;
+                            if (Array.isArray(citations) && citations.length > 0) {
+                                const processedCitations = [];
+                                
+                                citations.forEach((citation, index) => {
+                                    if (citation && citation.title && citation.url) {
+                                        processedCitations.push({
+                                            title: citation.title,
+                                            url: citation.url,
+                                            content: citation.content || '',
+                                            published_date: citation.date || ''
+                                        });
                                     }
-                                } catch (citationError) {
-                                    console.warn('Error processing citation at index', index, ':', citationError.message);
+                                });
+                                
+                                if (processedCitations.length > 0) {
+                                    lastCitations = processedCitations;
+                                    console.log('Successfully processed', lastCitations.length, 'citations');
                                 }
-                            });
-                            
-                            if (validCitations.length > 0) {
-                                lastCitations = validCitations;
-                                console.log('Processed', lastCitations.length, 'valid citations');
                             }
                         }
 
@@ -1023,36 +1017,9 @@ async function fetchChatResponse(messages, botMessage) {
                     scrollToBottom();
                 } catch (e) {
                     if (data !== '[DONE]') {
-                        // Only log a portion of potentially large data to avoid console overflow
-                        const truncatedData = data.length > 500 ? data.substring(0, 500) + '...' : data;
-                        console.error('Error parsing chunk:', e.message, 'Position:', e.message.match(/position (\d+)/)?.[1] || 'unknown');
-                        console.error('Problematic data snippet:', truncatedData);
-
-                        // Try to recover and continue - don't let a parsing error break the entire response
-                        if (data.includes('"content":')) {
-                            try {
-                                // Simple extraction of content if available
-                                const contentMatch = /"content":"([^"]*)"/.exec(data);
-                                if (contentMatch && contentMatch[1]) {
-                                    // Unescape the content properly
-                                    const content = contentMatch[1]
-                                        .replace(/\\"/g, '"')
-                                        .replace(/\\n/g, '\n')
-                                        .replace(/\\r/g, '\r')
-                                        .replace(/\\t/g, '\t')
-                                        .replace(/\\\\/g, '\\');
-                                    botContentBuffer += content;
-                                    botMessage.innerHTML = formatContent(botContentBuffer);
-                                }
-                            } catch (extractError) {
-                                console.warn('Content extraction failed:', extractError.message);
-                            }
-                        }
-                        
-                        // Skip malformed citation chunks - they will be processed when properly formatted
-                        if (data.includes('web_search_citations')) {
-                            console.log('Skipping malformed citation data - will process when complete');
-                        }
+                        console.log('Skipping malformed JSON chunk:', e.message);
+                        // Simply skip malformed chunks and continue
+                        continue;
                     }
                 }
             }
