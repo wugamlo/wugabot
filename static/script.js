@@ -778,6 +778,52 @@ async function submitChat(message, base64Image) {
 // File input handlers are already set up for galleryInput and cameraInput
 
 /**
+ * Processes raw citation data into a standardized format
+ * 
+ * @param {Array} citationsArray - Raw citations from the API
+ * @returns {Array} Processed citations with consistent structure
+ */
+function processCitations(citationsArray) {
+    return citationsArray.map((citation, index) => {
+        // More robust citation data extraction
+        let title = 'Search Result ' + (index + 1);
+        let url = '#';
+        let content = '';
+        let publishedDate = '';
+        
+        try {
+            if (citation && typeof citation === 'object') {
+                // Handle various possible field names
+                title = String(citation.title || citation.name || citation.headline || title)
+                    .replace(/[\x00-\x1F\x7F]/g, '')
+                    .replace(/[""'']/g, '"')
+                    .substring(0, 200);
+                
+                url = String(citation.url || citation.link || citation.href || url)
+                    .replace(/[\x00-\x1F\x7F]/g, '');
+                
+                content = String(citation.content || citation.snippet || citation.description || citation.summary || '')
+                    .replace(/[\x00-\x1F\x7F]/g, '')
+                    .replace(/[""'']/g, '"')
+                    .substring(0, 500);
+                
+                publishedDate = String(citation.date || citation.published_date || citation.publish_date || citation.created_at || '')
+                    .replace(/[\x00-\x1F\x7F]/g, '');
+            }
+        } catch (e) {
+            console.warn('Error processing citation:', e);
+        }
+        
+        return {
+            title: title,
+            url: url,
+            content: content,
+            published_date: publishedDate
+        };
+    });
+}
+
+/**
  * Fetches a response from the chat API based on the provided messages
  * Handles streaming, error handling, and updating the chat history
  * 
@@ -974,51 +1020,62 @@ async function fetchChatResponse(messages, botMessage) {
                         }
                     }
 
-                    // Handle the new citations format - they come in a complete chunk
+                    // Handle citations - try multiple parsing approaches
+                    let foundCitations = false;
+                    
+                    // Method 1: Standard venice_parameters parsing
                     if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
                         const citationsInResponse = parsed.venice_parameters.web_search_citations;
-                        console.log('Citations found in response:', citationsInResponse.length);
+                        console.log('Citations found via standard parsing:', citationsInResponse.length);
+                        foundCitations = true;
                         
-                        // Process valid citations with safer string handling
                         if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
-                            const validCitations = citationsInResponse.map((citation, index) => {
-                                // More robust citation data extraction
-                                let title = 'Search Result ' + (index + 1);
-                                let url = '#';
-                                let content = '';
-                                let publishedDate = '';
-                                
-                                try {
-                                    if (citation && typeof citation === 'object') {
-                                        title = String(citation.title || citation.name || title).replace(/[\x00-\x1F\x7F]/g, '').substring(0, 200);
-                                        url = String(citation.url || citation.link || url).replace(/[\x00-\x1F\x7F]/g, '');
-                                        content = String(citation.content || citation.snippet || citation.description || '').replace(/[\x00-\x1F\x7F]/g, '').substring(0, 500);
-                                        publishedDate = String(citation.date || citation.published_date || citation.publish_date || '').replace(/[\x00-\x1F\x7F]/g, '');
-                                    }
-                                } catch (e) {
-                                    console.warn('Error extracting citation data:', e);
-                                }
-                                
-                                return {
-                                    title: title,
-                                    url: url,
-                                    content: content,
-                                    published_date: publishedDate
-                                };
-                            });
-                            
-                            lastCitations = validCitations;
-                            console.log('Processed citations:', lastCitations.length);
-                            console.log('Citation titles:', lastCitations.map(c => c.title));
-                            
-                            // Clean REF tags from content
-                            botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                            
-                            // Immediately update the display with citations
-                            let updatedContent = formatContent(botContentBuffer);
-                            botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
-                            console.log('Citations displayed immediately');
+                            lastCitations = processCitations(citationsInResponse);
                         }
+                    }
+                    
+                    // Method 2: Try to extract citations from raw data string if standard parsing failed
+                    if (!foundCitations && data.includes('web_search_citations')) {
+                        console.log('Attempting raw citation extraction from data...');
+                        try {
+                            // Look for the citations array in the raw data
+                            const citationMatch = data.match(/"web_search_citations":\s*(\[[\s\S]*?\])/);
+                            if (citationMatch) {
+                                // Clean the JSON string more aggressively
+                                let cleanJson = citationMatch[1]
+                                    .replace(/\\n/g, ' ')
+                                    .replace(/\\r/g, ' ')
+                                    .replace(/\\t/g, ' ')
+                                    .replace(/\\\\/g, '\\')
+                                    .replace(/\\"/g, '"')
+                                    .replace(/[\x00-\x1F\x7F]/g, ' ')
+                                    .replace(/\s+/g, ' ');
+                                
+                                const citationsArray = JSON.parse(cleanJson);
+                                console.log('Successfully extracted citations via raw parsing:', citationsArray.length);
+                                
+                                if (Array.isArray(citationsArray) && citationsArray.length > 0) {
+                                    lastCitations = processCitations(citationsArray);
+                                    foundCitations = true;
+                                }
+                            }
+                        } catch (rawParseError) {
+                            console.warn('Raw citation parsing failed:', rawParseError.message);
+                        }
+                    }
+                    
+                    // If we found citations, display them
+                    if (foundCitations && lastCitations && lastCitations.length > 0) {
+                        console.log('Processed citations:', lastCitations.length);
+                        console.log('Citation titles:', lastCitations.map(c => c.title));
+                        
+                        // Clean REF tags from content
+                        botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
+                        
+                        // Immediately update the display with citations
+                        let updatedContent = formatContent(botContentBuffer);
+                        botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
+                        console.log('Citations displayed successfully');
                     }
 
                     // Handle reasoning content in venice_parameters
