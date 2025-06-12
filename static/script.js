@@ -1011,7 +1011,11 @@ async function fetchChatResponse(messages, botMessage) {
                             
                             // Clean REF tags from content
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                            console.log('Citations processed and will be displayed at end of stream');
+                            
+                            // Immediately update the display with citations
+                            let updatedContent = formatContent(botContentBuffer);
+                            botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
+                            console.log('Citations displayed immediately');
                         }
                     }
 
