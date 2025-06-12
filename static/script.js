@@ -967,7 +967,7 @@ async function fetchChatResponse(messages, botMessage) {
                         
                         // Check for web search citations
                         if (parsed.venice_parameters.web_search_citations) {
-                            console.log('Processing web search citations...');
+                            console.log('Processing web search citations:', parsed.venice_parameters.web_search_citations.length);
                             
                             // Clean REF tags from content first
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
@@ -978,10 +978,11 @@ async function fetchChatResponse(messages, botMessage) {
                                 const processedCitations = [];
                                 
                                 citations.forEach((citation, index) => {
-                                    if (citation && citation.title && citation.url) {
+                                    console.log('Processing citation:', index, citation);
+                                    if (citation && (citation.title || citation.url)) {
                                         processedCitations.push({
-                                            title: citation.title,
-                                            url: citation.url,
+                                            title: citation.title || 'Untitled',
+                                            url: citation.url || '#',
                                             content: citation.content || '',
                                             published_date: citation.date || ''
                                         });
@@ -990,7 +991,7 @@ async function fetchChatResponse(messages, botMessage) {
                                 
                                 if (processedCitations.length > 0) {
                                     lastCitations = processedCitations;
-                                    console.log('Successfully processed', lastCitations.length, 'citations');
+                                    console.log('Successfully processed', lastCitations.length, 'citations:', lastCitations);
                                 }
                             }
                         }
