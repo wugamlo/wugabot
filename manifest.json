@@ -1,12 +1,12 @@
 {
-  "name": "WugaBot",
-  "short_name": "WugaBot",
+  "name": "WugaBot2",
+  "short_name": "WugaBot2",
   "start_url": "/?homescreen=1",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#283365",
   "background_color": "#283365",
-  "description": "Your friendly assistant WugaBot.",
+  "description": "Your friendly assistant WugaBot2.",
   "icons": [
     {
       "src": "/static/WugaBot_png420.png",

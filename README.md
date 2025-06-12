@@ -1,5 +1,5 @@
 
-# WugaBot
+# WugaBot2
 
 A web-based chat interface with advanced visualization capabilities and AI-powered responses.
 
