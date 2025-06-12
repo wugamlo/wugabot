@@ -922,6 +922,15 @@ async function fetchChatResponse(messages, botMessage) {
                     window.problematicCitationData = data;
                     console.log('🔍 Data stored in window.problematicCitationData for inspection');
                     
+                    // Also store in the chunks array for debugging
+                    if (!window.lastCitationChunks) window.lastCitationChunks = [];
+                    window.lastCitationChunks.push({
+                        timestamp: new Date().toISOString(),
+                        length: data.length,
+                        data: data
+                    });
+                    console.log('🔍 Added to citation chunks array, total:', window.lastCitationChunks.length);
+                    
                     // Log the ENTIRE chunk for inspection - BEFORE any parsing attempts
                     console.log('=== FULL CHUNK DATA START ===');
                     console.log(data);
@@ -1777,6 +1786,65 @@ function displayFullChatHistory() {
 
 // Add to window object for global access
 window.displayFullChatHistory = displayFullChatHistory;
+
+/**
+ * Debug utility: Shows the citation error data that was captured
+ * Displays the problematic JSON chunk and error details for inspection
+ */
+function showCitationError() {
+    console.log('=== CITATION ERROR DEBUGGING ===');
+    
+    if (window.problematicCitationData) {
+        console.log('🔍 Problematic citation data found:');
+        console.log('Length:', window.problematicCitationData.length);
+        console.log('Full data:', window.problematicCitationData);
+        
+        // Try to find the error position
+        try {
+            JSON.parse(window.problematicCitationData);
+        } catch (e) {
+            const positionMatch = e.message.match(/position (\d+)/);
+            if (positionMatch) {
+                const errorPos = parseInt(positionMatch[1]);
+                console.log('❌ Error at position:', errorPos);
+                console.log('Character at error:', JSON.stringify(window.problematicCitationData.charAt(errorPos)));
+                console.log('Character code:', window.problematicCitationData.charCodeAt(errorPos));
+                
+                // Show context around error
+                const start = Math.max(0, errorPos - 50);
+                const end = Math.min(window.problematicCitationData.length, errorPos + 50);
+                console.log('Context around error:');
+                console.log(window.problematicCitationData.substring(start, end));
+            }
+        }
+        
+        // Also display in chat for easy viewing
+        const errorData = window.problematicCitationData;
+        let displayText = `📋 CITATION ERROR DATA 📋\n\n`;
+        displayText += `Length: ${errorData.length} characters\n`;
+        displayText += `Contains "web_search_citations": ${errorData.includes('"web_search_citations"')}\n\n`;
+        displayText += `First 500 characters:\n${errorData.substring(0, 500)}\n\n`;
+        displayText += `Last 500 characters:\n${errorData.substring(Math.max(0, errorData.length - 500))}\n\n`;
+        displayText += `Character at position 4084: "${errorData.charAt(4084)}" (code: ${errorData.charCodeAt(4084)})\n`;
+        
+        appendMessage(displayText, 'system');
+    } else {
+        console.log('❌ No problematic citation data found');
+        appendMessage('No citation error data captured yet. Try asking a web search question first.', 'system');
+    }
+    
+    if (window.lastCitationChunks) {
+        console.log('📝 Last citation chunks:', window.lastCitationChunks);
+    }
+}
+
+/**
+ * Store citation chunks for debugging
+ */
+window.lastCitationChunks = [];
+
+// Add to window object for global access
+window.showCitationError = showCitationError;
 
 /**
  * Toggles the model information popup window
