@@ -164,25 +164,23 @@ def chat_stream():
                     if 'venice_parameters' in json_data:
                         logger.info(f"=== VENICE PARAMETERS FOUND ===")
                         logger.info(f"Venice parameters keys: {list(json_data['venice_parameters'].keys())}")
-                        
+
                         # Handle citations separately to ensure proper JSON formatting
                         if 'web_search_citations' in json_data['venice_parameters']:
                             citations = json_data['venice_parameters']['web_search_citations']
                             logger.info(f"=== CITATIONS DATA ===")
                             logger.info(f"Citations type: {type(citations)}")
                             logger.info(f"Citations length: {len(citations) if isinstance(citations, list) else 'Not a list'}")
-                            
+
                             if isinstance(citations, list) and len(citations) > 0:
                                 # Clean and validate each citation before sending
                                 cleaned_citations = []
                                 for citation in citations:
                                     try:
-                                        # Ensure each citation has required fields and clean data
+                                        # Simplified citation with only title and URL
                                         cleaned_citation = {
                                             "title": str(citation.get("title", "")).strip() or "Untitled",
-                                            "url": str(citation.get("url", "")).strip() or "#",
-                                            "content": str(citation.get("content", "")).strip()[:500],  # Limit content length
-                                            "date": str(citation.get("date", citation.get("published_date", ""))).strip()
+                                            "url": str(citation.get("url", "")).strip() or "#"
                                         }
                                         # Only add if we have at least a title or URL
                                         if cleaned_citation["title"] != "Untitled" or cleaned_citation["url"] != "#":
@@ -190,7 +188,7 @@ def chat_stream():
                                     except Exception as clean_error:
                                         logger.warning(f"Error cleaning citation: {clean_error}")
                                         continue
-                                
+
                                 if cleaned_citations:
                                     # Send citations as a separate, well-formed JSON chunk
                                     try:
@@ -205,7 +203,7 @@ def chat_stream():
                                         yield f"data: {citations_json}\n\n"
                                     except Exception as citation_error:
                                         logger.error(f"Error formatting citations: {citation_error}")
-                                    
+
                                     # Log first few citations for debugging
                                     for i, citation in enumerate(cleaned_citations[:3]):
                                         logger.info(f"Cleaned Citation [{i}]: {json.dumps(citation, indent=2)}")
@@ -213,7 +211,7 @@ def chat_stream():
                                     logger.info("No valid citations after cleaning")
                             else:
                                 logger.info("No valid citations to send")
-                        
+
                         # Send other venice_parameters without citations to avoid duplication
                         other_params = {k: v for k, v in json_data['venice_parameters'].items() 
                                       if k != 'web_search_citations'}
@@ -248,31 +246,31 @@ def chat_stream():
                         if 'venice_parameters' in delta:
                             logger.info(f"=== DELTA VENICE PARAMETERS ===")
                             logger.info(f"Delta venice parameters keys: {list(delta['venice_parameters'].keys())}")
-                            
+
                             # Handle delta citations separately
                             if 'web_search_citations' in delta['venice_parameters']:
                                 citations = delta['venice_parameters']['web_search_citations']
                                 logger.info(f"=== DELTA CITATIONS DATA ===")
                                 logger.info(f"Delta citations type: {type(citations)}")
                                 logger.info(f"Delta citations length: {len(citations) if isinstance(citations, list) else 'Not a list'}")
-                                
+
                                 if isinstance(citations, list) and len(citations) > 0:
                                     # Clean and validate delta citations too
                                     cleaned_delta_citations = []
                                     for citation in citations:
                                         try:
+                                            # Simplified citation with only title and URL
                                             cleaned_citation = {
                                                 "title": str(citation.get("title", "")).strip() or "Untitled",
-                                                "url": str(citation.get("url", "")).strip() or "#",
-                                                "content": str(citation.get("content", "")).strip()[:500],
-                                                "date": str(citation.get("date", citation.get("published_date", ""))).strip()
+                                                "url": str(citation.get("url", "")).strip() or "#"
                                             }
+                                            # Only add if we have at least a title or URL
                                             if cleaned_citation["title"] != "Untitled" or cleaned_citation["url"] != "#":
                                                 cleaned_delta_citations.append(cleaned_citation)
                                         except Exception as clean_error:
                                             logger.warning(f"Error cleaning delta citation: {clean_error}")
                                             continue
-                                    
+
                                     if cleaned_delta_citations:
                                         # Send delta citations as separate chunk
                                         try:
@@ -286,11 +284,11 @@ def chat_stream():
                                             yield f"data: {delta_citations_json}\n\n"
                                         except Exception as delta_citation_error:
                                             logger.error(f"Error formatting delta citations: {delta_citation_error}")
-                                        
+
                                         # Log first few delta citations
                                         for i, citation in enumerate(cleaned_delta_citations[:3]):
                                             logger.info(f"Cleaned Delta Citation [{i}]: {json.dumps(citation, indent=2)}")
-                            
+
                             # Send other delta venice_parameters without citations
                             other_delta_params = {k: v for k, v in delta['venice_parameters'].items() 
                                                 if k != 'web_search_citations'}
@@ -301,7 +299,7 @@ def chat_stream():
 
                 except json.JSONDecodeError as e:
                     logger.warning(f"JSON decode error: {str(e)}, data: {data[:100]}...")
-                    
+
                     # Log if this might contain citation data
                     if 'web_search_citations' in data:
                         logger.info(f"=== MALFORMED JSON WITH CITATIONS ===")
@@ -309,7 +307,7 @@ def chat_stream():
                         logger.info(f"Contains 'web_search_citations': True")
                         logger.info(f"Error position: {e.pos if hasattr(e, 'pos') else 'Unknown'}")
                         logger.info(f"Data around citations: {data[max(0, data.find('web_search_citations')-100):data.find('web_search_citations')+500]}")
-                    
+
                     continue
 
         except Exception as e:
@@ -539,7 +537,7 @@ def generate_visualization():
 
         # Create a deep copy to avoid modifying the original
         sanitized_data = {}
-        
+
         try:
             # Validate key structure and fill in missing fields with defaults
             if visualization_type == 'chart':
@@ -547,19 +545,19 @@ def generate_visualization():
                 sanitized_data["chart_type"] = viz_data.get("chart_type", "bar")
                 if not isinstance(sanitized_data["chart_type"], str):
                     sanitized_data["chart_type"] = "bar"
-                    
+
                 sanitized_data["title"] = viz_data.get("title", "Chart")
                 if not isinstance(sanitized_data["title"], str):
                     sanitized_data["title"] = "Chart"
-                    
+
                 sanitized_data["labels"] = viz_data.get("labels", ["A", "B", "C"])
                 if not isinstance(sanitized_data["labels"], list):
                     sanitized_data["labels"] = ["A", "B", "C"]
-                    
+
                 sanitized_data["values"] = viz_data.get("values", [10, 20, 30])
                 if not isinstance(sanitized_data["values"], list):
                     sanitized_data["values"] = [10, 20, 30]
-                
+
                 # Ensure values are numeric with stronger validation
                 sanitized_data["values"] = []
                 for v in viz_data.get("values", [10, 20, 30]):
@@ -572,20 +570,20 @@ def generate_visualization():
                             sanitized_data["values"].append(0)
                     except:
                         sanitized_data["values"].append(0)
-                
+
                 # Make sure we have at least some data
                 if not sanitized_data["values"] or len(sanitized_data["values"]) == 0:
                     sanitized_data["values"] = [10, 20, 30]
-                
+
                 # Use sanitized data
                 viz_data = sanitized_data
                 logger.info(f"Validated chart data: {viz_data}")
-                
+
             elif visualization_type == 'diagram':
                 sanitized_data["diagram_type"] = viz_data.get("diagram_type", "flowchart")
                 if not isinstance(sanitized_data["diagram_type"], str):
                     sanitized_data["diagram_type"] = "flowchart"
-                    
+
                 sanitized_data["elements"] = []
                 # Validate each element
                 for elem in viz_data.get("elements", [{"text": "Start"}, {"text": "Process"}, {"text": "End"}]):
@@ -594,19 +592,19 @@ def generate_visualization():
                     else:
                         # Skip invalid elements
                         logger.warning(f"Skipping invalid diagram element: {elem}")
-                
+
                 # If no valid elements, use defaults
                 if not sanitized_data["elements"]:
                     sanitized_data["elements"] = [{"text": "Start"}, {"text": "Process"}, {"text": "End"}]
-                    
+
                 # Use sanitized data
                 viz_data = sanitized_data
-                
+
             elif visualization_type == 'drawing':
                 sanitized_data["description"] = str(viz_data.get("description", "A simple drawing"))
                 # Use sanitized data
                 viz_data = sanitized_data
-                
+
         except Exception as validation_error:
             logger.error(f"Error during data validation: {str(validation_error)}")
             # Fall back to safe defaults
@@ -843,32 +841,32 @@ def generate_visualization():
             if 'cat' in description.lower():
                 # Draw cat face
                 draw.ellipse((100, 100, 400, 400), outline='black', width=3)  # Face
-                
+
                 # Draw cat ears
                 draw.polygon([(150, 150), (200, 50), (250, 150)], fill='white', outline='black', width=3)  # Left ear
                 draw.polygon([(350, 150), (300, 50), (250, 150)], fill='white', outline='black', width=3)  # Right ear
-                
+
                 # Draw cat eyes
                 draw.ellipse((175, 200, 225, 250), fill='white', outline='black', width=2)  # Left eye
                 draw.ellipse((275, 200, 325, 250), fill='white', outline='black', width=2)  # Right eye
-                
+
                 # Draw pupils
                 draw.ellipse((190, 215, 210, 235), fill='black')  # Left pupil
                 draw.ellipse((290, 215, 310, 235), fill='black')  # Right pupil
-                
+
                 # Draw nose
                 draw.polygon([(250, 270), (230, 290), (270, 290)], fill='pink', outline='black')
-                
+
                 # Draw whiskers
                 for i in range(3):
                     # Left whiskers
                     draw.line((170, 290 + i*15, 70, 270 + i*15), fill='black', width=2)
                     # Right whiskers
                     draw.line((330, 290 + i*15, 430, 270 + i*15), fill='black', width=2)
-                
+
                 # Draw smile
                 draw.arc((200, 280, 300, 350), 0, 180, fill='black', width=3)
-            
+
             elif 'circle' in description.lower():
                 draw.ellipse((100, 100, 400, 400), outline='black', width=3, fill='#FFEEEE')
             elif 'square' in description.lower():
@@ -886,7 +884,7 @@ def generate_visualization():
                 draw.ellipse((200, 150, 230, 180), fill='black')  # Left eye
                 draw.ellipse((270, 150, 300, 180), fill='black')  # Right eye
                 draw.arc((200, 200, 300, 250), 0, 180, fill='black', width=3)  # Smile
-                
+
                 # Add a label with the description
                 try:
                     # Try to load a font, but don't fail if not available
@@ -895,7 +893,7 @@ def generate_visualization():
                     except:
                         # Fall back to default font
                         font = ImageFont.load_default()
-                    
+
                     # Add description text at the bottom
                     draw.text((250, 450), description, fill="black", anchor="ms", font=font)
                 except Exception as font_error:

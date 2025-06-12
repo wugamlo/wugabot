@@ -1001,20 +1001,14 @@ async function fetchChatResponse(messages, botMessage) {
                                 
                                 citations.forEach((citation, index) => {
                                     try {
-                                        // More lenient validation - accept if any required field exists
-                                        if (citation && (citation.title || citation.url || citation.content)) {
-                                            processedCitations.push({
-                                                title: citation.title || citation.url || 'Untitled',
-                                                url: citation.url || '#',
-                                                content: citation.content || '',
-                                                published_date: citation.date || citation.published_date || ''
-                                            });
-                                            console.log(`Processed citation [${index + 1}]:`, {
+                                        // Only store title and URL - simplified processing
+                                        if (citation && (citation.title || citation.url)) {
+                                            const cleanCitation = {
                                                 title: citation.title || citation.url || 'Untitled',
                                                 url: citation.url || '#'
-                                            });
-                                        } else {
-                                            console.warn(`Skipping citation [${index}] - no valid data:`, citation);
+                                            };
+                                            processedCitations.push(cleanCitation);
+                                            console.log(`Processed citation [${index + 1}]:`, cleanCitation);
                                         }
                                     } catch (e) {
                                         console.error(`Error processing citation [${index}]:`, e);
@@ -1023,7 +1017,19 @@ async function fetchChatResponse(messages, botMessage) {
                                 
                                 if (processedCitations.length > 0) {
                                     lastCitations = processedCitations;
-                                    console.log('Successfully stored', lastCitations.length, 'citations for final display');
+                                    console.log('✅ Successfully stored', lastCitations.length, 'citations for final display');
+                                    
+                                    // Immediately append citations to current content and update display
+                                    try {
+                                        const currentContent = formatContent(botContentBuffer);
+                                        const citationsHtml = formatCitations(lastCitations);
+                                        if (citationsHtml) {
+                                            botMessage.innerHTML = currentContent + citationsHtml;
+                                            console.log('✅ Citations immediately added to display');
+                                        }
+                                    } catch (displayError) {
+                                        console.error('Error updating display with citations:', displayError);
+                                    }
                                 } else {
                                     console.warn('No valid citations after processing');
                                 }
@@ -1159,26 +1165,19 @@ function formatCitations(citations) {
 
     let validCitationCount = 0;
     citations.forEach((citation, index) => {
-        // More lenient validation - accept if any data exists
-        if (citation && (citation.url || citation.title || citation.content)) {
+        // Simplified validation - only need title or URL
+        if (citation && (citation.title || citation.url)) {
             const title = citation.title || citation.url || 'Untitled';
             const url = citation.url || '#';
-            const content = citation.content || '';
-            const date = citation.published_date || citation.date || '';
 
             citationsHtml += `
                 <div class="citation-item">
                     <div class="citation-number">[${index + 1}]</div>
                     <div class="citation-content">
                         <a href="${url}" class="citation-title" target="_blank">${title}</a>
-                        ${content ? `<div class="citation-snippet">${content.substring(0, 200)}${content.length > 200 ? '...' : ''}</div>` : ''}
-                        ${url !== '#' ? `<div class="citation-url">${url}</div>` : ''}
-                        ${date ? `<div class="citation-date">Published: ${date}</div>` : ''}
                     </div>
                 </div>`;
             validCitationCount++;
-        } else {
-            console.warn(`formatCitations: Skipping invalid citation at index ${index}:`, citation);
         }
     });
 
