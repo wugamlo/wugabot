@@ -162,15 +162,9 @@ def chat_stream():
 
                     # Forward venice_parameters at the top level
                     if 'venice_parameters' in json_data:
-                        logger.info(f"=== VENICE PARAMETERS FOUND ===")
-                        logger.info(f"Venice parameters keys: {list(json_data['venice_parameters'].keys())}")
-
                         # Handle citations separately to ensure proper JSON formatting
                         if 'web_search_citations' in json_data['venice_parameters']:
                             citations = json_data['venice_parameters']['web_search_citations']
-                            logger.info(f"=== CITATIONS DATA ===")
-                            logger.info(f"Citations type: {type(citations)}")
-                            logger.info(f"Citations length: {len(citations) if isinstance(citations, list) else 'Not a list'}")
 
                             if isinstance(citations, list) and len(citations) > 0:
                                 # Clean and validate each citation before sending
@@ -199,18 +193,9 @@ def chat_stream():
                                         }
                                         # Use separators to ensure compact, clean JSON
                                         citations_json = json.dumps(citations_chunk, separators=(',', ':'), ensure_ascii=False)
-                                        logger.info(f"Sending {len(cleaned_citations)} cleaned citations to frontend")
                                         yield f"data: {citations_json}\n\n"
                                     except Exception as citation_error:
                                         logger.error(f"Error formatting citations: {citation_error}")
-
-                                    # Log first few citations for debugging
-                                    for i, citation in enumerate(cleaned_citations[:3]):
-                                        logger.info(f"Cleaned Citation [{i}]: {json.dumps(citation, indent=2)}")
-                                else:
-                                    logger.info("No valid citations after cleaning")
-                            else:
-                                logger.info("No valid citations to send")
 
                         # Send other venice_parameters without citations to avoid duplication
                         other_params = {k: v for k, v in json_data['venice_parameters'].items() 
@@ -244,15 +229,9 @@ def chat_stream():
 
                         # Stream venice parameters
                         if 'venice_parameters' in delta:
-                            logger.info(f"=== DELTA VENICE PARAMETERS ===")
-                            logger.info(f"Delta venice parameters keys: {list(delta['venice_parameters'].keys())}")
-
                             # Handle delta citations separately
                             if 'web_search_citations' in delta['venice_parameters']:
                                 citations = delta['venice_parameters']['web_search_citations']
-                                logger.info(f"=== DELTA CITATIONS DATA ===")
-                                logger.info(f"Delta citations type: {type(citations)}")
-                                logger.info(f"Delta citations length: {len(citations) if isinstance(citations, list) else 'Not a list'}")
 
                                 if isinstance(citations, list) and len(citations) > 0:
                                     # Clean and validate delta citations too
@@ -280,14 +259,9 @@ def chat_stream():
                                                 }
                                             }
                                             delta_citations_json = json.dumps(delta_citations_chunk, separators=(',', ':'), ensure_ascii=False)
-                                            logger.info(f"Sending {len(cleaned_delta_citations)} cleaned delta citations to frontend")
                                             yield f"data: {delta_citations_json}\n\n"
                                         except Exception as delta_citation_error:
                                             logger.error(f"Error formatting delta citations: {delta_citation_error}")
-
-                                        # Log first few delta citations
-                                        for i, citation in enumerate(cleaned_delta_citations[:3]):
-                                            logger.info(f"Cleaned Delta Citation [{i}]: {json.dumps(citation, indent=2)}")
 
                             # Send other delta venice_parameters without citations
                             other_delta_params = {k: v for k, v in delta['venice_parameters'].items() 
@@ -299,15 +273,6 @@ def chat_stream():
 
                 except json.JSONDecodeError as e:
                     logger.warning(f"JSON decode error: {str(e)}, data: {data[:100]}...")
-
-                    # Log if this might contain citation data
-                    if 'web_search_citations' in data:
-                        logger.info(f"=== MALFORMED JSON WITH CITATIONS ===")
-                        logger.info(f"Malformed data length: {len(data)}")
-                        logger.info(f"Contains 'web_search_citations': True")
-                        logger.info(f"Error position: {e.pos if hasattr(e, 'pos') else 'Unknown'}")
-                        logger.info(f"Data around citations: {data[max(0, data.find('web_search_citations')-100):data.find('web_search_citations')+500]}")
-
                     continue
 
         except Exception as e:

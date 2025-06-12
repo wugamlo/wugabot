@@ -860,15 +860,7 @@ async function fetchChatResponse(messages, botMessage) {
                 if (!data) continue;
 
                 if (data === '[DONE]') {
-                    console.log('Stream completed. Final citations check:', lastCitations?.length || 0);
-                    if (lastCitations) {
-                        console.log('Citation details:', lastCitations.map(c => ({ title: c.title, url: c.url })));
-                    }
-                    
-                    // Clean REF tags from content before final processing
-                    botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                    
-                    // Format final content
+                    // Format final content (keeping REF tags for citation references)
                     let finalContent = formatContent(botContentBuffer);
                     
                     // Add citations if available
@@ -1017,7 +1009,6 @@ async function fetchChatResponse(messages, botMessage) {
                                 
                                 if (processedCitations.length > 0) {
                                     lastCitations = processedCitations;
-                                    console.log('✅ Successfully stored', lastCitations.length, 'citations for final display');
                                     
                                     // Immediately append citations to current content and update display
                                     try {
@@ -1025,13 +1016,10 @@ async function fetchChatResponse(messages, botMessage) {
                                         const citationsHtml = formatCitations(lastCitations);
                                         if (citationsHtml) {
                                             botMessage.innerHTML = currentContent + citationsHtml;
-                                            console.log('✅ Citations immediately added to display');
                                         }
                                     } catch (displayError) {
                                         console.error('Error updating display with citations:', displayError);
                                     }
-                                } else {
-                                    console.warn('No valid citations after processing');
                                 }
                             } else {
                                 console.log('Citations array is empty or invalid');
@@ -1152,11 +1140,8 @@ async function fetchChatResponse(messages, botMessage) {
 
 function formatCitations(citations) {
     if (!citations || !Array.isArray(citations) || citations.length === 0) {
-        console.log('formatCitations: No valid citations to format');
         return '';
     }
-
-    console.log('formatCitations: Formatting', citations.length, 'citations');
     let citationsHtml = '\n\n<div class="citations-section">';
     citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
         <h3>Web Search Results (${citations.length})</h3>
@@ -1171,7 +1156,7 @@ function formatCitations(citations) {
             const url = citation.url || '#';
 
             citationsHtml += `
-                <div class="citation-item">
+                <div class="citation-item" id="citation-${index + 1}">
                     <div class="citation-number">[${index + 1}]</div>
                     <div class="citation-content">
                         <a href="${url}" class="citation-title" target="_blank">${title}</a>
@@ -1184,11 +1169,9 @@ function formatCitations(citations) {
     citationsHtml += '</div></div>';
     
     if (validCitationCount === 0) {
-        console.warn('formatCitations: No valid citations were formatted');
         return '';
     }
     
-    console.log(`formatCitations: Successfully formatted ${validCitationCount} citations`);
     return citationsHtml;
 }
 
@@ -1199,6 +1182,31 @@ function toggleCitations(header) {
 
 // Export the toggle function for global access
 window.toggleCitations = toggleCitations;
+
+function scrollToCitation(citationNumber) {
+    const citationElement = document.getElementById(`citation-${citationNumber}`);
+    if (citationElement) {
+        // First expand citations if collapsed
+        const citationsContent = citationElement.closest('.citations-content');
+        const citationsHeader = citationsContent?.previousElementSibling;
+        
+        if (citationsContent && !citationsContent.classList.contains('expanded')) {
+            citationsHeader.classList.add('expanded');
+            citationsContent.classList.add('expanded');
+        }
+        
+        // Smooth scroll to citation
+        citationElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Highlight the citation briefly
+        citationElement.style.backgroundColor = '#3498db20';
+        setTimeout(() => {
+            citationElement.style.backgroundColor = '';
+        }, 2000);
+    }
+}
+
+window.scrollToCitation = scrollToCitation;
 
 /**
  * Formats the raw text content from the AI into properly formatted HTML
@@ -1218,6 +1226,13 @@ function formatContent(content) {
     // First handle reasoning content by directly using the API's reasoning_content field
     // (this is handled separately in the fetchChatResponse function now)
     let formatted = content;
+
+    // Convert REF tags to clickable citation links
+    formatted = formatted.replace(/\[REF\](.*?)\[\/REF\]/g, (match, refText) => {
+        // Extract number from ref text (e.g., "1" from "1")
+        const refNumber = refText.trim();
+        return `<a href="#citation-${refNumber}" class="ref-link" onclick="scrollToCitation(${refNumber})">[${refNumber}]</a>`;
+    });
 
     // Fallback for any <think> tags that might still be in the content
     if (/<think>\n?([\s\S]+?)<\/think>/g.test(content)) {
