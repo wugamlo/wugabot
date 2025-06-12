@@ -902,19 +902,6 @@ async function fetchChatResponse(messages, botMessage) {
                 try {
                     const parsed = JSON.parse(data);
 
-                    // Log important parts of the response for debugging
-                    if (parsed.error || parsed.venice_parameters) {
-                        // Only log a portion of potentially very large responses to avoid console errors
-                        const truncatedResponse = {...parsed};
-                        if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
-                            truncatedResponse.venice_parameters = {
-                                ...parsed.venice_parameters,
-                                web_search_citations: parsed.venice_parameters.web_search_citations.slice(0, 2)
-                            };
-                        }
-                        console.log('Parsed response chunk:', truncatedResponse);
-                    }
-
                     // Handle errors
                     if (parsed.error) {
                         appendMessage(`Error: ${parsed.error}`, 'error');
@@ -943,50 +930,29 @@ async function fetchChatResponse(messages, botMessage) {
                         }
                     }
 
-                    // Handle citations and other venice parameters
-                    if (parsed.venice_parameters) {
-                        // Get citations if available
-                        const citationsInResponse = parsed.venice_parameters?.web_search_citations;
-                        if (citationsInResponse) {
-                            console.log('Found citations (raw):', JSON.stringify(citationsInResponse, null, 2));
-                            console.log('Citations type:', typeof citationsInResponse);
-                            console.log('Citations is array:', Array.isArray(citationsInResponse));
+                    // Handle the new citations format - they come in a complete chunk
+                    if (parsed.venice_parameters && parsed.venice_parameters.web_search_citations) {
+                        const citationsInResponse = parsed.venice_parameters.web_search_citations;
+                        
+                        // Process valid citations
+                        if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
+                            const validCitations = citationsInResponse.map((citation, index) => ({
+                                title: citation.title || `Search Result ${index + 1}`,
+                                url: citation.url || '#',
+                                content: citation.content || citation.snippet || '',
+                                published_date: citation.date || citation.published_date || ''
+                            }));
+                            
+                            lastCitations = validCitations;
                             
                             // Clean REF tags from content
-                            const originalContent = botContentBuffer;
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                            console.log('Content before cleaning:', originalContent);
-                            console.log('Content after cleaning:', botContentBuffer);
-                            
-                            // Map numeric references to actual citations
-                            if (Array.isArray(citationsInResponse) && citationsInResponse.length > 0) {
-                                console.log('Processing citations:', JSON.stringify(citationsInResponse));
-                                // Ensure citations have required fields
-                                const validCitations = citationsInResponse.map((citation, index) => {
-                                    console.log('Processing citation:', JSON.stringify(citation));
-                                    const validatedCitation = {
-                                        title: citation.title || `Search Result ${index + 1}`,
-                                        url: citation.url || '#',
-                                        content: citation.content || citation.snippet || '',
-                                        published_date: citation.date || citation.published_date || ''
-                                    };
-                                    console.log('Validated citation:', validatedCitation);
-                                    return validatedCitation;
-                                });
-                                
-                                lastCitations = validCitations;
-                                console.log('Final citations:', JSON.stringify(lastCitations));
-                                const citationsHtml = formatCitations(lastCitations);
-                                if (citationsHtml) {
-                                    botMessage.innerHTML = formatContent(botContentBuffer) + citationsHtml;
-                                }
-                            }
                         }
+                    }
 
-                        // Check for reasoning content in venice_parameters
-                        if (parsed.venice_parameters.reasoning_content) {
-                            reasoningContent = parsed.venice_parameters.reasoning_content;
-                        }
+                    // Handle reasoning content in venice_parameters
+                    if (parsed.venice_parameters && parsed.venice_parameters.reasoning_content) {
+                        reasoningContent = parsed.venice_parameters.reasoning_content;
                     }
 
                     // Update the message with all available content
@@ -1009,21 +975,14 @@ async function fetchChatResponse(messages, botMessage) {
                     scrollToBottom();
                 } catch (e) {
                     if (data !== '[DONE]') {
-                        // Only log a portion of potentially large data to avoid console overflow
-                        const truncatedData = data.length > 500 ? data.substring(0, 500) + '...' : data;
-                        console.error('Error parsing chunk:', e, 'Data:', truncatedData);
-
-                        // Try to recover and continue - don't let a parsing error break the entire response
+                        console.warn('JSON parsing failed for chunk, continuing...', e.message);
+                        
+                        // Extract content using simple pattern matching for malformed JSON
                         if (data.includes('"content":')) {
-                            try {
-                                // Simple extraction of content if available
-                                const contentMatch = /"content":"([^"]*)"/.exec(data);
-                                if (contentMatch && contentMatch[1]) {
-                                    botContentBuffer += contentMatch[1];
-                                    botMessage.innerHTML = formatContent(botContentBuffer);
-                                }
-                            } catch (extractError) {
-                                // Silent fail for extraction attempt
+                            const contentMatch = /"content":"([^"]*)"/.exec(data);
+                            if (contentMatch && contentMatch[1]) {
+                                botContentBuffer += contentMatch[1];
+                                botMessage.innerHTML = formatContent(botContentBuffer);
                             }
                         }
                     }
