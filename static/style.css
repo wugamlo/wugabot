@@ -504,6 +504,17 @@ input[type="number"] {
     display: none !important;
     overflow: hidden;
     transition: none !important;
+    /* Browser-specific fixes */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    perspective: 1000;
+    /* Force hardware acceleration */
+    -webkit-transform: translateZ(0);
+    -moz-transform: translateZ(0);
+    -ms-transform: translateZ(0);
+    -o-transform: translateZ(0);
+    transform: translateZ(0);
 }
 
 .citations-content.expanded {
@@ -511,19 +522,49 @@ input[type="number"] {
     visibility: visible !important;
     opacity: 1 !important;
     height: auto !important;
+    /* Ensure consistent display across browsers */
+    -webkit-transform: translateZ(0);
+    -moz-transform: translateZ(0);
+    -ms-transform: translateZ(0);
+    -o-transform: translateZ(0);
+    transform: translateZ(0);
 }
 
-/* Additional mobile-specific rules */
+/* Browser-specific fixes */
 @supports (-webkit-touch-callout: none) {
+    /* iOS Safari specific fixes */
     .citations-content {
         -webkit-transform: translateZ(0);
         transform: translateZ(0);
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
     }
     
     .citations-content.expanded {
         display: block !important;
         -webkit-transform: translateZ(0);
         transform: translateZ(0);
+    }
+}
+
+/* Firefox specific fixes */
+@-moz-document url-prefix() {
+    .citations-content.expanded {
+        display: block !important;
+    }
+}
+
+/* Edge/IE specific fixes */
+@supports (-ms-ime-align: auto) {
+    .citations-content.expanded {
+        display: block !important;
+    }
+}
+
+/* Brave/Chromium specific fixes */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+    .citations-content.expanded {
+        display: block !important;
     }
 }
 

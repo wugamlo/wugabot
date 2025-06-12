@@ -115,28 +115,76 @@ window.addEventListener('load', () => {
     fetchModels();
     populateCharacterDropdown();
 
+    // Detect browser and platform for specific fixes
+    const userAgent = navigator.userAgent;
+    const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+    const isBrave = navigator.brave && navigator.brave.isBrave || false;
+    const isFirefox = /Firefox/.test(userAgent);
+    const isMobile = /iPhone|iPad|iPod|Android/.test(userAgent);
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+    
+    console.log('Browser detection:', { isSafari, isBrave, isFirefox, isMobile, isPWA });
+
     // Ensure citation toggle is available globally with multiple fallbacks
     window.toggleCitations = toggleCitations;
     
-    // Add multiple event delegation approaches for mobile compatibility
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.citations-header')) {
-            const header = e.target.closest('.citations-header');
-            toggleCitations(header);
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    });
+    // Platform-specific event delegation
+    const eventOptions = { passive: false, capture: true };
     
-    // Additional touch event for mobile devices
-    document.addEventListener('touchend', function(e) {
-        if (e.target.closest('.citations-header')) {
-            const header = e.target.closest('.citations-header');
-            toggleCitations(header);
+    // Universal click handler
+    document.addEventListener('click', function(e) {
+        const header = e.target.closest('.citations-header');
+        if (header) {
             e.preventDefault();
             e.stopPropagation();
+            toggleCitations(header);
+            return false;
         }
-    });
+    }, eventOptions);
+    
+    // Touch events for mobile devices
+    if (isMobile || isPWA) {
+        document.addEventListener('touchstart', function(e) {
+            const header = e.target.closest('.citations-header');
+            if (header) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleCitations(header);
+                return false;
+            }
+        }, eventOptions);
+        
+        document.addEventListener('touchend', function(e) {
+            const header = e.target.closest('.citations-header');
+            if (header) {
+                e.preventDefault();
+                e.stopPropagation();
+                // Small delay for mobile responsiveness
+                setTimeout(() => toggleCitations(header), 10);
+                return false;
+            }
+        }, eventOptions);
+    }
+    
+    // Brave-specific fixes
+    if (isBrave) {
+        document.addEventListener('mousedown', function(e) {
+            const header = e.target.closest('.citations-header');
+            if (header) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleCitations(header);
+                return false;
+            }
+        }, eventOptions);
+    }
+    
+    // Safari/iOS specific fixes
+    if (isSafari || isMobile) {
+        // Force hardware acceleration
+        document.body.style.webkitTransform = 'translateZ(0)';
+        document.body.style.transform = 'translateZ(0)';
+    }
 
     // Load chat history from localStorage if available
     try {
@@ -1166,12 +1214,12 @@ function formatCitations(citations) {
         return '';
     }
     
-    const citationId = `citations-${Date.now()}`;
+    const citationId = `citations-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     let citationsHtml = '\n\n<div class="citations-section">';
-    citationsHtml += `<div class="citations-header" id="${citationId}-header" data-citation-id="${citationId}">
+    citationsHtml += `<div class="citations-header" id="${citationId}-header" data-citation-id="${citationId}" data-toggle-target="${citationId}-content">
         <h3>Web Search Results (${citations.length})</h3>
         <span class="toggle-icon"></span>
-    </div><div class="citations-content" id="${citationId}-content">`;
+    </div><div class="citations-content" id="${citationId}-content" data-citation-header="${citationId}-header">`;
 
     let validCitationCount = 0;
     citations.forEach((citation, index) => {
@@ -1197,38 +1245,90 @@ function formatCitations(citations) {
         return '';
     }
     
-    // Attach event listeners after DOM insertion
+    // Multiple event attachment strategies for cross-browser compatibility
     setTimeout(() => {
         const header = document.getElementById(`${citationId}-header`);
         if (header) {
+            // Strategy 1: Direct event listeners
             header.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 toggleCitations(this);
-            });
-            header.addEventListener('touchend', function(e) {
+            }, { passive: false });
+            
+            // Strategy 2: Touch events for mobile
+            header.addEventListener('touchstart', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 toggleCitations(this);
-            });
+            }, { passive: false });
+            
+            // Strategy 3: Mouse events as fallback
+            header.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleCitations(this);
+            }, { passive: false });
+            
+            // Strategy 4: Set data attributes for fallback manual toggling
+            header.setAttribute('onclick', `toggleCitations(this)`);
+            
+            // Strategy 5: Force initial state
+            const content = document.getElementById(`${citationId}-content`);
+            if (content) {
+                content.style.display = 'none';
+                content.style.visibility = 'hidden';
+            }
         }
-    }, 100);
+    }, 50);
+    
+    // Additional timeout for browser-specific fixes
+    setTimeout(() => {
+        const header = document.getElementById(`${citationId}-header`);
+        const content = document.getElementById(`${citationId}-content`);
+        if (header && content) {
+            // Force layout recalculation for some browsers
+            header.style.display = 'flex';
+            content.style.display = 'none';
+            
+            // Trigger reflow
+            header.offsetHeight;
+            content.offsetHeight;
+        }
+    }, 150);
     
     return citationsHtml;
 }
 
 function toggleCitations(header) {
     // Ensure we have the header element
-    if (!header) return;
+    if (!header) {
+        console.warn('toggleCitations called without header element');
+        return;
+    }
     
     try {
+        console.log('toggleCitations called for header:', header.id);
+        
         // Toggle the expanded class on the header
+        const wasExpanded = header.classList.contains('expanded');
         header.classList.toggle('expanded');
         
-        // Get the citations content element using multiple methods
-        let citationsContent = header.nextElementSibling;
+        // Get the citations content element using multiple fallback methods
+        let citationsContent = null;
         
-        // Fallback: try using data attribute if direct sibling doesn't work
+        // Method 1: Direct sibling
+        citationsContent = header.nextElementSibling;
+        
+        // Method 2: Data attribute
+        if (!citationsContent || !citationsContent.classList.contains('citations-content')) {
+            const toggleTarget = header.getAttribute('data-toggle-target');
+            if (toggleTarget) {
+                citationsContent = document.getElementById(toggleTarget);
+            }
+        }
+        
+        // Method 3: Legacy data attribute
         if (!citationsContent || !citationsContent.classList.contains('citations-content')) {
             const citationId = header.getAttribute('data-citation-id');
             if (citationId) {
@@ -1236,7 +1336,7 @@ function toggleCitations(header) {
             }
         }
         
-        // Additional fallback: find within parent
+        // Method 4: Query within parent
         if (!citationsContent || !citationsContent.classList.contains('citations-content')) {
             const parent = header.parentElement;
             if (parent) {
@@ -1244,20 +1344,87 @@ function toggleCitations(header) {
             }
         }
         
-        if (citationsContent && citationsContent.classList.contains('citations-content')) {
-            citationsContent.classList.toggle('expanded');
-            
-            // Force style recalculation for mobile apps
-            if (citationsContent.classList.contains('expanded')) {
-                citationsContent.style.display = 'block';
-            } else {
-                citationsContent.style.display = 'none';
+        // Method 5: Global search as last resort
+        if (!citationsContent || !citationsContent.classList.contains('citations-content')) {
+            const allContents = document.querySelectorAll('.citations-content');
+            for (let content of allContents) {
+                const headerAttr = content.getAttribute('data-citation-header');
+                if (headerAttr === header.id) {
+                    citationsContent = content;
+                    break;
+                }
             }
+        }
+        
+        if (citationsContent && citationsContent.classList.contains('citations-content')) {
+            const isExpanding = !wasExpanded;
+            
+            // Multiple strategies to ensure the toggle works across browsers
+            if (isExpanding) {
+                // Show content
+                citationsContent.classList.add('expanded');
+                citationsContent.style.display = 'block';
+                citationsContent.style.visibility = 'visible';
+                citationsContent.style.opacity = '1';
+                citationsContent.style.height = 'auto';
+                
+                // Force repaint for some browsers
+                citationsContent.offsetHeight;
+                
+                console.log('Citations expanded');
+            } else {
+                // Hide content
+                citationsContent.classList.remove('expanded');
+                citationsContent.style.display = 'none';
+                citationsContent.style.visibility = 'hidden';
+                citationsContent.style.opacity = '0';
+                citationsContent.style.height = '0';
+                
+                console.log('Citations collapsed');
+            }
+            
+            // Browser-specific fixes
+            setTimeout(() => {
+                if (isExpanding) {
+                    // Ensure it's still visible after timeout
+                    if (citationsContent.classList.contains('expanded')) {
+                        citationsContent.style.display = 'block';
+                    }
+                } else {
+                    // Ensure it's still hidden after timeout
+                    if (!citationsContent.classList.contains('expanded')) {
+                        citationsContent.style.display = 'none';
+                    }
+                }
+            }, 10);
+            
+        } else {
+            console.error('Could not find citations content element for header:', header.id);
         }
         
         console.log('Citation toggle executed successfully');
     } catch (error) {
         console.error('Error in toggleCitations:', error);
+        
+        // Emergency fallback - try to find any citation content and toggle it
+        try {
+            const allHeaders = document.querySelectorAll('.citations-header');
+            const allContents = document.querySelectorAll('.citations-content');
+            
+            if (allHeaders.length === allContents.length) {
+                for (let i = 0; i < allHeaders.length; i++) {
+                    if (allHeaders[i] === header) {
+                        const content = allContents[i];
+                        const isVisible = content.style.display !== 'none';
+                        content.style.display = isVisible ? 'none' : 'block';
+                        header.classList.toggle('expanded');
+                        break;
+                    }
+                }
+            }
+        } catch (fallbackError) {
+            console.error('Fallback toggle also failed:', fallbackError);
+        }
     }
 }
 
