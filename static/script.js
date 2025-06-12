@@ -949,11 +949,7 @@ async function fetchChatResponse(messages, botMessage) {
                             
                             // Clean REF tags from content
                             botContentBuffer = botContentBuffer.replace(/\[REF\].*?\[\/REF\]/g, '');
-                            
-                            // Immediately update the message with citations
-                            let updatedContent = formatContent(botContentBuffer);
-                            botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
-                            console.log('Citations displayed immediately');
+                            console.log('Citations processed and will be displayed at end of stream');
                         }
                     }
 
@@ -982,7 +978,10 @@ async function fetchChatResponse(messages, botMessage) {
                     scrollToBottom();
                 } catch (e) {
                     if (data !== '[DONE]') {
-                        console.warn('JSON parsing failed for chunk, continuing...', e.message);
+                        // Only log if it's actually unexpected data, not empty chunks
+                        if (data.trim() && !data.includes('data:')) {
+                            console.warn('JSON parsing failed for chunk, continuing...', e.message);
+                        }
                         
                         // Extract content using simple pattern matching for malformed JSON
                         if (data.includes('"content":')) {
@@ -1025,7 +1024,7 @@ function formatCitations(citations) {
     citationsHtml += `<div class="citations-header" onclick="toggleCitations(this)">
         <h3>Web Search Results (${citations.length})</h3>
         <span class="toggle-icon"></span>
-    </div><div class="citations-content expanded">`;
+    </div><div class="citations-content">`;
     
     citations.forEach((citation, index) => {
         // Use title and url from citation, with fallbacks
