@@ -862,9 +862,11 @@ async function fetchChatResponse(messages, botMessage) {
                 if (data === '[DONE]') {
                     // Final check to ensure all content is displayed before completing
                     const finalContent = formatContent(botContentBuffer);
-                    if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
+                    
+                    // ALWAYS preserve citations if they exist from earlier in the stream
+                    if (lastCitations?.length > 0) {
                         botMessage.innerHTML = finalContent + formatCitations(lastCitations);
-                        console.log('Citations displayed in final content');
+                        console.log('Citations preserved and displayed in final content');
                     } else {
                         botMessage.innerHTML = finalContent;
                         console.log('No citations to display in final content');
@@ -1033,10 +1035,12 @@ async function fetchChatResponse(messages, botMessage) {
                             `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
                     }
 
-                    // Add citations if available
-                    if (lastCitations?.length > 0 && lastCitations.some(c => c.title && c.url)) {
+                    // Only update content if we don't have citations yet (to prevent overwriting them)
+                    if (lastCitations?.length > 0) {
+                        // Citations have been received, include them in all updates
                         botMessage.innerHTML = updatedContent + formatCitations(lastCitations);
                     } else {
+                        // No citations yet, just update content
                         botMessage.innerHTML = updatedContent;
                     }
 
