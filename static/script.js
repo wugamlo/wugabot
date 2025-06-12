@@ -914,9 +914,22 @@ async function fetchChatResponse(messages, botMessage) {
                 // Check if this chunk contains citation data
                 if (data.includes('"web_search_citations"')) {
                     console.log('🔍 Found citation data in chunk');
-                    console.log('🔍 Raw chunk data (first 500 chars):', data.substring(0, 500));
-                    console.log('🔍 Raw chunk data (last 500 chars):', data.substring(Math.max(0, data.length - 500)));
-                    console.log('🔍 Full chunk length:', data.length);
+                    
+                    // IMMEDIATELY log the full raw data to console
+                    console.log('🚨 RAW CITATION CHUNK (FULL DATA):');
+                    console.log(data);
+                    console.log('🚨 END RAW CITATION CHUNK');
+                    
+                    // Log character-by-character around position 4084
+                    console.log('🔍 Characters around position 4084:');
+                    for (let i = 4080; i <= 4090; i++) {
+                        if (i < data.length) {
+                            const char = data.charAt(i);
+                            const code = data.charCodeAt(i);
+                            const marker = i === 4084 ? ' <-- POSITION 4084' : '';
+                            console.log(`Position ${i}: "${char}" (code: ${code})${marker}`);
+                        }
+                    }
                     
                     // Store the problematic data IMMEDIATELY for inspection
                     window.problematicCitationData = data;
@@ -930,11 +943,6 @@ async function fetchChatResponse(messages, botMessage) {
                         data: data
                     });
                     console.log('🔍 Added to citation chunks array, total:', window.lastCitationChunks.length);
-                    
-                    // Log the ENTIRE chunk for inspection - BEFORE any parsing attempts
-                    console.log('=== FULL CHUNK DATA START ===');
-                    console.log(data);
-                    console.log('=== FULL CHUNK DATA END ===');
                     
                     // Also log it as a more readable table format
                     console.table([{
