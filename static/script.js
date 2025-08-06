@@ -990,7 +990,7 @@ async function submitChat(message, base64Image) {
 async function fetchExpertResponse(messages, botMessage) {
     showLoading(true);
     
-    // Create progress indicator
+    // Create progress indicator with individual model tracking
     const progressDiv = document.createElement('div');
     progressDiv.className = 'research-progress';
     progressDiv.innerHTML = `
@@ -999,6 +999,7 @@ async function fetchExpertResponse(messages, botMessage) {
         <div class="progress-bar">
             <div class="progress-fill" id="progressFill"></div>
         </div>
+        <div class="model-progress" id="modelProgress"></div>
     `;
     botMessage.appendChild(progressDiv);
     
@@ -1024,11 +1025,26 @@ async function fetchExpertResponse(messages, botMessage) {
             return;
         }
 
-        // Update progress
+        // Update progress and show individual model status
         const statusElement = document.getElementById('researchStatus');
         const progressFill = document.getElementById('progressFill');
+        const modelProgress = document.getElementById('modelProgress');
+        
         if (statusElement) statusElement.textContent = `Querying ${candidateModels.length} research models...`;
         if (progressFill) progressFill.style.width = '20%';
+        
+        // Initialize model progress display
+        if (modelProgress) {
+            let modelStatusHTML = '<div class="model-status-list">';
+            candidateModels.forEach(model => {
+                modelStatusHTML += `<div class="model-status" id="status-${model}">
+                    <span class="model-name">${model}</span>
+                    <span class="status-indicator">⏳ Pending</span>
+                </div>`;
+            });
+            modelStatusHTML += '</div>';
+            modelProgress.innerHTML = modelStatusHTML;
+        }
 
         // Get model capabilities for web search enablement
         const modelSelect = document.getElementById('modelSelect');
@@ -1072,7 +1088,16 @@ async function fetchExpertResponse(messages, botMessage) {
 
         // Update progress
         if (statusElement) statusElement.textContent = 'Sending research queries to models...';
-        if (progressFill) progressFill.style.width = '40%';
+        if (progressFill) progressFill.style.width = '30%';
+
+        // Mark all models as "Processing"
+        candidateModels.forEach(model => {
+            const statusElement = document.getElementById(`status-${model}`);
+            if (statusElement) {
+                const indicator = statusElement.querySelector('.status-indicator');
+                if (indicator) indicator.innerHTML = '🔄 Processing...';
+            }
+        });
 
         const response = await fetch('/chat/expert', {
             method: 'POST',
@@ -1091,9 +1116,48 @@ async function fetchExpertResponse(messages, botMessage) {
             throw new Error(result.error);
         }
 
-        // Update progress
-        if (statusElement) statusElement.textContent = 'Synthesizing research results...';
-        if (progressFill) progressFill.style.width = '80%';
+        // Update model statuses based on results
+        if (result.candidates) {
+            const completedModels = result.candidates.map(c => c.model);
+            candidateModels.forEach(model => {
+                const statusElement = document.getElementById(`status-${model}`);
+                if (statusElement) {
+                    const indicator = statusElement.querySelector('.status-indicator');
+                    if (completedModels.includes(model)) {
+                        if (indicator) indicator.innerHTML = '✅ Complete';
+                    } else {
+                        if (indicator) indicator.innerHTML = '❌ Failed';
+                    }
+                }
+            });
+        }
+
+        // Update progress for synthesis phase
+        if (statusElement) statusElement.textContent = `Synthesizing ${result.candidate_count} responses with ${synthesisModel}...`;
+        if (progressFill) progressFill.style.width = '70%';
+
+        // Add synthesis model to progress display
+        if (modelProgress) {
+            const synthesisStatusHTML = `
+                <div class="synthesis-status">
+                    <div class="model-status" id="status-synthesis">
+                        <span class="model-name">${synthesisModel} (Synthesis)</span>
+                        <span class="status-indicator">🔄 Synthesizing...</span>
+                    </div>
+                </div>
+            `;
+            modelProgress.innerHTML += synthesisStatusHTML;
+        }
+
+        // Simulate synthesis progress update (since we get the result all at once)
+        setTimeout(() => {
+            const synthesisStatus = document.getElementById('status-synthesis');
+            if (synthesisStatus) {
+                const indicator = synthesisStatus.querySelector('.status-indicator');
+                if (indicator) indicator.innerHTML = '✅ Synthesis Complete';
+            }
+            if (progressFill) progressFill.style.width = '90%';
+        }, 500);
 
         // Build the response content
         let responseContent = '';
@@ -1129,14 +1193,14 @@ async function fetchExpertResponse(messages, botMessage) {
             responseContent += `\n\n*Research completed using ${result.candidate_count} specialized models*`;
         }
 
-        // Update progress
+        // Final progress update
         if (statusElement) statusElement.textContent = 'Research complete!';
         if (progressFill) progressFill.style.width = '100%';
 
         // Update the message content and remove progress indicator after a brief delay
         setTimeout(() => {
             botMessage.innerHTML = formatContent(responseContent);
-        }, 500);
+        }, 1000);
 
         // Add to chat history (cleaned version for better context in future conversations)
         if (cleanedResponse && cleanedResponse.trim() !== '') {
