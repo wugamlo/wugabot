@@ -225,19 +225,23 @@ window.addEventListener('load', () => {
 
     // Expert Mode Settings
     const expertModeEnabledToggle = document.getElementById('expertModeEnabled');
-    const expertModeSettingsContainer = document.getElementById('expertModeSettingsContainer');
+    const expertModeSettingsContainer = document.getElementById('expertModeContainer');
 
-    expertModeEnabledToggle.checked = savedExpertModeEnabled;
-    expertModeSettingsContainer.style.display = savedExpertModeEnabled ? 'block' : 'none';
+    if (expertModeEnabledToggle && expertModeSettingsContainer) {
+        expertModeEnabledToggle.checked = savedExpertModeEnabled;
+        expertModeSettingsContainer.style.display = savedExpertModeEnabled ? 'block' : 'none';
+    }
 
     if (savedCandidateModels) {
-        const candidateModelsSelect = document.getElementById('candidateModels');
+        const candidateModelsContainer = document.getElementById('candidateModels');
         const selectedModels = JSON.parse(savedCandidateModels);
-        Array.from(candidateModelsSelect.options).forEach(option => {
-            if (selectedModels.includes(option.value)) {
-                option.selected = true;
-            }
-        });
+        setTimeout(() => {
+            candidateModelsContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                if (selectedModels.includes(checkbox.value)) {
+                    checkbox.checked = true;
+                }
+            });
+        }, 500);
     }
 
     const synthesisModelSelect = document.getElementById('synthesisModel');
@@ -252,23 +256,35 @@ window.addEventListener('load', () => {
     showCandidatesToggle.checked = savedShowCandidates;
 
     // Add event listeners for Expert Mode toggles and selections
-    expertModeEnabledToggle.addEventListener('change', function() {
-        expertModeSettingsContainer.style.display = this.checked ? 'block' : 'none';
-        localStorage.setItem('expertModeEnabled', this.checked);
-    });
+    if (expertModeEnabledToggle && expertModeSettingsContainer) {
+        expertModeEnabledToggle.addEventListener('change', function() {
+            expertModeSettingsContainer.style.display = this.checked ? 'block' : 'none';
+            localStorage.setItem('expertModeEnabled', this.checked);
+        });
+    }
 
-    document.getElementById('candidateModels').addEventListener('change', function() {
-        const selectedModels = Array.from(this.selectedOptions).map(option => option.value);
-        localStorage.setItem('candidateModels', JSON.stringify(selectedModels));
-    });
+    const candidateModelsContainer = document.getElementById('candidateModels');
+    if (candidateModelsContainer) {
+        candidateModelsContainer.addEventListener('change', function(e) {
+            if (e.target.type === 'checkbox') {
+                const checkboxes = candidateModelsContainer.querySelectorAll('input[type="checkbox"]:checked');
+                const selectedModels = Array.from(checkboxes).map(cb => cb.value);
+                localStorage.setItem('candidateModels', JSON.stringify(selectedModels));
+            }
+        });
+    }
 
-    synthesisModelSelect.addEventListener('change', function() {
-        localStorage.setItem('synthesisModel', this.value);
-    });
+    if (synthesisModelSelect) {
+        synthesisModelSelect.addEventListener('change', function() {
+            localStorage.setItem('synthesisModel', this.value);
+        });
+    }
 
-    showCandidatesToggle.addEventListener('change', function() {
-        localStorage.setItem('showCandidates', this.checked);
-    });
+    if (showCandidatesToggle) {
+        showCandidatesToggle.addEventListener('change', function() {
+            localStorage.setItem('showCandidates', this.checked);
+        });
+    }
 });
 
 // Populate character dropdown
@@ -575,11 +591,22 @@ function populateModelDropdown(models) {
         headerOption.dataset.availableContextTokens = String(availableContextTokens);
         headerModelSelect.appendChild(headerOption);
 
-        // For candidate models dropdown
-        const candidateOption = document.createElement('option');
-        candidateOption.value = model.id;
-        candidateOption.text = model.id; // Display only model ID for candidate selection
-        candidateModelsSelect.appendChild(candidateOption);
+        // For candidate models checkboxes
+        const candidateDiv = document.createElement('div');
+        candidateDiv.className = 'model-checkbox-item';
+        
+        const candidateCheckbox = document.createElement('input');
+        candidateCheckbox.type = 'checkbox';
+        candidateCheckbox.value = model.id;
+        candidateCheckbox.id = `candidate-${model.id}`;
+        
+        const candidateLabel = document.createElement('label');
+        candidateLabel.htmlFor = `candidate-${model.id}`;
+        candidateLabel.textContent = model.id;
+        
+        candidateDiv.appendChild(candidateCheckbox);
+        candidateDiv.appendChild(candidateLabel);
+        candidateModelsSelect.appendChild(candidateDiv);
 
         // For synthesis model dropdown
         const synthesisOption = document.createElement('option');
