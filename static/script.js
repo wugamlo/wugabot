@@ -1135,14 +1135,14 @@ async function fetchExpertResponse(messages, botMessage) {
             responseContent += '## Synthesized Response\n\n';
         }
 
-        // Clean synthesized response to remove citations for cleaner display
+        // Clean synthesized response to remove only citation references, preserve formatting
         let cleanedResponse = result.synthesized_response;
         if (cleanedResponse) {
-            // Remove citation references like [1], [2], etc.
+            // Remove citation references like [1], [2], etc. but preserve line breaks and formatting
             cleanedResponse = cleanedResponse.replace(/\[REF\].*?\[\/REF\]/g, '');
             cleanedResponse = cleanedResponse.replace(/\[\d+\]/g, '');
-            // Clean up any double spaces or line breaks
-            cleanedResponse = cleanedResponse.replace(/\s+/g, ' ').trim();
+            // Only clean up excessive spaces but preserve line breaks for markdown formatting
+            cleanedResponse = cleanedResponse.replace(/[ \t]+/g, ' ').trim();
         }
 
         responseContent += cleanedResponse;
