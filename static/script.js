@@ -1011,13 +1011,38 @@ async function fetchExpertResponse(messages, botMessage) {
             return;
         }
 
+        // Get model capabilities for web search enablement
+        const modelSelect = document.getElementById('modelSelect');
+        const candidateCapabilities = {};
+        const synthesisCapabilities = {};
+        
+        // Collect capabilities for candidate models
+        candidateModels.forEach(modelId => {
+            const option = Array.from(modelSelect.options).find(opt => opt.value === modelId);
+            if (option) {
+                candidateCapabilities[modelId] = {
+                    supportsWebSearch: option.dataset.supportsWebSearch === 'true'
+                };
+            }
+        });
+        
+        // Get synthesis model capabilities
+        const synthesisOption = Array.from(modelSelect.options).find(opt => opt.value === synthesisModel);
+        if (synthesisOption) {
+            synthesisCapabilities[synthesisModel] = {
+                supportsWebSearch: synthesisOption.dataset.supportsWebSearch === 'true'
+            };
+        }
+
         const requestBody = {
             messages: messages,
             candidate_models: candidateModels,
             synthesis_model: synthesisModel,
             show_candidates: showCandidates,
             max_completion_tokens: maxTokens,
-            temperature: temperature
+            temperature: temperature,
+            candidate_capabilities: candidateCapabilities,
+            synthesis_capabilities: synthesisCapabilities
         };
 
         console.log('Sending expert mode request:', {

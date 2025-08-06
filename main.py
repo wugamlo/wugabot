@@ -88,6 +88,8 @@ def chat_expert():
         show_candidates = data.get('show_candidates', False)
         temperature = data.get('temperature', 0.7)
         max_completion_tokens = data.get('max_completion_tokens', 4000)
+        candidate_capabilities = data.get('candidate_capabilities', {})
+        synthesis_capabilities = data.get('synthesis_capabilities', {})
         
         logger.info(f"Expert mode request: {len(candidate_models)} candidates, synthesis: {synthesis_model}")
         logger.info(f"Candidate models: {candidate_models}")
@@ -105,12 +107,20 @@ def chat_expert():
         def get_candidate_response(model):
             """Get response from a single candidate model"""
             try:
+                venice_params = {
+                    "include_venice_system_prompt": False
+                }
+                
+                # Enable web search for web-capable models
+                model_caps = candidate_capabilities.get(model, {})
+                if model_caps.get('supportsWebSearch', False):
+                    venice_params["enable_web_search"] = "on"
+                    venice_params["enable_web_citations"] = True
+                
                 payload = {
                     "model": model,
                     "messages": messages,
-                    "venice_parameters": {
-                        "include_venice_system_prompt": False
-                    },
+                    "venice_parameters": venice_params,
                     "max_completion_tokens": max_completion_tokens,
                     "temperature": temperature,
                     "stream": False  # Non-streaming for candidates
@@ -200,12 +210,21 @@ Please provide a synthesized response that incorporates the strengths of each ca
         # Get synthesis response with better error handling
         logger.info(f"Starting synthesis with model: {synthesis_model}")
         
+        # Build venice parameters for synthesis
+        synthesis_venice_params = {
+            "include_venice_system_prompt": False
+        }
+        
+        # Enable web search for synthesis model if it supports it
+        synthesis_caps = synthesis_capabilities.get(synthesis_model, {})
+        if synthesis_caps.get('supportsWebSearch', False):
+            synthesis_venice_params["enable_web_search"] = "on"
+            synthesis_venice_params["enable_web_citations"] = True
+        
         synthesis_payload = {
             "model": synthesis_model,
             "messages": synthesis_messages,
-            "venice_parameters": {
-                "include_venice_system_prompt": False
-            },
+            "venice_parameters": synthesis_venice_params,
             "max_completion_tokens": max_completion_tokens,
             "temperature": 0.3,  # Lower temperature for more consistent synthesis
             "stream": False
