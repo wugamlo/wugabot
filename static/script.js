@@ -546,10 +546,11 @@ function populateModelDropdown(models) {
     const synthesisModelSelect = document.getElementById('synthesisModel');
 
 
-    // Clear both dropdowns
+    // Clear all dropdowns
     modelSelect.innerHTML = '';
     headerModelSelect.innerHTML = '';
     candidateModelsSelect.innerHTML = ''; // Clear candidate models dropdown
+    synthesisModelSelect.innerHTML = ''; // Clear synthesis models dropdown
 
     // Filter out offline models and populate both dropdowns with the same models
     models.filter(model => {
@@ -616,13 +617,11 @@ function populateModelDropdown(models) {
         candidateDiv.appendChild(candidateLabel);
         candidateModelsSelect.appendChild(candidateDiv);
 
-        // For synthesis model dropdown (only populate if empty to avoid duplicates)
-        if (synthesisModelSelect.children.length === 0) {
-            const synthesisOption = document.createElement('option');
-            synthesisOption.value = model.id;
-            synthesisOption.text = model.id;
-            synthesisModelSelect.appendChild(synthesisOption);
-        }
+        // For synthesis model dropdown
+        const synthesisOption = document.createElement('option');
+        synthesisOption.value = model.id;
+        synthesisOption.text = model.id;
+        synthesisModelSelect.appendChild(synthesisOption);
     });
 
     // Set the default value for both dropdowns
