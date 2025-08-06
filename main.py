@@ -121,7 +121,7 @@ def chat_expert():
                         "Content-Type": "application/json"
                     },
                     json=payload,
-                    timeout=30
+                    timeout=60
                 )
                 
                 if response.ok:
@@ -142,7 +142,7 @@ def chat_expert():
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(candidate_models)) as executor:
             future_to_model = {executor.submit(get_candidate_response, model): model for model in candidate_models}
             
-            for future in concurrent.futures.as_completed(future_to_model, timeout=45):
+            for future in concurrent.futures.as_completed(future_to_model, timeout=120):
                 result = future.result()
                 candidate_responses.append(result)
         
@@ -195,7 +195,7 @@ Please provide a synthesized response that incorporates the strengths of each ca
                 "Content-Type": "application/json"
             },
             json=synthesis_payload,
-            timeout=30
+            timeout=60
         )
         
         if synthesis_response.ok:
