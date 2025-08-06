@@ -168,7 +168,7 @@ def chat_expert():
                         candidate_responses.append(result)
                         logger.info(f"Received response from {result['model']}: success={result['success']}")
                         # Send progress update for each completed model
-                        yield f"data: {json.dumps({'progress': f'Received response from {result[\"model\"]}: success={result[\"success\"]}'})}\n\n"
+                        yield f"data: {json.dumps({'progress': f'Received response from {result['model']}: success={result['success']}'})}\n\n"
                     except concurrent.futures.TimeoutError:
                         model = future_to_model[future]
                         logger.warning(f"Timeout for model {model}")
