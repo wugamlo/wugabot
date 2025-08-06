@@ -102,7 +102,8 @@ def chat_expert():
             
             # Send initial progress update
             yield f"data: {json.dumps({'progress': f'Deep research request: {len(candidate_models)} candidates, synthesis: {synthesis_model}'})}\n\n"
-            yield f"data: {json.dumps({'progress': f'Candidate models: [{", ".join(candidate_models)}]'})}\n\n"
+            models_list = ", ".join(candidate_models)
+            yield f"data: {json.dumps({'progress': f'Candidate models: [{models_list}]'})}\n\n"
             
         # Generate responses from candidate models in parallel
             candidate_responses = []
