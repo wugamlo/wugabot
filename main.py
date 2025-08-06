@@ -238,7 +238,7 @@ Please provide a synthesized response that incorporates the strengths of each ca
                     "Content-Type": "application/json"
                 },
                 json=synthesis_payload,
-                timeout=90
+                timeout=120
             )
             
             if synthesis_response.ok:
@@ -250,7 +250,7 @@ Please provide a synthesized response that incorporates the strengths of each ca
                     synthesized_content = "Failed to synthesize responses - no choices in response"
                     logger.error("Synthesis response missing choices")
             else:
-                error_text = synthesis_response.text()
+                error_text = synthesis_response.text
                 synthesized_content = f"Synthesis failed: {synthesis_response.status_code} - {error_text}"
                 logger.error(f"Synthesis API error: {synthesis_response.status_code} - {error_text}")
         
