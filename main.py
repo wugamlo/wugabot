@@ -78,136 +78,121 @@ def chat_expert():
         - JSON request with messages, candidate models, synthesis model, and parameters
         
     Returns:
-        - Streaming response with progress updates and final result
+        - JSON response with individual candidates and synthesized final answer
     """
-    def generate_expert_response():
-        try:
-            data = request.json
-            messages = data.get('messages', [])
-            candidate_models = data.get('candidate_models', [])
-            synthesis_model = data.get('synthesis_model', 'mistral-31-24b')
-            show_candidates = data.get('show_candidates', False)
-            temperature = data.get('temperature', 0.7)
-            max_completion_tokens = data.get('max_completion_tokens', 4000)
-            candidate_capabilities = data.get('candidate_capabilities', {})
-            synthesis_capabilities = data.get('synthesis_capabilities', {})
-            
-            logger.info(f"Deep research request: {len(candidate_models)} candidates, synthesis: {synthesis_model}")
-            logger.info(f"Candidate models: {candidate_models}")
-            logger.info(f"Synthesis model from request: {synthesis_model}")
-            
-            if not candidate_models:
-                yield f"data: {json.dumps({'error': 'No candidate models selected for deep research'})}\n\n"
-                return
-            
-            # Send initial progress update
-            yield f"data: {json.dumps({'progress': f'Deep research request: {len(candidate_models)} candidates, synthesis: {synthesis_model}'})}\n\n"
-            models_list = ", ".join(candidate_models)
-            yield f"data: {json.dumps({'progress': f'Candidate models: [{models_list}]'})}\n\n"
+    try:
+        data = request.json
+        messages = data.get('messages', [])
+        candidate_models = data.get('candidate_models', [])
+        synthesis_model = data.get('synthesis_model', 'mistral-31-24b')
+        show_candidates = data.get('show_candidates', False)
+        temperature = data.get('temperature', 0.7)
+        max_completion_tokens = data.get('max_completion_tokens', 4000)
+        candidate_capabilities = data.get('candidate_capabilities', {})
+        synthesis_capabilities = data.get('synthesis_capabilities', {})
+        
+        logger.info(f"Deep research request: {len(candidate_models)} candidates, synthesis: {synthesis_model}")
+        logger.info(f"Candidate models: {candidate_models}")
+        logger.info(f"Synthesis model from request: {synthesis_model}")
+        
+        if not candidate_models:
+            return json.dumps({'error': 'No candidate models selected for deep research'}), 400
             
         # Generate responses from candidate models in parallel
-            candidate_responses = []
-            
-            import concurrent.futures
-            import threading
-            
-            def get_candidate_response(model):
-                """Get response from a single candidate model"""
-                try:
-                    venice_params = {
-                        "include_venice_system_prompt": False
-                    }
-                    
-                    # Enable web search for web-capable models
-                    model_caps = candidate_capabilities.get(model, {})
-                    if model_caps.get('supportsWebSearch', False):
-                        venice_params["enable_web_search"] = "on"
-                        venice_params["enable_web_citations"] = True
-                    
-                    payload = {
-                        "model": model,
-                        "messages": messages,
-                        "venice_parameters": venice_params,
-                        "max_completion_tokens": max_completion_tokens,
-                        "temperature": temperature,
-                        "stream": False  # Non-streaming for candidates
-                    }
-                    
-                    response = requests.post(
-                        "https://api.venice.ai/api/v1/chat/completions",
-                        headers={
-                            "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
-                            "Content-Type": "application/json"
-                        },
-                        json=payload,
-                        timeout=60
-                    )
-                    
-                    if response.ok:
-                        result = response.json()
-                        if 'choices' in result and result['choices']:
-                            content = result['choices'][0]['message']['content']
-                            return {'model': model, 'content': content, 'success': True}
-                        else:
-                            return {'model': model, 'content': f"No response from {model}", 'success': False}
+        candidate_responses = []
+        
+        import concurrent.futures
+        import threading
+        
+        def get_candidate_response(model):
+            """Get response from a single candidate model"""
+            try:
+                venice_params = {
+                    "include_venice_system_prompt": False
+                }
+                
+                # Enable web search for web-capable models
+                model_caps = candidate_capabilities.get(model, {})
+                if model_caps.get('supportsWebSearch', False):
+                    venice_params["enable_web_search"] = "on"
+                    venice_params["enable_web_citations"] = True
+                
+                payload = {
+                    "model": model,
+                    "messages": messages,
+                    "venice_parameters": venice_params,
+                    "max_completion_tokens": max_completion_tokens,
+                    "temperature": temperature,
+                    "stream": False  # Non-streaming for candidates
+                }
+                
+                response = requests.post(
+                    "https://api.venice.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
+                        "Content-Type": "application/json"
+                    },
+                    json=payload,
+                    timeout=60
+                )
+                
+                if response.ok:
+                    result = response.json()
+                    if 'choices' in result and result['choices']:
+                        content = result['choices'][0]['message']['content']
+                        return {'model': model, 'content': content, 'success': True}
                     else:
-                        return {'model': model, 'content': f"Error from {model}: {response.status_code}", 'success': False}
-                        
-                except Exception as e:
-                    logger.error(f"Error getting response from {model}: {str(e)}")
-                    return {'model': model, 'content': f"Error: {str(e)}", 'success': False}
+                        return {'model': model, 'content': f"No response from {model}", 'success': False}
+                else:
+                    return {'model': model, 'content': f"Error from {model}: {response.status_code}", 'success': False}
+                    
+            except Exception as e:
+                logger.error(f"Error getting response from {model}: {str(e)}")
+                return {'model': model, 'content': f"Error: {str(e)}", 'success': False}
         
         # Execute candidate requests in parallel with improved error handling
-            with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(candidate_models), 5)) as executor:
-                future_to_model = {executor.submit(get_candidate_response, model): model for model in candidate_models}
-                
-                # Process completed futures with individual timeouts
-                for future in concurrent.futures.as_completed(future_to_model, timeout=180):
-                    try:
-                        result = future.result(timeout=60)  # Individual future timeout
-                        candidate_responses.append(result)
-                        logger.info(f"Received response from {result['model']}: success={result['success']}")
-                        # Send progress update for each completed model
-                        yield f"data: {json.dumps({'progress': f'Received response from {result['model']}: success={result['success']}'})}\n\n"
-                    except concurrent.futures.TimeoutError:
-                        model = future_to_model[future]
-                        logger.warning(f"Timeout for model {model}")
-                        candidate_responses.append({
-                            'model': model, 
-                            'content': f"Timeout error for {model}", 
-                            'success': False
-                        })
-                        yield f"data: {json.dumps({'progress': f'Received response from {model}: success=False (timeout)'})}\n\n"
-                    except Exception as e:
-                        model = future_to_model[future]
-                        logger.error(f"Error processing future for {model}: {str(e)}")
-                        candidate_responses.append({
-                            'model': model, 
-                            'content': f"Processing error for {model}: {str(e)}", 
-                            'success': False
-                        })
-                        yield f"data: {json.dumps({'progress': f'Received response from {model}: success=False (error)'})}\n\n"
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(candidate_models), 5)) as executor:
+            future_to_model = {executor.submit(get_candidate_response, model): model for model in candidate_models}
+            
+            # Process completed futures with individual timeouts
+            for future in concurrent.futures.as_completed(future_to_model, timeout=180):
+                try:
+                    result = future.result(timeout=60)  # Individual future timeout
+                    candidate_responses.append(result)
+                    logger.info(f"Received response from {result['model']}: success={result['success']}")
+                except concurrent.futures.TimeoutError:
+                    model = future_to_model[future]
+                    logger.warning(f"Timeout for model {model}")
+                    candidate_responses.append({
+                        'model': model, 
+                        'content': f"Timeout error for {model}", 
+                        'success': False
+                    })
+                except Exception as e:
+                    model = future_to_model[future]
+                    logger.error(f"Error processing future for {model}: {str(e)}")
+                    candidate_responses.append({
+                        'model': model, 
+                        'content': f"Processing error for {model}: {str(e)}", 
+                        'success': False
+                    })
         
         # Filter successful responses
-            successful_responses = [r for r in candidate_responses if r['success']]
-            
-            if not successful_responses:
-                yield f"data: {json.dumps({'error': 'All research models failed to respond'})}\n\n"
-                return
-            
-            # Send synthesis start update
-            yield f"data: {json.dumps({'progress': f'Starting synthesis with model: {synthesis_model}'})}\n\n"
-            
-            # Create synthesis prompt
-            synthesis_messages = messages.copy()
-            
-            # Add candidate responses to synthesis prompt
-            candidates_text = "\n\n".join([
-                f"Response from {resp['model']}:\n{resp['content']}" 
-                for resp in successful_responses
-            ])
-            
-            synthesis_prompt = f"""You are tasked with synthesizing multiple AI responses into a single, comprehensive answer. Below are responses from different AI models to the same query.
+        successful_responses = [r for r in candidate_responses if r['success']]
+        
+        if not successful_responses:
+            return json.dumps({'error': 'All research models failed to respond'}), 500
+        
+        # Create synthesis prompt
+        synthesis_messages = messages.copy()
+        
+        # Add candidate responses to synthesis prompt
+        candidates_text = "\n\n".join([
+            f"Response from {resp['model']}:\n{resp['content']}" 
+            for resp in successful_responses
+        ])
+        
+        synthesis_prompt = f"""You are tasked with synthesizing multiple AI responses into a single, comprehensive answer. Below are responses from different AI models to the same query.
 
 Please create a synthesized response that:
 1. Combines the best insights from all responses
@@ -220,10 +205,10 @@ Candidate Responses:
 
 Please provide a synthesized response that incorporates the strengths of each candidate while maintaining clarity and coherence."""
 
-            synthesis_messages.append({'role': 'user', 'content': synthesis_prompt})
-            
-            # Get synthesis response with better error handling
-            logger.info(f"Starting synthesis with model: {synthesis_model}")
+        synthesis_messages.append({'role': 'user', 'content': synthesis_prompt})
+        
+        # Get synthesis response with better error handling
+        logger.info(f"Starting synthesis with model: {synthesis_model}")
         
         # Build venice parameters for synthesis
         synthesis_venice_params = {
@@ -246,67 +231,55 @@ Please provide a synthesized response that incorporates the strengths of each ca
         }
         
         try:
-                synthesis_response = requests.post(
-                    "https://api.venice.ai/api/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
-                        "Content-Type": "application/json"
-                    },
-                    json=synthesis_payload,
-                    timeout=120
-                )
-                
-                if synthesis_response.ok:
-                    synthesis_result = synthesis_response.json()
-                    if 'choices' in synthesis_result and synthesis_result['choices']:
-                        synthesized_content = synthesis_result['choices'][0]['message']['content']
-                        logger.info("Synthesis completed successfully")
-                        yield f"data: {json.dumps({'progress': 'Synthesis completed successfully'})}\n\n"
-                    else:
-                        synthesized_content = "Failed to synthesize responses - no choices in response"
-                        logger.error("Synthesis response missing choices")
-                        yield f"data: {json.dumps({'progress': 'Synthesis failed or returned error'})}\n\n"
+            synthesis_response = requests.post(
+                "https://api.venice.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
+                    "Content-Type": "application/json"
+                },
+                json=synthesis_payload,
+                timeout=120
+            )
+            
+            if synthesis_response.ok:
+                synthesis_result = synthesis_response.json()
+                if 'choices' in synthesis_result and synthesis_result['choices']:
+                    synthesized_content = synthesis_result['choices'][0]['message']['content']
+                    logger.info("Synthesis completed successfully")
                 else:
-                    error_text = synthesis_response.text
-                    synthesized_content = f"Synthesis failed: {synthesis_response.status_code} - {error_text}"
-                    logger.error(f"Synthesis API error: {synthesis_response.status_code} - {error_text}")
-                    yield f"data: {json.dumps({'progress': 'Synthesis failed or returned error'})}\n\n"
-            
-            except requests.exceptions.Timeout:
-                synthesized_content = f"Synthesis timed out using model {synthesis_model}"
-                logger.error(f"Synthesis timeout with model: {synthesis_model}")
-                yield f"data: {json.dumps({'progress': 'Synthesis failed or returned error'})}\n\n"
-            except Exception as e:
-                synthesized_content = f"Synthesis error: {str(e)}"
-                logger.error(f"Synthesis exception: {str(e)}")
-                yield f"data: {json.dumps({'progress': 'Synthesis failed or returned error'})}\n\n"
-            
-            # Send completion update
-            yield f"data: {json.dumps({'progress': 'Deep research complete!'})}\n\n"
-            
-            # Prepare final response
-            response_data = {
-                'synthesized_response': synthesized_content,
-                'synthesis_model': synthesis_model,
-                'candidate_count': len(successful_responses)
-            }
-            
-            # Include individual candidates if requested
-            if show_candidates:
-                response_data['candidates'] = [
-                    {'model': resp['model'], 'content': resp['content']} 
-                    for resp in successful_responses
-                ]
-            
-            # Send final result
-            yield f"data: {json.dumps(response_data)}\n\n"
-            yield "data: [DONE]\n\n"
-            
+                    synthesized_content = "Failed to synthesize responses - no choices in response"
+                    logger.error("Synthesis response missing choices")
+            else:
+                error_text = synthesis_response.text
+                synthesized_content = f"Synthesis failed: {synthesis_response.status_code} - {error_text}"
+                logger.error(f"Synthesis API error: {synthesis_response.status_code} - {error_text}")
+        
+        except requests.exceptions.Timeout:
+            synthesized_content = f"Synthesis timed out using model {synthesis_model}"
+            logger.error(f"Synthesis timeout with model: {synthesis_model}")
         except Exception as e:
-            logger.exception(f"Deep research error: {str(e)}")
-            yield f"data: {json.dumps({'error': f'Deep research error: {str(e)}'})}\n\n"
-    
-    return Response(generate_expert_response(), mimetype='text/event-stream')
+            synthesized_content = f"Synthesis error: {str(e)}"
+            logger.error(f"Synthesis exception: {str(e)}")
+        
+        # Prepare response
+        response_data = {
+            'synthesized_response': synthesized_content,
+            'synthesis_model': synthesis_model,
+            'candidate_count': len(successful_responses)
+        }
+        
+        # Include individual candidates if requested
+        if show_candidates:
+            response_data['candidates'] = [
+                {'model': resp['model'], 'content': resp['content']} 
+                for resp in successful_responses
+            ]
+        
+        return json.dumps(response_data), 200
+        
+    except Exception as e:
+        logger.exception(f"Deep research error: {str(e)}")
+        return json.dumps({'error': f'Deep research error: {str(e)}'}), 500
 
 @app.route('/chat/stream', methods=['POST'])
 def chat_stream():

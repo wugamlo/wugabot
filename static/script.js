@@ -1034,6 +1034,9 @@ async function fetchExpertResponse(messages, botMessage) {
                 logContent.scrollTop = logContent.scrollHeight;
             }
         };
+        
+        addLogEntry(`Deep research request: ${candidateModels.length} candidates, synthesis: ${synthesisModel}`);
+        addLogEntry(`Candidate models: [${candidateModels.join(', ')}]`);
 
         // Get model capabilities for web search enablement
         const modelSelect = document.getElementById('modelSelect');
@@ -1075,7 +1078,8 @@ async function fetchExpertResponse(messages, botMessage) {
             showCandidates: showCandidates
         });
 
-        // Start streaming request
+        addLogEntry('Sending research queries to models...');
+
         const response = await fetch('/chat/expert', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1087,62 +1091,44 @@ async function fetchExpertResponse(messages, botMessage) {
             throw new Error(`Expert mode failed: ${response.status} - ${errorText}`);
         }
 
-        // Process streaming response
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let finalResult = null;
+        const result = await response.json();
 
-        while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-
-            for (const line of lines) {
-                if (!line.startsWith('data: ')) continue;
-
-                const data = line.slice(5).trim();
-                if (!data || data === '[DONE]') continue;
-
-                try {
-                    const parsed = JSON.parse(data);
-
-                    // Handle progress updates
-                    if (parsed.progress) {
-                        addLogEntry(parsed.progress);
-                    }
-
-                    // Handle error messages
-                    if (parsed.error) {
-                        throw new Error(parsed.error);
-                    }
-
-                    // Handle final result
-                    if (parsed.synthesized_response) {
-                        finalResult = parsed;
-                    }
-                } catch (e) {
-                    if (data !== '[DONE]') {
-                        console.log('Skipping malformed JSON chunk:', e.message);
-                    }
-                }
-            }
+        if (result.error) {
+            throw new Error(result.error);
         }
 
-        if (!finalResult) {
-            throw new Error('No final result received from deep research');
+        // Log the actual results
+        if (result.candidates) {
+            const completedModels = result.candidates.map(c => c.model);
+            const failedModels = candidateModels.filter(m => !completedModels.includes(m));
+            
+            completedModels.forEach(model => {
+                addLogEntry(`Received response from ${model}: success=True`);
+            });
+            
+            failedModels.forEach(model => {
+                addLogEntry(`Received response from ${model}: success=False`);
+            });
+        }
+
+        addLogEntry(`Starting synthesis with model: ${synthesisModel}`);
+        
+        // Check if synthesis succeeded or failed
+        if (result.synthesized_response && !result.synthesized_response.includes('Synthesis failed') && !result.synthesized_response.includes('Synthesis error')) {
+            addLogEntry('Synthesis completed successfully');
+        } else {
+            addLogEntry('Synthesis failed or returned error');
         }
 
         // Build the response content
         let responseContent = '';
 
         // Show individual candidates if requested
-        if (showCandidates && finalResult.candidates) {
+        if (showCandidates && result.candidates) {
             responseContent += '<div class="expert-mode-response">\n\n';
             responseContent += '## Individual Model Responses\n\n';
 
-            finalResult.candidates.forEach((candidate, index) => {
+            result.candidates.forEach((candidate, index) => {
                 responseContent += `### ${candidate.model}\n${candidate.content}\n\n---\n\n`;
             });
 
@@ -1150,7 +1136,7 @@ async function fetchExpertResponse(messages, botMessage) {
         }
 
         // Clean synthesized response to remove citations for cleaner display
-        let cleanedResponse = finalResult.synthesized_response;
+        let cleanedResponse = result.synthesized_response;
         if (cleanedResponse) {
             // Remove citation references like [1], [2], etc.
             cleanedResponse = cleanedResponse.replace(/\[REF\].*?\[\/REF\]/g, '');
@@ -1163,10 +1149,12 @@ async function fetchExpertResponse(messages, botMessage) {
 
         if (showCandidates) {
             responseContent += '\n\n</div>';
-            responseContent += `\n\n*Deep Research: ${finalResult.candidate_count} models synthesized by ${finalResult.synthesis_model}*`;
+            responseContent += `\n\n*Deep Research: ${result.candidate_count} models synthesized by ${result.synthesis_model}*`;
         } else {
-            responseContent += `\n\n*Research completed using ${finalResult.candidate_count} specialized models*`;
+            responseContent += `\n\n*Research completed using ${result.candidate_count} specialized models*`;
         }
+
+        addLogEntry('Deep research complete!');
 
         // Update the message content and replace log with final result after a brief delay
         setTimeout(() => {
