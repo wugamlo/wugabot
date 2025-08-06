@@ -91,12 +91,12 @@ def chat_expert():
         candidate_capabilities = data.get('candidate_capabilities', {})
         synthesis_capabilities = data.get('synthesis_capabilities', {})
         
-        logger.info(f"Expert mode request: {len(candidate_models)} candidates, synthesis: {synthesis_model}")
+        logger.info(f"Deep research request: {len(candidate_models)} candidates, synthesis: {synthesis_model}")
         logger.info(f"Candidate models: {candidate_models}")
         logger.info(f"Synthesis model from request: {synthesis_model}")
         
         if not candidate_models:
-            return json.dumps({'error': 'No candidate models selected'}), 400
+            return json.dumps({'error': 'No candidate models selected for deep research'}), 400
             
         # Generate responses from candidate models in parallel
         candidate_responses = []
@@ -181,7 +181,7 @@ def chat_expert():
         successful_responses = [r for r in candidate_responses if r['success']]
         
         if not successful_responses:
-            return json.dumps({'error': 'All candidate models failed to respond'}), 500
+            return json.dumps({'error': 'All research models failed to respond'}), 500
         
         # Create synthesis prompt
         synthesis_messages = messages.copy()
@@ -278,8 +278,8 @@ Please provide a synthesized response that incorporates the strengths of each ca
         return json.dumps(response_data), 200
         
     except Exception as e:
-        logger.exception(f"Expert mode error: {str(e)}")
-        return json.dumps({'error': f'Expert mode error: {str(e)}'}), 500
+        logger.exception(f"Deep research error: {str(e)}")
+        return json.dumps({'error': f'Deep research error: {str(e)}'}), 500
 
 @app.route('/chat/stream', methods=['POST'])
 def chat_stream():

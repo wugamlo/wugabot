@@ -980,7 +980,7 @@ async function submitChat(message, base64Image) {
 }
 
 /**
- * Fetches expert mode response with multiple candidates and synthesis
+ * Fetches deep research mode response with multiple candidates and synthesis
  * 
  * @async
  * @param {Array} messages - Array of message objects to send to the API
@@ -989,6 +989,19 @@ async function submitChat(message, base64Image) {
  */
 async function fetchExpertResponse(messages, botMessage) {
     showLoading(true);
+    
+    // Create progress indicator
+    const progressDiv = document.createElement('div');
+    progressDiv.className = 'research-progress';
+    progressDiv.innerHTML = `
+        <div class="progress-header">🔍 Deep Research in Progress</div>
+        <div class="progress-status" id="researchStatus">Initializing research...</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    `;
+    botMessage.appendChild(progressDiv);
+    
     try {
         // Get expert mode settings with better validation
         const candidateCheckboxes = document.getElementById('candidateModels').querySelectorAll('input[type="checkbox"]:checked');
@@ -999,17 +1012,23 @@ async function fetchExpertResponse(messages, botMessage) {
         const maxTokens = parseInt(localStorage.getItem('maxTokens') || '4000');
         const temperature = parseFloat(localStorage.getItem('temperature') || '0.7');
         
-        console.log('Expert mode settings:', {
+        console.log('Deep research settings:', {
             candidateModels: candidateModels,
             synthesisModel: synthesisModel,
             showCandidates: showCandidates
         });
 
         if (candidateModels.length === 0) {
-            appendMessage('Please select at least one candidate model in expert mode settings.', 'error');
+            appendMessage('Please select at least one candidate model in deep research settings.', 'error');
             showLoading(false);
             return;
         }
+
+        // Update progress
+        const statusElement = document.getElementById('researchStatus');
+        const progressFill = document.getElementById('progressFill');
+        if (statusElement) statusElement.textContent = `Querying ${candidateModels.length} research models...`;
+        if (progressFill) progressFill.style.width = '20%';
 
         // Get model capabilities for web search enablement
         const modelSelect = document.getElementById('modelSelect');
@@ -1045,11 +1064,15 @@ async function fetchExpertResponse(messages, botMessage) {
             synthesis_capabilities: synthesisCapabilities
         };
 
-        console.log('Sending expert mode request:', {
+        console.log('Sending deep research request:', {
             candidateCount: candidateModels.length,
             synthesisModel: synthesisModel,
             showCandidates: showCandidates
         });
+
+        // Update progress
+        if (statusElement) statusElement.textContent = 'Sending research queries to models...';
+        if (progressFill) progressFill.style.width = '40%';
 
         const response = await fetch('/chat/expert', {
             method: 'POST',
@@ -1068,6 +1091,10 @@ async function fetchExpertResponse(messages, botMessage) {
             throw new Error(result.error);
         }
 
+        // Update progress
+        if (statusElement) statusElement.textContent = 'Synthesizing research results...';
+        if (progressFill) progressFill.style.width = '80%';
+
         // Build the response content
         let responseContent = '';
 
@@ -1083,27 +1110,45 @@ async function fetchExpertResponse(messages, botMessage) {
             responseContent += '## Synthesized Response\n\n';
         }
 
-        responseContent += result.synthesized_response;
+        // Clean synthesized response to remove citations for cleaner display
+        let cleanedResponse = result.synthesized_response;
+        if (cleanedResponse) {
+            // Remove citation references like [1], [2], etc.
+            cleanedResponse = cleanedResponse.replace(/\[REF\].*?\[\/REF\]/g, '');
+            cleanedResponse = cleanedResponse.replace(/\[\d+\]/g, '');
+            // Clean up any double spaces or line breaks
+            cleanedResponse = cleanedResponse.replace(/\s+/g, ' ').trim();
+        }
+
+        responseContent += cleanedResponse;
 
         if (showCandidates) {
             responseContent += '\n\n</div>';
-            responseContent += `\n\n*Expert Mode: ${result.candidate_count} candidates synthesized by ${result.synthesis_model}*`;
+            responseContent += `\n\n*Deep Research: ${result.candidate_count} models synthesized by ${result.synthesis_model}*`;
+        } else {
+            responseContent += `\n\n*Research completed using ${result.candidate_count} specialized models*`;
         }
 
-        // Update the message content
-        botMessage.innerHTML = formatContent(responseContent);
+        // Update progress
+        if (statusElement) statusElement.textContent = 'Research complete!';
+        if (progressFill) progressFill.style.width = '100%';
 
-        // Add to chat history
-        if (result.synthesized_response && result.synthesized_response.trim() !== '') {
+        // Update the message content and remove progress indicator after a brief delay
+        setTimeout(() => {
+            botMessage.innerHTML = formatContent(responseContent);
+        }, 500);
+
+        // Add to chat history (cleaned version for better context in future conversations)
+        if (cleanedResponse && cleanedResponse.trim() !== '') {
             chatHistory.push({
                 role: 'assistant',
-                content: result.synthesized_response
+                content: cleanedResponse
             });
 
             // Save chat history
             try {
                 localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-                console.log("✅ Expert mode response saved to chat history");
+                console.log("✅ Deep research response saved to chat history");
             } catch (e) {
                 console.warn("Could not save chat history to localStorage:", e);
             }
@@ -1113,8 +1158,8 @@ async function fetchExpertResponse(messages, botMessage) {
         Prism.highlightAll();
 
     } catch (error) {
-        console.error('Expert mode error:', error);
-        appendMessage(`Expert mode failed: ${error.message}`, 'error');
+        console.error('Deep research error:', error);
+        appendMessage(`Deep research failed: ${error.message}`, 'error');
         showLoading(false);
     }
 }
