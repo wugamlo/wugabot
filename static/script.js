@@ -245,11 +245,18 @@ window.addEventListener('load', () => {
     }
 
     const synthesisModelSelect = document.getElementById('synthesisModel');
-    if (savedSynthesisModel) {
-        synthesisModelSelect.value = savedSynthesisModel;
-    } else {
+    if (savedSynthesisModel && synthesisModelSelect) {
+        // Wait for models to be populated before setting value
+        setTimeout(() => {
+            synthesisModelSelect.value = savedSynthesisModel;
+            console.log('Loaded synthesis model from storage:', savedSynthesisModel);
+        }, 1000);
+    } else if (synthesisModelSelect) {
         // Set a default synthesis model if none is saved
-        synthesisModelSelect.value = 'mistral-31-24b';
+        setTimeout(() => {
+            synthesisModelSelect.value = 'mistral-31-24b';
+            console.log('Set default synthesis model: mistral-31-24b');
+        }, 1000);
     }
 
     const showCandidatesToggle = document.getElementById('showCandidates');
@@ -277,6 +284,7 @@ window.addEventListener('load', () => {
     if (synthesisModelSelect) {
         synthesisModelSelect.addEventListener('change', function() {
             localStorage.setItem('synthesisModel', this.value);
+            console.log('Saved synthesis model to storage:', this.value);
         });
     }
 
@@ -983,12 +991,20 @@ async function submitChat(message, base64Image) {
 async function fetchExpertResponse(messages, botMessage) {
     showLoading(true);
     try {
-        // Get expert mode settings
-        const candidateModels = JSON.parse(localStorage.getItem('candidateModels') || '[]');
-        const synthesisModel = localStorage.getItem('synthesisModel') || 'mistral-31-24b';
+        // Get expert mode settings with better validation
+        const candidateCheckboxes = document.getElementById('candidateModels').querySelectorAll('input[type="checkbox"]:checked');
+        const candidateModels = Array.from(candidateCheckboxes).map(cb => cb.value);
+        const synthesisModelSelect = document.getElementById('synthesisModel');
+        const synthesisModel = synthesisModelSelect.value || 'mistral-31-24b';
         const showCandidates = document.getElementById('showCandidates').checked;
         const maxTokens = parseInt(localStorage.getItem('maxTokens') || '4000');
         const temperature = parseFloat(localStorage.getItem('temperature') || '0.7');
+        
+        console.log('Expert mode settings:', {
+            candidateModels: candidateModels,
+            synthesisModel: synthesisModel,
+            showCandidates: showCandidates
+        });
 
         if (candidateModels.length === 0) {
             appendMessage('Please select at least one candidate model in expert mode settings.', 'error');

@@ -90,6 +90,8 @@ def chat_expert():
         max_completion_tokens = data.get('max_completion_tokens', 4000)
         
         logger.info(f"Expert mode request: {len(candidate_models)} candidates, synthesis: {synthesis_model}")
+        logger.info(f"Candidate models: {candidate_models}")
+        logger.info(f"Synthesis model from request: {synthesis_model}")
         
         if not candidate_models:
             return json.dumps({'error': 'No candidate models selected'}), 400
@@ -138,13 +140,32 @@ def chat_expert():
                 logger.error(f"Error getting response from {model}: {str(e)}")
                 return {'model': model, 'content': f"Error: {str(e)}", 'success': False}
         
-        # Execute candidate requests in parallel
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(candidate_models)) as executor:
+        # Execute candidate requests in parallel with improved error handling
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(candidate_models), 5)) as executor:
             future_to_model = {executor.submit(get_candidate_response, model): model for model in candidate_models}
             
-            for future in concurrent.futures.as_completed(future_to_model, timeout=120):
-                result = future.result()
-                candidate_responses.append(result)
+            # Process completed futures with individual timeouts
+            for future in concurrent.futures.as_completed(future_to_model, timeout=180):
+                try:
+                    result = future.result(timeout=60)  # Individual future timeout
+                    candidate_responses.append(result)
+                    logger.info(f"Received response from {result['model']}: success={result['success']}")
+                except concurrent.futures.TimeoutError:
+                    model = future_to_model[future]
+                    logger.warning(f"Timeout for model {model}")
+                    candidate_responses.append({
+                        'model': model, 
+                        'content': f"Timeout error for {model}", 
+                        'success': False
+                    })
+                except Exception as e:
+                    model = future_to_model[future]
+                    logger.error(f"Error processing future for {model}: {str(e)}")
+                    candidate_responses.append({
+                        'model': model, 
+                        'content': f"Processing error for {model}: {str(e)}", 
+                        'success': False
+                    })
         
         # Filter successful responses
         successful_responses = [r for r in candidate_responses if r['success']]
@@ -176,7 +197,9 @@ Please provide a synthesized response that incorporates the strengths of each ca
 
         synthesis_messages.append({'role': 'user', 'content': synthesis_prompt})
         
-        # Get synthesis response
+        # Get synthesis response with better error handling
+        logger.info(f"Starting synthesis with model: {synthesis_model}")
+        
         synthesis_payload = {
             "model": synthesis_model,
             "messages": synthesis_messages,
@@ -188,24 +211,36 @@ Please provide a synthesized response that incorporates the strengths of each ca
             "stream": False
         }
         
-        synthesis_response = requests.post(
-            "https://api.venice.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
-                "Content-Type": "application/json"
-            },
-            json=synthesis_payload,
-            timeout=60
-        )
-        
-        if synthesis_response.ok:
-            synthesis_result = synthesis_response.json()
-            if 'choices' in synthesis_result and synthesis_result['choices']:
-                synthesized_content = synthesis_result['choices'][0]['message']['content']
+        try:
+            synthesis_response = requests.post(
+                "https://api.venice.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
+                    "Content-Type": "application/json"
+                },
+                json=synthesis_payload,
+                timeout=90
+            )
+            
+            if synthesis_response.ok:
+                synthesis_result = synthesis_response.json()
+                if 'choices' in synthesis_result and synthesis_result['choices']:
+                    synthesized_content = synthesis_result['choices'][0]['message']['content']
+                    logger.info("Synthesis completed successfully")
+                else:
+                    synthesized_content = "Failed to synthesize responses - no choices in response"
+                    logger.error("Synthesis response missing choices")
             else:
-                synthesized_content = "Failed to synthesize responses"
-        else:
-            synthesized_content = f"Synthesis failed: {synthesis_response.status_code}"
+                error_text = synthesis_response.text()
+                synthesized_content = f"Synthesis failed: {synthesis_response.status_code} - {error_text}"
+                logger.error(f"Synthesis API error: {synthesis_response.status_code} - {error_text}")
+        
+        except requests.exceptions.Timeout:
+            synthesized_content = f"Synthesis timed out using model {synthesis_model}"
+            logger.error(f"Synthesis timeout with model: {synthesis_model}")
+        except Exception as e:
+            synthesized_content = f"Synthesis error: {str(e)}"
+            logger.error(f"Synthesis exception: {str(e)}")
         
         # Prepare response
         response_data = {
