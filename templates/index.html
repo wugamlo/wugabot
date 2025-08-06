@@ -82,6 +82,34 @@
                             <select id="knowledgeBase"></select>
                         </div>
                         <div class="field-group">
+                            <label for="expertModeEnabled">Enable Expert Mode</label>
+                            <div class="toggle-switch-container">
+                                <input type="checkbox" id="expertModeEnabled" class="toggle-switch">
+                                <label for="expertModeEnabled" class="toggle-label"></label>
+                            </div>
+                        </div>
+                        <div class="expert-mode-controls" id="expertModeContainer" style="display: none;">
+                            <div class="field-group">
+                                <label>Select Candidate Models</label>
+                                <div class="model-checkboxes" id="candidateModels">
+                                    <!-- Populated by JavaScript -->
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="synthesisModel">Synthesis Model</label>
+                                <select id="synthesisModel">
+                                    <!-- Populated by JavaScript -->
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label for="showCandidates">Show Individual Responses (Debug)</label>
+                                <div class="toggle-switch-container">
+                                    <input type="checkbox" id="showCandidates" class="toggle-switch">
+                                    <label for="showCandidates" class="toggle-label"></label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field-group">
                             <label for="systemPrompt">System Prompt</label>
                             <textarea id="systemPrompt" placeholder="Enter system prompt..." wrap="soft">You are WugaBot, a knowledgeable and helpful assistant. Your goal is to provide accurate, informative, and engaging responses to the user's questions and requests. You are able to understand the context and nuances of the user's query and respond accordingly. You are not limited to providing factual information, but can also offer suggestions, advice, and guidance where relevant. Your tone is friendly, approachable, and non-judgmental. You are able to handle a wide range of topics and questions, from science and history to entertainment and culture. You are a trusted companion and advisor, and your responses reflect that. You reply in English language.</textarea>
                             <button onclick="saveSettings()">Save Settings</button>

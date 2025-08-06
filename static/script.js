@@ -122,14 +122,14 @@ window.addEventListener('load', () => {
     const isFirefox = /Firefox/.test(userAgent);
     const isMobile = /iPhone|iPad|iPod|Android/.test(userAgent);
     const isPWA = window.matchMedia('(display-mode: standalone)').matches;
-    
+
     console.log('Browser detection:', { isSafari, isBrave, isFirefox, isMobile, isPWA });
 
     // Ensure citation toggle is available globally with multiple fallbacks
     window.toggleCitations = toggleCitations;
-    
+
     // Removed global event delegation to prevent conflicts with individual citation handlers
-    
+
     // Safari/iOS specific fixes
     if (isSafari || isMobile) {
         // Force hardware acceleration
@@ -146,7 +146,7 @@ window.addEventListener('load', () => {
                 chatHistory.length = 0; // Clear existing history
                 parsedHistory.forEach(msg => chatHistory.push(msg));
                 console.log("📂 Loaded chat history from localStorage with", chatHistory.length, "messages");
-                
+
                 // Restore chat display from history
                 chatHistory.forEach(msg => {
                     if (msg.role === 'user' || msg.role === 'assistant') {
@@ -165,6 +165,11 @@ window.addEventListener('load', () => {
     const savedTemperature = localStorage.getItem('temperature');
     const savedRagEnabled = localStorage.getItem('ragEnabled') === 'true';
     const savedKnowledgeBase = localStorage.getItem('knowledgeBase');
+    const savedExpertModeEnabled = localStorage.getItem('expertModeEnabled') === 'true';
+    const savedCandidateModels = localStorage.getItem('candidateModels');
+    const savedSynthesisModel = localStorage.getItem('synthesisModel');
+    const savedShowCandidates = localStorage.getItem('showCandidates') === 'true';
+
 
     if (savedPrompt) {
         document.getElementById('systemPrompt').value = savedPrompt;
@@ -216,6 +221,53 @@ window.addEventListener('load', () => {
     const temperatureSlider = document.getElementById('temperature');
     temperatureSlider.addEventListener('input', function() {
         document.getElementById('temperatureValue').textContent = this.value;
+    });
+
+    // Expert Mode Settings
+    const expertModeEnabledToggle = document.getElementById('expertModeEnabled');
+    const expertModeSettingsContainer = document.getElementById('expertModeSettingsContainer');
+
+    expertModeEnabledToggle.checked = savedExpertModeEnabled;
+    expertModeSettingsContainer.style.display = savedExpertModeEnabled ? 'block' : 'none';
+
+    if (savedCandidateModels) {
+        const candidateModelsSelect = document.getElementById('candidateModels');
+        const selectedModels = JSON.parse(savedCandidateModels);
+        Array.from(candidateModelsSelect.options).forEach(option => {
+            if (selectedModels.includes(option.value)) {
+                option.selected = true;
+            }
+        });
+    }
+
+    const synthesisModelSelect = document.getElementById('synthesisModel');
+    if (savedSynthesisModel) {
+        synthesisModelSelect.value = savedSynthesisModel;
+    } else {
+        // Set a default synthesis model if none is saved
+        synthesisModelSelect.value = 'mistral-31-24b';
+    }
+
+    const showCandidatesToggle = document.getElementById('showCandidates');
+    showCandidatesToggle.checked = savedShowCandidates;
+
+    // Add event listeners for Expert Mode toggles and selections
+    expertModeEnabledToggle.addEventListener('change', function() {
+        expertModeSettingsContainer.style.display = this.checked ? 'block' : 'none';
+        localStorage.setItem('expertModeEnabled', this.checked);
+    });
+
+    document.getElementById('candidateModels').addEventListener('change', function() {
+        const selectedModels = Array.from(this.selectedOptions).map(option => option.value);
+        localStorage.setItem('candidateModels', JSON.stringify(selectedModels));
+    });
+
+    synthesisModelSelect.addEventListener('change', function() {
+        localStorage.setItem('synthesisModel', this.value);
+    });
+
+    showCandidatesToggle.addEventListener('change', function() {
+        localStorage.setItem('showCandidates', this.checked);
     });
 });
 
@@ -334,7 +386,7 @@ function handleImageUpload(input) {
     if (input.files.length > 0) {
         const modelSelect = document.getElementById('modelSelect');
         const selectedOption = modelSelect.options[modelSelect.selectedIndex];
-        
+
         // Check if current model supports vision
         if (!selectedOption.dataset.supportsVision === 'true') {
             alert('Please select a vision-capable model to analyze images');
@@ -466,10 +518,14 @@ function populateModelDropdown(models) {
     const searchButton = document.getElementById('searchEnabled');
     const temperatureInput = document.getElementById('temperature');
     const temperatureValue = document.getElementById('temperatureValue');
+    const candidateModelsSelect = document.getElementById('candidateModels');
+    const synthesisModelSelect = document.getElementById('synthesisModel');
+
 
     // Clear both dropdowns
     modelSelect.innerHTML = '';
     headerModelSelect.innerHTML = '';
+    candidateModelsSelect.innerHTML = ''; // Clear candidate models dropdown
 
     // Filter out offline models and populate both dropdowns with the same models
     models.filter(model => {
@@ -484,7 +540,7 @@ function populateModelDropdown(models) {
         const optimizedForCode = capabilities.optimizedForCode === true;
         const supportsFunctionCalling = capabilities.supportsFunctionCalling === true;
         const availableContextTokens = model.model_spec?.availableContextTokens || 0;
-        
+
         // Get default temperature if available
         const defaultTemperature = model.model_spec?.constraints?.temperature?.default || 0.7;
 
@@ -498,8 +554,8 @@ function populateModelDropdown(models) {
         option.value = model.id;
         option.text = displayText;
         option.dataset.supportsWebSearch = String(supportsWebSearch || false);
-        option.dataset.supportsReasoning = String(supportsReasoning || false);
         option.dataset.supportsVision = String(supportsVision || false);
+        option.dataset.supportsReasoning = String(supportsReasoning || false);
         option.dataset.optimizedForCode = String(optimizedForCode || false);
         option.dataset.supportsFunctionCalling = String(supportsFunctionCalling || false);
         option.dataset.availableContextTokens = String(availableContextTokens);
@@ -512,12 +568,24 @@ function populateModelDropdown(models) {
         headerOption.value = model.id;
         headerOption.text = displayText;
         headerOption.dataset.supportsWebSearch = String(supportsWebSearch || false);
-        headerOption.dataset.supportsReasoning = String(supportsReasoning || false);
         headerOption.dataset.supportsVision = String(supportsVision || false);
+        headerOption.dataset.supportsReasoning = String(supportsReasoning || false);
         headerOption.dataset.optimizedForCode = String(optimizedForCode || false);
         headerOption.dataset.supportsFunctionCalling = String(supportsFunctionCalling || false);
         headerOption.dataset.availableContextTokens = String(availableContextTokens);
         headerModelSelect.appendChild(headerOption);
+
+        // For candidate models dropdown
+        const candidateOption = document.createElement('option');
+        candidateOption.value = model.id;
+        candidateOption.text = model.id; // Display only model ID for candidate selection
+        candidateModelsSelect.appendChild(candidateOption);
+
+        // For synthesis model dropdown
+        const synthesisOption = document.createElement('option');
+        synthesisOption.value = model.id;
+        synthesisOption.text = model.id;
+        synthesisModelSelect.appendChild(synthesisOption);
     });
 
     // Set the default value for both dropdowns
@@ -529,7 +597,7 @@ function populateModelDropdown(models) {
         const supportsWebSearch = selectedOption.dataset.supportsWebSearch === 'true';
         const supportsVision = selectedOption.dataset.supportsVision === 'true';
         const defaultTemperature = selectedOption.dataset.defaultTemperature || 0.7;
-        
+
         // Update search button visibility and enable by default for web-enabled models
         searchButton.style.display = supportsWebSearch ? 'block' : 'none';
         if (supportsWebSearch) {
@@ -537,22 +605,22 @@ function populateModelDropdown(models) {
         } else {
             searchButton.classList.remove('active');
         }
-        
+
         // Update image upload buttons visibility using proper query selectors
         const galleryButton = document.querySelector('button[onclick*="galleryInput"]');
         const cameraButton = document.querySelector('button[onclick*="cameraInput"]');
-        
+
         console.log('Model supports vision:', supportsVision);
         console.log('Found gallery button:', !!galleryButton);
         console.log('Found camera button:', !!cameraButton);
-        
+
         if (galleryButton) {
             galleryButton.style.display = selectedOption.dataset.supportsVision === 'true' ? 'inline-block' : 'none';
         }
         if (cameraButton) {
             cameraButton.style.display = selectedOption.dataset.supportsVision === 'true' ? 'inline-block' : 'none';
         }
-        
+
         // Update temperature to model default
         temperatureInput.value = defaultTemperature;
         temperatureValue.textContent = defaultTemperature;
@@ -564,19 +632,19 @@ function populateModelDropdown(models) {
     const updateUI = (selectedModel) => {
         modelSelect.value = selectedModel;
         headerModelSelect.value = selectedModel;
-        
+
         // Get the selected option from modelSelect (which has the full dataset)
         const selectedOption = Array.from(modelSelect.options).find(opt => opt.value === selectedModel);
         if (selectedOption) {
             const supportsVision = selectedOption.dataset.supportsVision === 'true';
             const supportsWebSearch = selectedOption.dataset.supportsWebSearch === 'true';
             const defaultTemperature = selectedOption.dataset.defaultTemperature || 0.7;
-            
+
             // Update button visibility
             const galleryButton = document.querySelector('button[onclick*="galleryInput"]');
             const cameraButton = document.querySelector('button[onclick*="cameraInput"]');
             const searchButton = document.getElementById('searchEnabled');
-            
+
             if (galleryButton) galleryButton.style.display = supportsVision ? 'inline-block' : 'none';
             if (cameraButton) cameraButton.style.display = supportsVision ? 'inline-block' : 'none';
             if (searchButton) {
@@ -588,7 +656,7 @@ function populateModelDropdown(models) {
                     searchButton.classList.remove('active');
                 }
             }
-            
+
             // Update temperature to model default
             temperatureInput.value = defaultTemperature;
             temperatureValue.textContent = defaultTemperature;
@@ -628,23 +696,37 @@ async function startStream() {
         return;
     }
 
-    // Check for image uploads
+    // Check if expert mode is enabled
+    const expertModeEnabled = document.getElementById('expertModeEnabled').checked;
+    const candidateModels = JSON.parse(localStorage.getItem('candidateModels') || '[]');
+    const synthesisModel = localStorage.getItem('synthesisModel') || 'mistral-31-24b';
+    const showCandidates = document.getElementById('showCandidates').checked;
+
+    // Image processing function
     const processImage = async (file) => {
-        // Always resize camera photos, and resize any file larger than 2MB
-        const isCameraPhoto = file.type.startsWith('image/') && file.name === 'image.jpg';
+        const isCameraPhoto = file.name === 'image.jpg'; // heuristic for camera photos
+        // Resize if it's a camera photo or if the file is larger than 2MB
         if (isCameraPhoto || file.size > 2 * 1024 * 1024) {
-            const resizedBlob = await resizeImage(file, 800, 600); // Smaller max dimensions
+            const resizedBlob = await resizeImage(file, 800, 600);
             const resizedReader = new FileReader();
             resizedReader.onload = (event) => {
                 base64Image = event.target.result;
-                submitChat(message, base64Image);
+                if (expertModeEnabled) {
+                    fetchExpertResponse(buildMessages(message, base64Image), appendMessage('', 'assistant', true));
+                } else {
+                    submitChat(message, base64Image);
+                }
             };
             resizedReader.readAsDataURL(resizedBlob);
         } else {
             const reader = new FileReader();
             reader.onload = (event) => {
                 base64Image = event.target.result;
-                submitChat(message, base64Image);
+                if (expertModeEnabled) {
+                    fetchExpertResponse(buildMessages(message, base64Image), appendMessage('', 'assistant', true));
+                } else {
+                    submitChat(message, base64Image);
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -654,15 +736,68 @@ async function startStream() {
     if (galleryInput.files.length > 0) {
         await processImage(galleryInput.files[0]);
         galleryInput.value = ''; // Clear input after handling
-    } 
+    }
     // Handle camera input
     else if (cameraInput.files.length > 0) {
         await processImage(cameraInput.files[0]);
         cameraInput.value = ''; // Clear input after handling
     } else {
-        submitChat(message); // No images to submit
+        // No images to submit
+        if (expertModeEnabled) {
+            fetchExpertResponse(buildMessages(message, null), appendMessage('', 'assistant', true));
+        } else {
+            submitChat(message);
+        }
     }
     userInput.value = ''; // Clear input after sending
+}
+
+/**
+ * Builds the message array for the API, including system prompt and chat history.
+ *
+ * @param {string} message - The user's current message.
+ * @param {string|null} base64Image - The base64 encoded image, if any.
+ * @returns {Array<Object>} The formatted message array for the API.
+ */
+function buildMessages(message, base64Image) {
+    const systemPrompt = document.getElementById('systemPrompt').value.trim();
+    const messages = [];
+
+    // Add system prompt first
+    if (systemPrompt) {
+        messages.push({ role: 'system', content: systemPrompt });
+    }
+
+    // Add chat history
+    chatHistory.forEach(msg => {
+        if (msg.role === 'user') {
+            // Format user messages with text content
+            messages.push({
+                role: 'user',
+                content: [{ type: 'text', text: msg.content }]
+            });
+        } else if (msg.role === 'assistant') {
+            // Format assistant messages with text content
+            messages.push({
+                role: 'assistant',
+                content: [{ type: 'text', text: msg.content }]
+            });
+        }
+    });
+
+    // Add current user message
+    const userMessageContent = [];
+    if (message) {
+        userMessageContent.push({ type: 'text', text: message });
+    }
+    if (base64Image) {
+        userMessageContent.push({ type: 'image_url', image_url: { url: base64Image } });
+    }
+    if (userMessageContent.length > 0) {
+        messages.push({ role: 'user', content: userMessageContent });
+    }
+
+    return messages;
 }
 
 /**
@@ -681,17 +816,17 @@ async function submitChat(message, base64Image) {
     lastCitations = null;
 
     console.log("BEFORE - Chat history contains:", chatHistory.length, "messages");
-    
+
     // Store message without image in chat history
     if (message) {
         // Ensure consistent format for user messages
-        chatHistory.push({ 
-            role: 'user', 
-            content: message 
+        chatHistory.push({
+            role: 'user',
+            content: message
         });
         console.log("Added user message to chat history");
     }
-    
+
     // Reset botContentBuffer for the new message
     botContentBuffer = "";
 
@@ -745,29 +880,29 @@ async function submitChat(message, base64Image) {
     const messages = [
         { role: 'system', content: enhancedSystemPrompt }
     ];
-    
+
     // Then add all history with consistent formatting for the API
     chatHistory.forEach(msg => {
         // Make sure we properly log what's happening in the history
         console.log(`Processing message for API: ${msg.role}`, msg.content.substring(0, 50) + '...');
-        
+
         // Skip the current user message (it will be added separately)
         if (msg.role === 'user' && msg.content === message) {
             console.log("Skipping current user message (will add it separately)");
             return;
         }
-        
+
         if (msg.role === 'user') {
             // Format user messages for the API
-            messages.push({ 
-                role: 'user', 
-                content: [{ type: 'text', text: msg.content }] 
+            messages.push({
+                role: 'user',
+                content: [{ type: 'text', text: msg.content }]
             });
         } else if (msg.role === 'assistant') {
             // Format assistant messages with content array format
-            messages.push({ 
-                role: 'assistant', 
-                content: [{ type: 'text', text: msg.content }] 
+            messages.push({
+                role: 'assistant',
+                content: [{ type: 'text', text: msg.content }]
             });
             console.log("✓ Added assistant message to API request");
         }
@@ -795,9 +930,125 @@ async function submitChat(message, base64Image) {
     document.getElementById('imagePreview').innerHTML = '';
     const botMessage = appendMessage('', 'assistant', true);
     botContentBuffer = "";
-    fetchChatResponse(messages, botMessage);
+    
+    // Check if expert mode is enabled
+    const expertModeEnabled = document.getElementById('expertModeEnabled').checked;
+
+    if (expertModeEnabled) {
+        // Use expert mode
+        fetchExpertResponse(messages, botMessage);
+    } else {
+        // Use regular streaming mode
+        fetchChatResponse(messages, botMessage);
+    }
 }
-// File input handlers are already set up for galleryInput and cameraInput
+
+/**
+ * Fetches expert mode response with multiple candidates and synthesis
+ * 
+ * @async
+ * @param {Array} messages - Array of message objects to send to the API
+ * @param {HTMLElement} botMessage - DOM element where the response will be displayed
+ * @returns {Promise<void>}
+ */
+async function fetchExpertResponse(messages, botMessage) {
+    showLoading(true);
+    try {
+        // Get expert mode settings
+        const candidateModels = JSON.parse(localStorage.getItem('candidateModels') || '[]');
+        const synthesisModel = localStorage.getItem('synthesisModel') || 'mistral-31-24b';
+        const showCandidates = document.getElementById('showCandidates').checked;
+        const maxTokens = parseInt(localStorage.getItem('maxTokens') || '4000');
+        const temperature = parseFloat(localStorage.getItem('temperature') || '0.7');
+
+        if (candidateModels.length === 0) {
+            appendMessage('Please select at least one candidate model in expert mode settings.', 'error');
+            showLoading(false);
+            return;
+        }
+
+        const requestBody = {
+            messages: messages,
+            candidate_models: candidateModels,
+            synthesis_model: synthesisModel,
+            show_candidates: showCandidates,
+            max_completion_tokens: maxTokens,
+            temperature: temperature
+        };
+
+        console.log('Sending expert mode request:', {
+            candidateCount: candidateModels.length,
+            synthesisModel: synthesisModel,
+            showCandidates: showCandidates
+        });
+
+        const response = await fetch('/chat/expert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Expert mode failed: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
+        // Build the response content
+        let responseContent = '';
+
+        // Show individual candidates if requested
+        if (showCandidates && result.candidates) {
+            responseContent += '<div class="expert-mode-response">\n\n';
+            responseContent += '## Individual Model Responses\n\n';
+
+            result.candidates.forEach((candidate, index) => {
+                responseContent += `### ${candidate.model}\n${candidate.content}\n\n---\n\n`;
+            });
+
+            responseContent += '## Synthesized Response\n\n';
+        }
+
+        responseContent += result.synthesized_response;
+
+        if (showCandidates) {
+            responseContent += '\n\n</div>';
+            responseContent += `\n\n*Expert Mode: ${result.candidate_count} candidates synthesized by ${result.synthesis_model}*`;
+        }
+
+        // Update the message content
+        botMessage.innerHTML = formatContent(responseContent);
+
+        // Add to chat history
+        if (result.synthesized_response && result.synthesized_response.trim() !== '') {
+            chatHistory.push({
+                role: 'assistant',
+                content: result.synthesized_response
+            });
+
+            // Save chat history
+            try {
+                localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                console.log("✅ Expert mode response saved to chat history");
+            } catch (e) {
+                console.warn("Could not save chat history to localStorage:", e);
+            }
+        }
+
+        showLoading(false);
+        Prism.highlightAll();
+
+    } catch (error) {
+        console.error('Expert mode error:', error);
+        appendMessage(`Expert mode failed: ${error.message}`, 'error');
+        showLoading(false);
+    }
+}
 
 /**
  * Fetches a response from the chat API based on the provided messages
@@ -814,7 +1065,7 @@ async function fetchChatResponse(messages, botMessage) {
         // Store the current model for debugging purposes
         const currentModel = document.getElementById('modelSelect').value;
         console.log('Current model:', currentModel);
-        
+
         const searchButton = document.getElementById('searchEnabled');
         const searchEnabled = searchButton && searchButton.classList.contains('active');
         console.log('Web search enabled:', searchEnabled);
@@ -842,7 +1093,7 @@ async function fetchChatResponse(messages, botMessage) {
             web_search: requestBody.web_search,
             messageCount: messages.length
         });
-        
+
         // DEBUG: Log the message history being sent
         console.log('BEFORE - Chat history contains:', chatHistory.length, 'messages');
         console.log('Chat history roles:', chatHistory.map(msg => msg.role));
@@ -862,7 +1113,7 @@ async function fetchChatResponse(messages, botMessage) {
 
         // Clear the buffer at the start of streaming
         botContentBuffer = "";
-        
+
         // Process streaming response
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -884,7 +1135,7 @@ async function fetchChatResponse(messages, botMessage) {
                 if (data === '[DONE]') {
                     // Format final content (keeping REF tags for citation references)
                     let finalContent = formatContent(botContentBuffer);
-                    
+
                     // Add citations if available
                     if (lastCitations && Array.isArray(lastCitations) && lastCitations.length > 0) {
                         console.log('Formatting and appending citations to final content');
@@ -898,7 +1149,7 @@ async function fetchChatResponse(messages, botMessage) {
                     } else {
                         console.log('No citations to display in final content');
                     }
-                    
+
                     // Update DOM
                     try {
                         botMessage.innerHTML = finalContent;
@@ -906,19 +1157,19 @@ async function fetchChatResponse(messages, botMessage) {
                     } catch (e) {
                         console.error('Error updating bot message:', e);
                     }
-                    
+
                     showLoading(false);
 
                     // ALWAYS add the assistant's response to the chat history when streaming is done
                     if (botContentBuffer && botContentBuffer.trim() !== '') {
                         console.log("💬 Adding assistant message to history:", botContentBuffer.substring(0, 30) + "...");
-                        
+
                         // Add assistant message to chat history - CRITICALLY IMPORTANT
                         chatHistory.push({
                             role: 'assistant',
                             content: botContentBuffer
                         });
-                        
+
                         // Save the updated chat history to localStorage
                         try {
                             localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
@@ -926,16 +1177,16 @@ async function fetchChatResponse(messages, botMessage) {
                         } catch (e) {
                             console.warn("Could not save chat history to localStorage:", e);
                         }
-                        
+
                         console.log("✅ Assistant message added to chat history");
                         console.log("AFTER - Chat history updated, now contains:", chatHistory.length, "messages");
                         console.log("Roles in history:", chatHistory.map(msg => msg.role));
-                        
+
                         // Debug - print what the next request will include
                         let nextContextSummary = chatHistory.map((msg, i) => `[${i}] ${msg.role}: ${msg.content.substring(0, 20)}...`).join('\n');
                         console.log("Next API request will include:\n", nextContextSummary);
                     }
-                    
+
                     Prism.highlightAll();
                     return;
                 }
@@ -946,10 +1197,10 @@ async function fetchChatResponse(messages, botMessage) {
                         console.log('Skipping malformed citation chunk');
                         continue;
                     }
-                    
+
                     // Try to fix common JSON issues before parsing
                     let cleanedData = data;
-                    
+
                     // Fix unterminated strings by finding the last complete object
                     if (data.includes('Unterminated string')) {
                         const lastCompleteObject = data.lastIndexOf('}{');
@@ -957,7 +1208,7 @@ async function fetchChatResponse(messages, botMessage) {
                             cleanedData = data.substring(0, lastCompleteObject + 1);
                         }
                     }
-                    
+
                     const parsed = JSON.parse(cleanedData);
 
                     // Log important parts of the response for debugging
@@ -1004,15 +1255,15 @@ async function fetchChatResponse(messages, botMessage) {
                     // Handle citations and other venice parameters
                     if (parsed.venice_parameters) {
                         console.log('Found venice_parameters:', Object.keys(parsed.venice_parameters));
-                        
+
                         // Check for web search citations
                         if (parsed.venice_parameters.web_search_citations) {
                             console.log('Processing web search citations:', parsed.venice_parameters.web_search_citations.length);
-                            
+
                             const citations = parsed.venice_parameters.web_search_citations;
                             if (Array.isArray(citations) && citations.length > 0) {
                                 const processedCitations = [];
-                                
+
                                 citations.forEach((citation, index) => {
                                     try {
                                         // Only store title and URL - simplified processing
@@ -1028,10 +1279,10 @@ async function fetchChatResponse(messages, botMessage) {
                                         console.error(`Error processing citation [${index}]:`, e);
                                     }
                                 });
-                                
+
                                 if (processedCitations.length > 0) {
                                     lastCitations = processedCitations;
-                                    
+
                                     // Immediately append citations to current content and update display
                                     try {
                                         const currentContent = formatContent(botContentBuffer);
@@ -1061,7 +1312,7 @@ async function fetchChatResponse(messages, botMessage) {
 
                     // Add reasoning content if available and not already in the content
                     if (reasoningContent && !botContentBuffer.includes(reasoningContent)) {
-                        updatedContent = updatedContent + 
+                        updatedContent = updatedContent +
                             `<div class="reasoning-content"><strong>Reasoning:</strong><br>${reasoningContent}</div>`;
                     }
 
@@ -1073,33 +1324,33 @@ async function fetchChatResponse(messages, botMessage) {
                 } catch (e) {
                     if (data !== '[DONE]') {
                         console.log('Skipping malformed JSON chunk:', e.message);
-                        
+
                         // Try to extract citations from malformed JSON using regex
                         if (data.includes('web_search_citations')) {
                             try {
                                 console.log('Attempting to extract citations from malformed data...');
-                                
+
                                 // Extract citation data using regex patterns
                                 const citationPattern = /"web_search_citations"\s*:\s*\[(.*?)\]/s;
                                 const match = data.match(citationPattern);
-                                
+
                                 if (match) {
                                     console.log('Found citation pattern, attempting to parse...');
-                                    
+
                                     // Try to extract individual citation objects
                                     const citationData = match[1];
                                     const citationObjects = [];
-                                    
+
                                     // Look for title and url patterns
                                     const titlePattern = /"title"\s*:\s*"([^"]+)"/g;
                                     const urlPattern = /"url"\s*:\s*"([^"]+)"/g;
                                     const contentPattern = /"content"\s*:\s*"([^"]+)"/g;
-                                    
+
                                     let titleMatch, urlMatch, contentMatch;
                                     const titles = [];
                                     const urls = [];
                                     const contents = [];
-                                    
+
                                     while ((titleMatch = titlePattern.exec(citationData)) !== null) {
                                         titles.push(titleMatch[1]);
                                     }
@@ -1109,7 +1360,7 @@ async function fetchChatResponse(messages, botMessage) {
                                     while ((contentMatch = contentPattern.exec(citationData)) !== null) {
                                         contents.push(contentMatch[1]);
                                     }
-                                    
+
                                     // Create citation objects from extracted data
                                     const maxCitations = Math.max(titles.length, urls.length);
                                     for (let i = 0; i < maxCitations; i++) {
@@ -1122,7 +1373,7 @@ async function fetchChatResponse(messages, botMessage) {
                                             });
                                         }
                                     }
-                                    
+
                                     if (citationObjects.length > 0) {
                                         lastCitations = citationObjects;
                                         console.log('Successfully extracted', citationObjects.length, 'citations from malformed data');
@@ -1132,7 +1383,7 @@ async function fetchChatResponse(messages, botMessage) {
                                 console.log('Could not extract citations from malformed data:', extractError.message);
                             }
                         }
-                        
+
                         // Simply skip malformed chunks and continue
                         continue;
                     }
@@ -1142,7 +1393,7 @@ async function fetchChatResponse(messages, botMessage) {
     } catch (error) {
         console.error('Stream error:', error);
         appendMessage('Failed to connect to chat service. Please try again.', 'error');
-        
+
         // Even on error, add whatever assistant content we received
         if (botContentBuffer && botContentBuffer.trim() !== '') {
             chatHistory.push({
@@ -1153,7 +1404,7 @@ async function fetchChatResponse(messages, botMessage) {
         }
     } finally {
         showLoading(false);
-        
+
         // Log the final chat history state
         console.log("FINAL chat history contains:", chatHistory.length, "messages");
         console.log("FINAL chat history roles:", chatHistory.map(msg => msg.role));
@@ -1164,7 +1415,7 @@ function formatCitations(citations) {
     if (!citations || !Array.isArray(citations) || citations.length === 0) {
         return '';
     }
-    
+
     const citationId = `citations-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     let citationsHtml = '\n\n<div class="citations-section">';
     citationsHtml += `<div class="citations-header" id="${citationId}-header" data-citation-id="${citationId}" data-toggle-target="${citationId}-content">
@@ -1191,11 +1442,11 @@ function formatCitations(citations) {
     });
 
     citationsHtml += '</div></div>';
-    
+
     if (validCitationCount === 0) {
         return '';
     }
-    
+
     // Single event handler strategy to prevent multiple triggers
     setTimeout(() => {
         const header = document.getElementById(`${citationId}-header`);
@@ -1203,25 +1454,25 @@ function formatCitations(citations) {
             // Remove any existing event listeners by cloning the element
             const newHeader = header.cloneNode(true);
             header.parentNode.replaceChild(newHeader, header);
-            
+
             // Add single click event listener with debouncing
             let isToggling = false;
             newHeader.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 // Prevent rapid successive clicks
                 if (isToggling) return;
                 isToggling = true;
-                
+
                 toggleCitations(this);
-                
+
                 // Reset debounce flag after a short delay
                 setTimeout(() => {
                     isToggling = false;
                 }, 300);
             }, { passive: false, once: false });
-            
+
             // Force initial state
             const content = document.getElementById(`${citationId}-content`);
             if (content) {
@@ -1230,7 +1481,7 @@ function formatCitations(citations) {
             }
         }
     }, 50);
-    
+
     // Additional timeout for browser-specific fixes
     setTimeout(() => {
         const header = document.getElementById(`${citationId}-header`);
@@ -1239,13 +1490,13 @@ function formatCitations(citations) {
             // Force layout recalculation for some browsers
             header.style.display = 'flex';
             content.style.display = 'none';
-            
+
             // Trigger reflow
             header.offsetHeight;
             content.offsetHeight;
         }
     }, 150);
-    
+
     return citationsHtml;
 }
 
@@ -1255,12 +1506,12 @@ function toggleCitations(header) {
         console.warn('toggleCitations called without header element');
         return;
     }
-    
+
     console.log('toggleCitations called for header:', header.id);
-    
+
     // Get the citations content element - use the most reliable method first
     let citationsContent = header.nextElementSibling;
-    
+
     // Fallback: use data attributes
     if (!citationsContent || !citationsContent.classList.contains('citations-content')) {
         const toggleTarget = header.getAttribute('data-toggle-target');
@@ -1268,15 +1519,15 @@ function toggleCitations(header) {
             citationsContent = document.getElementById(toggleTarget);
         }
     }
-    
+
     if (!citationsContent || !citationsContent.classList.contains('citations-content')) {
         console.error('Could not find citations content element for header:', header.id);
         return;
     }
-    
+
     // Simple toggle logic
     const isCurrentlyExpanded = citationsContent.classList.contains('expanded');
-    
+
     if (isCurrentlyExpanded) {
         // Hide content
         citationsContent.classList.remove('expanded');
@@ -1304,15 +1555,15 @@ function scrollToCitation(citationNumber) {
         // First expand citations if collapsed
         const citationsContent = citationElement.closest('.citations-content');
         const citationsHeader = citationsContent?.previousElementSibling;
-        
+
         if (citationsContent && !citationsContent.classList.contains('expanded')) {
             citationsHeader.classList.add('expanded');
             citationsContent.classList.add('expanded');
         }
-        
+
         // Smooth scroll to citation
         citationElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
+
         // Highlight the citation briefly
         citationElement.style.backgroundColor = '#3498db20';
         setTimeout(() => {
@@ -1358,15 +1609,15 @@ function formatContent(content) {
 
     // Check for visualization requests and process them
     // Improved regex pattern to more reliably detect visualization tags with JSON data
-    formatted = formatted.replace(/<generate_visualization\s+type="([^"]+)"\s+data="(.*?)"\s*><\/generate_visualization>/g, 
+    formatted = formatted.replace(/<generate_visualization\s+type="([^"]+)"\s+data="(.*?)"\s*><\/generate_visualization>/g,
         (match, type, dataStr) => {
             try {
                 console.log("Visualization request detected:", type);
                 console.log("Raw data string:", dataStr.substring(0, 100));
-                
+
                 // Set up default data structures based on visualization type
                 let data;
-                
+
                 if (type === "chart") {
                     data = {
                         chart_type: "bar",
@@ -1388,7 +1639,7 @@ function formatContent(content) {
                         description: "A simple drawing"
                     };
                 }
-                
+
                 // Deep clean the data string first
                 // First, unescape all special characters and HTML entities
                 let cleanedDataStr = dataStr
@@ -1403,12 +1654,12 @@ function formatContent(content) {
                     .replace(/&lt;/g, '<')
                     .replace(/&gt;/g, '>')
                     .replace(/&amp;/g, '&');
-                
+
                 // Remove any escape sequences that would break JSON
                 cleanedDataStr = cleanedDataStr.trim();
-                
+
                 console.log("Cleaned data string:", cleanedDataStr.substring(0, 100));
-                
+
                 // Try to parse the JSON data string
                 try {
                     // Handle the case when the data is already valid JSON
@@ -1417,7 +1668,7 @@ function formatContent(content) {
                         // Merge with defaults
                         data = { ...data, ...parsedData };
                         console.log("Successfully parsed JSON data");
-                    } 
+                    }
                     // For cases with escaped JSON
                     else if (cleanedDataStr.includes('{') && cleanedDataStr.includes('}')) {
                         // Extract the JSON part
@@ -1436,13 +1687,13 @@ function formatContent(content) {
                 } catch (parseError) {
                     console.warn("Using default data due to parsing error:", parseError.message);
                 }
-                
+
                 // Create a placeholder for the visualization with a loading indicator
                 const placeholderId = `viz-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-                
+
                 // Call the visualization generation function
                 generateVisualization(type, data, placeholderId);
-                
+
                 // Return a placeholder that will be updated when the visualization is ready
                 return `<div id="${placeholderId}" class="visualization-placeholder">
                     <div class="loading-dots"></div>
@@ -1478,8 +1729,8 @@ function formatContent(content) {
     // Process standard markdown elements in more consistent way
     formatted = formatted
         // Headers - ensure they're properly matched at line start
-        .replace(/^# (.*?)$/gm, '<h1>$1</h1>') 
-        .replace(/^## (.*?)$/gm, '<h2>$1</h2>')  
+        .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
+        .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
         .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
         // Lists - better handling of nested lists
         .replace(/^- (.*?)$/gm, '<li>$1</li>')
@@ -1514,15 +1765,15 @@ function formatContent(content) {
 async function generateVisualization(type, data, placeholderId) {
     try {
         console.log(`Generating ${type} visualization with data:`, data);
-        
+
         // Validate the data before sending to server
         if (!data || typeof data !== 'object') {
             throw new Error('Invalid visualization data');
         }
-        
+
         // Ensure data is properly formatted with robust defaults
         let sanitizedData = {};
-        
+
         // Create appropriate defaults based on visualization type
         if (type === 'chart') {
             sanitizedData = {
@@ -1543,29 +1794,29 @@ async function generateVisualization(type, data, placeholderId) {
                 description: data.description || 'A simple drawing'
             };
         }
-        
+
         // Create request with sanitized data
         const requestBody = {
             visualization_type: type,
             data: sanitizedData
         };
-        
+
         console.log("Sending visualization request:", JSON.stringify(requestBody).substring(0, 200));
-        
+
         // Update placeholder to show loading state
         const placeholder = document.getElementById(placeholderId);
         if (!placeholder) {
             console.error('Placeholder element not found:', placeholderId);
             return;
         }
-        
+
         // Add timeout to fetch request to prevent hanging
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
             controller.abort();
             throw new Error("Visualization request timed out after 10 seconds");
         }, 10000); // 10 second timeout
-        
+
         try {
             const response = await fetch('/generate_visualization', {
                 method: 'POST',
@@ -1575,28 +1826,28 @@ async function generateVisualization(type, data, placeholderId) {
                 body: JSON.stringify(requestBody),
                 signal: controller.signal
             });
-            
+
             clearTimeout(timeoutId);
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error(`Server error (${response.status}):`, errorText);
                 throw new Error(`Server responded with ${response.status}: ${errorText}`);
             }
-            
+
             const result = await response.json();
             console.log("Visualization response received:", Object.keys(result));
-            
+
             // Check for error in the response
             if (result.error) {
                 throw new Error(result.error);
             }
-            
+
             // Clear the placeholder
             placeholder.innerHTML = '';
             placeholder.classList.remove('visualization-placeholder');
             placeholder.classList.add('visualization-container');
-            
+
             // Add the visualization based on the type
             if (result.type === 'chart' || result.type === 'drawing' || result.type === 'error') {
                 if (!result.image) {
@@ -1607,7 +1858,7 @@ async function generateVisualization(type, data, placeholderId) {
                 img.alt = `${type} visualization`;
                 img.classList.add('visualization-image');
                 placeholder.appendChild(img);
-                
+
                 // Add error message if present
                 if (result.error && result.type === 'error') {
                     const errorMsg = document.createElement('div');
@@ -1619,30 +1870,30 @@ async function generateVisualization(type, data, placeholderId) {
                 if (!result.svg) {
                     throw new Error('Visualization response is missing SVG data');
                 }
-                
+
                 try {
                     // For SVG, create a properly sanitized element
                     const parser = new DOMParser();
                     const svgDoc = parser.parseFromString(result.svg, "image/svg+xml");
-                    
+
                     // Check for parsing errors
                     const parserError = svgDoc.querySelector("parsererror");
                     if (parserError) {
                         console.error("SVG parsing error:", parserError.textContent);
                         throw new Error("Invalid SVG format");
                     }
-                    
+
                     // Get the SVG element and ensure it has proper attributes
                     const svg = svgDoc.querySelector('svg');
                     if (svg) {
                         // Clone the SVG node to avoid any potential issues
                         const safeSvg = svg.cloneNode(true);
                         safeSvg.classList.add('visualization-svg');
-                        
+
                         // Ensure dimensions are set
                         if (!safeSvg.hasAttribute('width')) safeSvg.setAttribute('width', '800');
                         if (!safeSvg.hasAttribute('height')) safeSvg.setAttribute('height', '600');
-                        
+
                         // Clear any existing content and add the SVG
                         placeholder.innerHTML = '';
                         placeholder.appendChild(safeSvg);
@@ -1686,7 +1937,7 @@ async function generateVisualization(type, data, placeholderId) {
             placeholder.classList.remove('visualization-placeholder');
             placeholder.classList.add('visualization-container');
             placeholder.appendChild(fallbackMessage);
-            
+
             // Add a retry button with simpler data
             const retryButton = document.createElement('button');
             retryButton.textContent = 'Retry with Simple Data';
@@ -1698,26 +1949,26 @@ async function generateVisualization(type, data, placeholderId) {
             retryButton.style.border = 'none';
             retryButton.style.borderRadius = '4px';
             retryButton.style.cursor = 'pointer';
-            
+
             retryButton.onclick = () => {
                 // Use very simple data for retry
                 let simpleData;
                 if (type === 'chart') {
-                    simpleData = { 
-                        chart_type: 'bar', 
-                        title: 'Simple Chart', 
-                        labels: ['A', 'B'], 
-                        values: [10, 20] 
+                    simpleData = {
+                        chart_type: 'bar',
+                        title: 'Simple Chart',
+                        labels: ['A', 'B'],
+                        values: [10, 20]
                     };
                 } else if (type === 'diagram') {
-                    simpleData = { 
-                        diagram_type: 'flowchart', 
-                        elements: [{ text: 'Start' }, { text: 'End' }] 
+                    simpleData = {
+                        diagram_type: 'flowchart',
+                        elements: [{ text: 'Start' }, { text: 'End' }]
                     };
                 } else {
                     simpleData = { description: 'A simple circle' };
                 }
-                
+
                 // Try again with simpler data
                 try {
                     generateVisualization(type, simpleData, placeholderId);
@@ -1726,7 +1977,7 @@ async function generateVisualization(type, data, placeholderId) {
                     placeholder.innerHTML = `<div class="error-message">Visualization could not be generated.</div>`;
                 }
             };
-            
+
             placeholder.appendChild(retryButton);
         }
     }
@@ -1794,7 +2045,7 @@ function initSettingsPanel() {
 function clearChatHistory() {
     chatHistory.length = 0; // Clear the chat history
     document.getElementById('chatBox').innerHTML = ''; // Clear chat display
-    
+
     // Also clear chat history from localStorage
     try {
         localStorage.removeItem('chatHistory');
@@ -1850,14 +2101,14 @@ function transferPrompt() {
 function showChatContext() {
     // Create a message showing the current context
     let contextInfo = "In the context window, I can see the following messages:\n\n";
-    
+
     // Count roles for diagnostic info
     const roleCounts = {
         user: 0,
         assistant: 0,
         system: 0
     };
-    
+
     // Log the current chat history for debugging
     console.log("🔍 CONTEXT DEBUG - Chat history contains:", chatHistory.length, "messages");
     console.log("🔍 CONTEXT DEBUG - Full details:", JSON.stringify(chatHistory.map(m => {
@@ -1880,8 +2131,8 @@ function showChatContext() {
     chatHistory.forEach((msg, index) => {
         if (msg.role !== 'system') {
             // For better debugging, include the message index
-            const preview = typeof msg.content === 'string' 
-                ? msg.content.substring(0, 100) 
+            const preview = typeof msg.content === 'string'
+                ? msg.content.substring(0, 100)
                 : JSON.stringify(msg.content).substring(0, 100);
             contextInfo += `[${index}] ${msg.role}: ${preview}${preview.length > 99 ? '...' : ''}\n\n`;
         }
@@ -1890,7 +2141,7 @@ function showChatContext() {
     if (chatHistory.length <= 1 && !systemPrompt) {
         contextInfo += "No conversation history found. Try sending a few messages first.";
     }
-    
+
     // Add role count summary with the system prompt included
     contextInfo += `\n--- Summary ---\n`;
     contextInfo += `Total messages: ${chatHistory.length + (systemPrompt ? 1 : 0)}\n`;
@@ -1900,7 +2151,7 @@ function showChatContext() {
 
     // Add this message to the chat
     appendMessage(contextInfo, 'system');
-    
+
     // Also output to console
     console.table([
         ...(systemPrompt ? [{
@@ -1911,8 +2162,8 @@ function showChatContext() {
         ...chatHistory.map((msg, i) => ({
             index: i,
             role: msg.role,
-            preview: typeof msg.content === 'string' ? 
-                msg.content.substring(0, 30) + '...' : 
+            preview: typeof msg.content === 'string' ?
+                msg.content.substring(0, 30) + '...' :
                 JSON.stringify(msg.content).substring(0, 30) + '...'
         }))
     ]);
@@ -1978,25 +2229,25 @@ function displayFullChatHistory() {
         index,
         role: msg.role,
         contentType: typeof msg.content,
-        preview: typeof msg.content === 'string' 
+        preview: typeof msg.content === 'string'
             ? (msg.content.length > 50 ? msg.content.substring(0, 50) + '...' : msg.content)
             : JSON.stringify(msg.content).substring(0, 50) + '...'
     })));
-    
+
     // Add this to the global window object for console access
     window.currentChatHistory = [...chatHistory];
-    
+
     // Create a formatted message showing all content
     let historyText = "## COMPLETE CHAT HISTORY ##\n\n";
-    
+
     chatHistory.forEach((msg, index) => {
-        const content = typeof msg.content === 'string' 
-            ? msg.content 
+        const content = typeof msg.content === 'string'
+            ? msg.content
             : JSON.stringify(msg.content, null, 2);
-            
+
         historyText += `[${index}] ${msg.role.toUpperCase()}:\n${content}\n\n---\n\n`;
     });
-    
+
     // Add to chat as system message
     appendMessage(historyText, 'system');
 }
@@ -2011,7 +2262,7 @@ window.displayFullChatHistory = displayFullChatHistory;
 function toggleModelInfoPopup() {
     const popup = document.getElementById('modelInfoPopup');
     const isHidden = popup.classList.contains('hidden');
-    
+
     if (isHidden) {
         // Show popup and populate table
         populateModelInfoTable();
@@ -2028,10 +2279,10 @@ function toggleModelInfoPopup() {
 function populateModelInfoTable() {
     const tableBody = document.querySelector('#modelInfoTable tbody');
     const modelSelect = document.getElementById('modelSelect');
-    
+
     // Clear existing rows
     tableBody.innerHTML = '';
-    
+
     // Get all models from the dropdown options
     const models = Array.from(modelSelect.options).map(option => {
         const modelId = option.value;
@@ -2043,26 +2294,26 @@ function populateModelInfoTable() {
             supportsFunctionCalling: option.dataset.supportsFunctionCalling === 'true',
             availableContextTokens: parseInt(option.dataset.availableContextTokens) || 0
         };
-        
+
         return {
             id: modelId,
             displayText: option.text.split(' - ')[0], // Remove capability indicators from display
             ...capabilities
         };
     });
-    
+
     // Sort models alphabetically
     models.sort((a, b) => a.id.localeCompare(b.id));
-    
+
     // Create table rows
     models.forEach(model => {
         const row = document.createElement('tr');
-        
+
         // Format context tokens (convert to K format)
-        const contextDisplay = model.availableContextTokens > 0 
+        const contextDisplay = model.availableContextTokens > 0
             ? `${Math.floor(model.availableContextTokens / 1000)}K`
             : 'N/A';
-        
+
         row.innerHTML = `
             <td class="model-name" title="${model.id}">${model.id}</td>
             <td class="context-tokens">${contextDisplay}</td>
@@ -2082,7 +2333,7 @@ function populateModelInfoTable() {
                 ${model.supportsFunctionCalling ? '✓' : ''}
             </td>
         `;
-        
+
         tableBody.appendChild(row);
     });
 }
