@@ -1366,7 +1366,7 @@ input[type="number"] {
   color: var(--secondary-color);
 }
 
-.model-name {
+.model-info-table .model-name {
   text-align: left !important;
   font-family: monospace;
   font-weight: bold;
@@ -1376,6 +1376,12 @@ input[type="number"] {
   text-overflow: ellipsis;
   white-space: nowrap;
   padding-right: 16px;
+}
+
+.research-progress .model-name {
+  font-family: monospace;
+  font-weight: bold;
+  color: white;
 }
 
 .context-tokens {
@@ -1501,6 +1507,7 @@ input[type="number"] {
 .model-name {
     font-family: monospace;
     font-weight: bold;
+    color: white;
 }
 
 .status-indicator {

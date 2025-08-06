@@ -1116,48 +1116,59 @@ async function fetchExpertResponse(messages, botMessage) {
             throw new Error(result.error);
         }
 
-        // Update model statuses based on results
+        // Update model statuses based on results - with proper timing
         if (result.candidates) {
             const completedModels = result.candidates.map(c => c.model);
-            candidateModels.forEach(model => {
-                const statusElement = document.getElementById(`status-${model}`);
-                if (statusElement) {
-                    const indicator = statusElement.querySelector('.status-indicator');
-                    if (completedModels.includes(model)) {
-                        if (indicator) indicator.innerHTML = '✅ Complete';
-                    } else {
-                        if (indicator) indicator.innerHTML = '❌ Failed';
+            
+            // Simulate individual model completion updates
+            candidateModels.forEach((model, index) => {
+                setTimeout(() => {
+                    const statusElement = document.getElementById(`status-${model}`);
+                    if (statusElement) {
+                        const indicator = statusElement.querySelector('.status-indicator');
+                        if (completedModels.includes(model)) {
+                            if (indicator) indicator.innerHTML = '✅ Complete';
+                        } else {
+                            if (indicator) indicator.innerHTML = '❌ Failed';
+                        }
                     }
-                }
+                    
+                    // Update overall progress as models complete
+                    const completedCount = index + 1;
+                    const progressPercent = 20 + (completedCount / candidateModels.length) * 50; // 20% to 70%
+                    if (progressFill) progressFill.style.width = `${progressPercent}%`;
+                }, index * 200); // Stagger the updates
             });
         }
 
-        // Update progress for synthesis phase
-        if (statusElement) statusElement.textContent = `Synthesizing ${result.candidate_count} responses with ${synthesisModel}...`;
-        if (progressFill) progressFill.style.width = '70%';
+        // Update progress for synthesis phase after model updates
+        setTimeout(() => {
+            if (statusElement) statusElement.textContent = `Synthesizing ${result.candidate_count} responses with ${synthesisModel}...`;
+            if (progressFill) progressFill.style.width = '75%';
 
-        // Add synthesis model to progress display
-        if (modelProgress) {
-            const synthesisStatusHTML = `
-                <div class="synthesis-status">
-                    <div class="model-status" id="status-synthesis">
-                        <span class="model-name">${synthesisModel} (Synthesis)</span>
-                        <span class="status-indicator">🔄 Synthesizing...</span>
+            // Add synthesis model to progress display
+            if (modelProgress) {
+                const synthesisStatusHTML = `
+                    <div class="synthesis-status">
+                        <div class="model-status" id="status-synthesis">
+                            <span class="model-name">${synthesisModel} (Synthesis)</span>
+                            <span class="status-indicator">🔄 Synthesizing...</span>
+                        </div>
                     </div>
-                </div>
-            `;
-            modelProgress.innerHTML += synthesisStatusHTML;
-        }
+                `;
+                modelProgress.innerHTML += synthesisStatusHTML;
+            }
+        }, candidateModels.length * 200 + 300);
 
-        // Simulate synthesis progress update (since we get the result all at once)
+        // Show synthesis completion
         setTimeout(() => {
             const synthesisStatus = document.getElementById('status-synthesis');
             if (synthesisStatus) {
                 const indicator = synthesisStatus.querySelector('.status-indicator');
                 if (indicator) indicator.innerHTML = '✅ Synthesis Complete';
             }
-            if (progressFill) progressFill.style.width = '90%';
-        }, 500);
+            if (progressFill) progressFill.style.width = '95%';
+        }, candidateModels.length * 200 + 800);
 
         // Build the response content
         let responseContent = '';
