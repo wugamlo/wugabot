@@ -754,6 +754,18 @@ async function startStream() {
             resizedReader.onload = (event) => {
                 base64Image = event.target.result;
                 if (expertModeEnabled) {
+                    // Display user message first for expert mode
+                    if (message) {
+                        appendMessage(message, 'user');
+                        // Add to chat history
+                        chatHistory.push({
+                            role: 'user',
+                            content: message
+                        });
+                    }
+                    if (base64Image) {
+                        appendMessage(`<img src="${base64Image}" alt="User Uploaded Image" style="max-width: 80%; height: auto;" />`, 'user');
+                    }
                     fetchExpertResponse(buildMessages(message, base64Image), appendMessage('', 'assistant', true));
                 } else {
                     submitChat(message, base64Image);
@@ -765,6 +777,18 @@ async function startStream() {
             reader.onload = (event) => {
                 base64Image = event.target.result;
                 if (expertModeEnabled) {
+                    // Display user message first for expert mode
+                    if (message) {
+                        appendMessage(message, 'user');
+                        // Add to chat history
+                        chatHistory.push({
+                            role: 'user',
+                            content: message
+                        });
+                    }
+                    if (base64Image) {
+                        appendMessage(`<img src="${base64Image}" alt="User Uploaded Image" style="max-width: 80%; height: auto;" />`, 'user');
+                    }
                     fetchExpertResponse(buildMessages(message, base64Image), appendMessage('', 'assistant', true));
                 } else {
                     submitChat(message, base64Image);
@@ -786,6 +810,15 @@ async function startStream() {
     } else {
         // No images to submit
         if (expertModeEnabled) {
+            // Display user message first for expert mode
+            if (message) {
+                appendMessage(message, 'user');
+                // Add to chat history
+                chatHistory.push({
+                    role: 'user',
+                    content: message
+                });
+            }
             fetchExpertResponse(buildMessages(message, null), appendMessage('', 'assistant', true));
         } else {
             submitChat(message);
@@ -994,25 +1027,6 @@ async function submitChat(message, base64Image) {
  * @returns {Promise<void>}
  */
 async function fetchExpertResponse(messages, botMessage) {
-    // Extract and display the user message first
-    const lastUserMessage = messages[messages.length - 1];
-    if (lastUserMessage && lastUserMessage.role === 'user') {
-        let userMessageContent = '';
-        if (Array.isArray(lastUserMessage.content)) {
-            // Handle content array format (with text and potentially images)
-            const textContent = lastUserMessage.content.find(item => item.type === 'text');
-            if (textContent) {
-                userMessageContent = textContent.text;
-            }
-        } else if (typeof lastUserMessage.content === 'string') {
-            userMessageContent = lastUserMessage.content;
-        }
-        
-        if (userMessageContent) {
-            appendMessage(userMessageContent, 'user');
-        }
-    }
-    
     showLoading(true);
     
     // Create simple terminal-style log display
