@@ -170,6 +170,11 @@ window.addEventListener('load', () => {
     const savedSynthesisModel = localStorage.getItem('synthesisModel');
     const savedShowCandidates = localStorage.getItem('showCandidates') === 'true';
 
+    // Update deep research button state after loading settings
+    setTimeout(() => {
+        updateDeepResearchButtonState();
+    }, 100);
+
 
     if (savedPrompt) {
         document.getElementById('systemPrompt').value = savedPrompt;
@@ -267,6 +272,7 @@ window.addEventListener('load', () => {
         expertModeEnabledToggle.addEventListener('change', function() {
             expertModeSettingsContainer.style.display = this.checked ? 'block' : 'none';
             localStorage.setItem('expertModeEnabled', this.checked);
+            updateDeepResearchButtonState();
         });
     }
 
@@ -2198,6 +2204,26 @@ function togglePromptComposer() {
     composer.classList.toggle('visible');
 }
 
+function toggleDeepResearchPanel() {
+    const panel = document.querySelector('.deep-research-panel');
+    const button = document.getElementById('deepResearchButton');
+    const isVisible = panel.classList.toggle('visible');
+    
+    // Update button appearance based on deep research state
+    updateDeepResearchButtonState();
+}
+
+function updateDeepResearchButtonState() {
+    const button = document.getElementById('deepResearchButton');
+    const expertModeEnabled = document.getElementById('expertModeEnabled').checked;
+    
+    if (expertModeEnabled) {
+        button.classList.add('active');
+    } else {
+        button.classList.remove('active');
+    }
+}
+
 function clearFields() {
     const fields = ['instructions', 'format', 'context', 'examples', 'warnings'];
     fields.forEach(field => {
@@ -2312,6 +2338,8 @@ window.startStream = startStream;
 window.saveSettings = saveSettings;
 window.clearChatHistory = clearChatHistory;
 window.togglePromptComposer = togglePromptComposer;
+window.toggleDeepResearchPanel = toggleDeepResearchPanel;
+window.updateDeepResearchButtonState = updateDeepResearchButtonState;
 window.clearFields = clearFields;
 window.transferPrompt = transferPrompt;
 window.showChatContext = showChatContext;
