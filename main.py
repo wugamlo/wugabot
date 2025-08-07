@@ -87,7 +87,7 @@ def chat_expert():
         synthesis_model = data.get('synthesis_model', 'mistral-31-24b')
         show_candidates = data.get('show_candidates', False)
         temperature = data.get('temperature', 0.7)
-        max_completion_tokens = data.get('max_completion_tokens', 4000)
+        max_completion_tokens = data.get('max_completion_tokens', 8000)
         candidate_capabilities = data.get('candidate_capabilities', {})
         synthesis_capabilities = data.get('synthesis_capabilities', {})
         
@@ -115,7 +115,7 @@ def chat_expert():
                 model_caps = candidate_capabilities.get(model, {})
                 if model_caps.get('supportsWebSearch', False):
                     venice_params["enable_web_search"] = "on"
-                    venice_params["enable_web_citations"] = True
+                    venice_params["enable_web_citations"] = False
                 
                 payload = {
                     "model": model,
@@ -133,7 +133,7 @@ def chat_expert():
                         "Content-Type": "application/json"
                     },
                     json=payload,
-                    timeout=60
+                    timeout=120
                 )
                 
                 if response.ok:
@@ -157,7 +157,7 @@ def chat_expert():
             # Process completed futures with individual timeouts
             for future in concurrent.futures.as_completed(future_to_model, timeout=180):
                 try:
-                    result = future.result(timeout=60)  # Individual future timeout
+                    result = future.result(timeout=120)  # Individual future timeout
                     candidate_responses.append(result)
                     logger.info(f"Received response from {result['model']}: success={result['success']}")
                 except concurrent.futures.TimeoutError:
@@ -238,7 +238,7 @@ Please provide a synthesized response that incorporates the strengths of each ca
                     "Content-Type": "application/json"
                 },
                 json=synthesis_payload,
-                timeout=120
+                timeout=180
             )
             
             if synthesis_response.ok:
@@ -297,7 +297,7 @@ def chat_stream():
     messages = data.get('messages', [])
 
     # Use max_completion_tokens as the primary parameter, but fall back to max_tokens for backward compatibility
-    max_completion_tokens = data.get('max_completion_tokens', data.get('max_tokens', 4000))
+    max_completion_tokens = data.get('max_completion_tokens', data.get('max_tokens', 8000))
     temperature = data.get('temperature', 0.7)
 
     def generate(model, messages, temperature, max_completion_tokens, search_enabled):
