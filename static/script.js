@@ -994,6 +994,25 @@ async function submitChat(message, base64Image) {
  * @returns {Promise<void>}
  */
 async function fetchExpertResponse(messages, botMessage) {
+    // Extract and display the user message first
+    const lastUserMessage = messages[messages.length - 1];
+    if (lastUserMessage && lastUserMessage.role === 'user') {
+        let userMessageContent = '';
+        if (Array.isArray(lastUserMessage.content)) {
+            // Handle content array format (with text and potentially images)
+            const textContent = lastUserMessage.content.find(item => item.type === 'text');
+            if (textContent) {
+                userMessageContent = textContent.text;
+            }
+        } else if (typeof lastUserMessage.content === 'string') {
+            userMessageContent = lastUserMessage.content;
+        }
+        
+        if (userMessageContent) {
+            appendMessage(userMessageContent, 'user');
+        }
+    }
+    
     showLoading(true);
     
     // Create simple terminal-style log display
