@@ -1126,6 +1126,13 @@ input[type="number"] {
         display: flex;
         align-items: center;
         justify-content: center;
+        margin: 0;
+    }
+
+    .input-area .icon-button {
+        margin: 0;
+        height: 44px;
+        width: 44px;
     }
 
     .chat-box {
