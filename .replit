@@ -28,3 +28,6 @@ author = 39360841
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python main.py --debug"
+
+[agent]
+expertMode = true
