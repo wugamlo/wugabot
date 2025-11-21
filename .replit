@@ -18,8 +18,12 @@ deploymentTarget = "cloudrun"
 localPort = 8080
 externalPort = 80
 
+[[ports]]
+localPort = 5000
+externalPort = 80
+
 [workflows]
-runButton = "Run"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Run"
@@ -28,6 +32,27 @@ author = 39360841
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python main.py --debug"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "WugaBot2 Server"
+
+[[workflows.workflow]]
+name = "WugaBot2 Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [agent]
 expertMode = true
