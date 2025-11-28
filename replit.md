@@ -27,6 +27,12 @@ Preferred communication style: Simple, everyday language.
 2. **Styling System** (`static/style.css`): Dark theme with CSS custom properties for theming, includes syntax highlighting integration
 3. **Character System** (`static/characters.js`): Supports multiple conversation modes including multilingual assistants (English, German, Indonesian), specialized roles (Chart Analyst, Data Assistant, SAP Consultant), and content filtering options
 
+**Input Area UI (Updated November 2025)**:
+- **Input Row**: "+" attachment button (left) + message textarea + send button (right) - follows standard messaging app layout
+- **Attachment Menu**: Dropdown menu with Upload Image, Upload File, and Generate Image options
+- **Toggle Bar**: Compact pill-style toggles for Web Search, Deep Research, and Prompt Composer
+- **Image Generation Panel**: Expandable panel with model/style/format/size selectors for AI image generation
+
 **State Management**: Client-side state stored in global variables:
 - `chatHistory`: Array storing conversation messages
 - `currentStream`: Tracks active streaming responses
