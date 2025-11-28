@@ -268,11 +268,6 @@ textarea#userInput {
 
 .attachment-option i {
   font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 24px;
-  width: 24px;
   color: var(--secondary-color);
 }
 
