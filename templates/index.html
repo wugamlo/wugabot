@@ -121,15 +121,18 @@
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
-                <div class="button-row">
-                    <button id="searchEnabled" class="icon-button" onclick="toggleWebSearch(this)" title="Web Search">
+                <div class="toggle-bar">
+                    <button id="searchEnabled" class="toggle-pill" onclick="toggleWebSearch(this)" title="Web Search">
                         <i class="fas fa-globe"></i>
+                        <span>Search</span>
                     </button>
-                    <button id="deepResearchButton" class="icon-button" onclick="toggleDeepResearchPanel()" title="Deep Research">
+                    <button id="deepResearchButton" class="toggle-pill" onclick="toggleDeepResearchPanel()" title="Deep Research">
                         <i class="fas fa-brain"></i>
+                        <span>Research</span>
                     </button>
-                    <button class="icon-button" onclick="togglePromptComposer()" title="Prompt Composer">
+                    <button id="composerButton" class="toggle-pill" onclick="togglePromptComposer()" title="Prompt Composer">
                         <i class="fas fa-pen-fancy"></i>
+                        <span>Compose</span>
                     </button>
                 </div>
                 <div id="imagePreview"></div>

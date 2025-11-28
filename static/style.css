@@ -1338,6 +1338,60 @@ input[type="number"] {
     flex-wrap: wrap;
 }
 
+.toggle-bar {
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+}
+
+.toggle-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.toggle-pill i {
+    font-size: 10px;
+}
+
+.toggle-pill:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.toggle-pill.active {
+    background: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: white;
+}
+
+@media (max-width: 480px) {
+    .toggle-pill span {
+        display: none;
+    }
+    
+    .toggle-pill {
+        padding: 6px 8px;
+        border-radius: 50%;
+    }
+    
+    .toggle-pill i {
+        font-size: 12px;
+    }
+}
+
 .icon-button {
     padding: 0;
     border-radius: 50%;
