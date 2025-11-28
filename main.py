@@ -1250,9 +1250,15 @@ def generate_image():
         width = data.get('width', 1024)
         height = data.get('height', 1024)
         negative_prompt = data.get('negative_prompt', '')
-        steps = data.get('steps', 20)
         safe_mode = data.get('safe_mode', False)
         hide_watermark = data.get('hide_watermark', True)
+        
+        # Models that only support steps=1 (fast/optimized models)
+        single_step_models = ['nano-banana-pro', 'qwen-image', 'qwen2-vl-7b-instruct']
+        if model in single_step_models:
+            steps = 1
+        else:
+            steps = data.get('steps', 20)
         
         if not prompt:
             return json.dumps({'error': 'Prompt is required'}), 400
