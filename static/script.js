@@ -2246,6 +2246,35 @@ function toggleDeepResearchPanel() {
     updateDeepResearchButtonState();
 }
 
+function toggleAttachmentMenu() {
+    const menu = document.getElementById('attachmentMenu');
+    const button = document.getElementById('attachmentButton');
+    const isHidden = menu.classList.toggle('hidden');
+    
+    if (!isHidden) {
+        button.classList.add('active');
+        // Close menu when clicking outside
+        setTimeout(() => {
+            document.addEventListener('click', closeAttachmentMenuOnClickOutside);
+        }, 0);
+    } else {
+        button.classList.remove('active');
+        document.removeEventListener('click', closeAttachmentMenuOnClickOutside);
+    }
+}
+
+function closeAttachmentMenuOnClickOutside(event) {
+    const menu = document.getElementById('attachmentMenu');
+    const button = document.getElementById('attachmentButton');
+    const container = document.querySelector('.attachment-menu-container');
+    
+    if (!container.contains(event.target)) {
+        menu.classList.add('hidden');
+        button.classList.remove('active');
+        document.removeEventListener('click', closeAttachmentMenuOnClickOutside);
+    }
+}
+
 function updateDeepResearchButtonState() {
     const button = document.getElementById('deepResearchButton');
     const expertModeEnabled = document.getElementById('expertModeEnabled').checked;
@@ -2377,6 +2406,7 @@ window.clearFields = clearFields;
 window.transferPrompt = transferPrompt;
 window.showChatContext = showChatContext;
 window.toggleModelInfoPopup = toggleModelInfoPopup;
+window.toggleAttachmentMenu = toggleAttachmentMenu;
 
 function toggleWebSearch(button) {
     button.classList.toggle('active');
@@ -2389,6 +2419,7 @@ window.startStream = startStream;
 window.saveSettings = saveSettings;
 window.clearChatHistory = clearChatHistory;
 window.togglePromptComposer = togglePromptComposer;
+window.toggleAttachmentMenu = toggleAttachmentMenu;
 window.clearFields = clearFields;
 window.transferPrompt = transferPrompt;
 

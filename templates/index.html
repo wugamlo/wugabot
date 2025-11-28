@@ -97,6 +97,25 @@
                 <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.xls,.xlsx" style="display: none;">
 
                 <div class="input-row">
+                    <div class="attachment-menu-container">
+                        <button id="attachmentButton" class="icon-button" onclick="toggleAttachmentMenu()" title="Attachments">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <div id="attachmentMenu" class="attachment-menu hidden">
+                            <button class="attachment-option" onclick="document.getElementById('galleryInput').click(); toggleAttachmentMenu();">
+                                <i class="fas fa-camera"></i>
+                                <span>Upload Image</span>
+                            </button>
+                            <button class="attachment-option" onclick="document.getElementById('fileInput').click(); toggleAttachmentMenu();">
+                                <i class="fas fa-file"></i>
+                                <span>Upload File</span>
+                            </button>
+                            <button class="attachment-option" onclick="toggleImageGenPanel(); toggleAttachmentMenu();">
+                                <i class="fas fa-magic"></i>
+                                <span>Generate Image</span>
+                            </button>
+                        </div>
+                    </div>
                     <textarea id="userInput" placeholder="Type your message..." rows="1"></textarea>
                     <button id="sendButton" onclick="startStream()">
                         <i class="fas fa-paper-plane"></i>
@@ -111,16 +130,6 @@
                     </button>
                     <button class="icon-button" onclick="togglePromptComposer()" title="Prompt Composer">
                         <i class="fas fa-pen-fancy"></i>
-                    </button>
-                    <div class="button-divider"></div>
-                    <button class="icon-button" onclick="document.getElementById('galleryInput').click();" title="Upload Image">
-                        <i class="fas fa-camera"></i>
-                    </button>
-                    <button class="icon-button" onclick="document.getElementById('fileInput').click();" title="Upload File">
-                        <i class="fas fa-file"></i>
-                    </button>
-                    <button id="imageGenButton" class="icon-button" onclick="toggleImageGenPanel()" title="Generate Image">
-                        <i class="fas fa-magic"></i>
                     </button>
                 </div>
                 <div id="imagePreview"></div>
