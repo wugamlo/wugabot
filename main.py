@@ -1251,7 +1251,8 @@ def generate_image():
         height = data.get('height', 1024)
         negative_prompt = data.get('negative_prompt', '')
         steps = data.get('steps', 20)
-        safe_mode = data.get('safe_mode', True)
+        safe_mode = data.get('safe_mode', False)
+        hide_watermark = data.get('hide_watermark', True)
         
         if not prompt:
             return json.dumps({'error': 'Prompt is required'}), 400
@@ -1266,6 +1267,7 @@ def generate_image():
             "height": height,
             "steps": steps,
             "safe_mode": safe_mode,
+            "hide_watermark": hide_watermark,
             "return_binary": False
         }
         

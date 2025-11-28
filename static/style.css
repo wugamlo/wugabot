@@ -140,7 +140,7 @@ body {
 
 .input-row {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
   width: 100%;
 }
@@ -200,7 +200,7 @@ textarea#userInput {
 .attachment-menu-container {
   position: relative;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
 }
 
 #attachmentButton {
@@ -1226,7 +1226,7 @@ input[type="number"] {
 
     .input-row {
         display: flex;
-        align-items: flex-end;
+        align-items: center;
         gap: 8px;
         width: 100%;
     }
@@ -1316,7 +1316,7 @@ input[type="number"] {
 
   .input-row {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: 10px;
   }
 
