@@ -1601,3 +1601,198 @@ input[type="number"] {
         font-size: 12px;
     }
 }
+
+/* Image Generation Panel Styles */
+.image-gen-panel {
+    position: fixed;
+    top: 60px;
+    right: 20px;
+    width: 350px;
+    max-height: calc(100vh - 100px);
+    background: #1e1e1e;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    border: 1px solid #444;
+    overflow: hidden;
+}
+
+.image-gen-panel.hidden {
+    display: none;
+}
+
+.image-gen-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+    border-bottom: 1px solid #444;
+}
+
+.image-gen-panel-header h2 {
+    margin: 0;
+    font-size: 18px;
+    color: #fff;
+}
+
+.image-gen-content {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 180px);
+}
+
+.image-gen-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.image-gen-fields textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    background: #2a2a2a;
+    color: var(--text-color);
+    font-family: inherit;
+    resize: vertical;
+}
+
+.image-gen-fields textarea:focus {
+    outline: none;
+    border-color: #9b59b6;
+}
+
+.generate-image-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.generate-image-btn:hover {
+    background: linear-gradient(135deg, #a569bd 0%, #9b59b6 100%);
+    transform: translateY(-1px);
+}
+
+.generate-image-btn:disabled {
+    background: #444;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.generate-image-btn i {
+    font-size: 18px;
+}
+
+/* Generated Image in Chat */
+.generated-image-container {
+    margin: 10px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #2a2a2a;
+    border: 1px solid #444;
+}
+
+.generated-image-container img {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+}
+
+.image-actions {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: #1e1e1e;
+}
+
+.image-actions button {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.download-btn {
+    background: #27ae60;
+    color: white;
+}
+
+.download-btn:hover {
+    background: #2ecc71;
+}
+
+.image-prompt-text {
+    padding: 10px;
+    font-size: 12px;
+    color: #888;
+    border-top: 1px solid #333;
+    word-break: break-word;
+}
+
+/* Image Generation Loading State */
+.image-generating {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: #2a2a2a;
+    border-radius: 12px;
+    margin: 10px 0;
+}
+
+.image-generating .spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #333;
+    border-top-color: #9b59b6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.image-generating p {
+    margin-top: 15px;
+    color: #888;
+    font-size: 14px;
+}
+
+/* Mobile responsive for image panel */
+@media (max-width: 600px) {
+    .image-gen-panel {
+        width: calc(100% - 20px);
+        right: 10px;
+        left: 10px;
+        top: 55px;
+    }
+    
+    .generated-image-container img {
+        max-width: 100%;
+    }
+}

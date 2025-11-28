@@ -2535,3 +2535,216 @@ function populateModelInfoTable() {
         tableBody.appendChild(row);
     });
 }
+
+let imageModelsLoaded = false;
+let imageStylesLoaded = false;
+
+function toggleImageGenPanel() {
+    const panel = document.querySelector('.image-gen-panel');
+    const isHidden = panel.classList.contains('hidden');
+    
+    if (isHidden) {
+        panel.classList.remove('hidden');
+        if (!imageModelsLoaded) {
+            fetchImageModels();
+        }
+        if (!imageStylesLoaded) {
+            fetchImageStyles();
+        }
+    } else {
+        panel.classList.add('hidden');
+    }
+}
+
+async function fetchImageModels() {
+    const modelSelect = document.getElementById('imageModel');
+    modelSelect.innerHTML = '<option value="">Loading models...</option>';
+    
+    try {
+        const response = await fetch('/image/models');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        modelSelect.innerHTML = '';
+        
+        if (data.models && data.models.length > 0) {
+            data.models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.id;
+                modelSelect.appendChild(option);
+            });
+            imageModelsLoaded = true;
+        } else {
+            modelSelect.innerHTML = '<option value="">No image models available</option>';
+        }
+    } catch (error) {
+        console.error('Error fetching image models:', error);
+        modelSelect.innerHTML = '<option value="">Error loading models</option>';
+    }
+}
+
+async function fetchImageStyles() {
+    const styleSelect = document.getElementById('imageStyle');
+    
+    try {
+        const response = await fetch('/image/styles');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        styleSelect.innerHTML = '<option value="">No style (default)</option>';
+        
+        if (data.styles && data.styles.length > 0) {
+            data.styles.forEach(style => {
+                const option = document.createElement('option');
+                option.value = style;
+                option.textContent = style;
+                styleSelect.appendChild(option);
+            });
+            imageStylesLoaded = true;
+        }
+    } catch (error) {
+        console.error('Error fetching image styles:', error);
+    }
+}
+
+async function generateImage() {
+    const prompt = document.getElementById('imagePrompt').value.trim();
+    const model = document.getElementById('imageModel').value;
+    const style = document.getElementById('imageStyle').value;
+    const format = document.getElementById('imageFormat').value;
+    const sizeValue = document.getElementById('imageSize').value;
+    const negativePrompt = document.getElementById('negativePrompt').value.trim();
+    
+    if (!prompt) {
+        alert('Please enter a prompt for image generation');
+        return;
+    }
+    
+    if (!model) {
+        alert('Please select an image model');
+        return;
+    }
+    
+    const [width, height] = sizeValue.split('x').map(Number);
+    
+    const chatBox = document.getElementById('chatBox');
+    
+    appendMessage(`Generate image: "${prompt}"`, 'user');
+    
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'message assistant';
+    loadingDiv.innerHTML = `
+        <div class="image-generating">
+            <div class="spinner"></div>
+            <p>Generating image with ${model}...</p>
+        </div>
+    `;
+    chatBox.appendChild(loadingDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    
+    const generateBtn = document.querySelector('.generate-image-btn');
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    
+    try {
+        const payload = {
+            prompt: prompt,
+            model: model,
+            format: format,
+            width: width,
+            height: height
+        };
+        
+        if (style) {
+            payload.style_preset = style;
+        }
+        
+        if (negativePrompt) {
+            payload.negative_prompt = negativePrompt;
+        }
+        
+        const response = await fetch('/image/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        chatBox.removeChild(loadingDiv);
+        
+        if (!response.ok || data.error) {
+            const errorMessage = data.error || 'Image generation failed';
+            appendMessage(`Error: ${errorMessage}`, 'error');
+            return;
+        }
+        
+        if (data.images && data.images.length > 0) {
+            data.images.forEach((image, index) => {
+                const imageMessageDiv = document.createElement('div');
+                imageMessageDiv.className = 'message assistant';
+                
+                const uniqueId = `img-${Date.now()}-${index}`;
+                
+                imageMessageDiv.innerHTML = `
+                    <div class="generated-image-container">
+                        <img src="${image.data}" alt="Generated image" id="${uniqueId}">
+                        <div class="image-actions">
+                            <button class="download-btn" onclick="downloadImage('${uniqueId}', '${format}')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        </div>
+                        <div class="image-prompt-text">
+                            <strong>Prompt:</strong> ${prompt}
+                            ${style ? `<br><strong>Style:</strong> ${style}` : ''}
+                            <br><strong>Model:</strong> ${model}
+                        </div>
+                    </div>
+                `;
+                
+                chatBox.appendChild(imageMessageDiv);
+            });
+            
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            document.getElementById('imagePrompt').value = '';
+            document.getElementById('negativePrompt').value = '';
+        } else {
+            appendMessage('No images were generated. Please try again.', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Image generation error:', error);
+        chatBox.removeChild(loadingDiv);
+        appendMessage(`Error: ${error.message}`, 'error');
+    } finally {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = '<i class="fas fa-magic"></i> Generate Image';
+    }
+}
+
+function downloadImage(imageId, format) {
+    const img = document.getElementById(imageId);
+    if (!img) {
+        console.error('Image not found:', imageId);
+        return;
+    }
+    
+    const link = document.createElement('a');
+    link.href = img.src;
+    link.download = `wugabot-image-${Date.now()}.${format}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+window.toggleImageGenPanel = toggleImageGenPanel;
+window.generateImage = generateImage;
+window.downloadImage = downloadImage;

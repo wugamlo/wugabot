@@ -1148,5 +1148,181 @@ def import_traceback():
                 return "Traceback information not available"
         return MinimalTraceback()
 
+
+KNOWN_IMAGE_MODELS = [
+    {'id': 'fluently-xl', 'description': 'Fluently XL - High quality naturalistic images'},
+    {'id': 'flux-dev', 'description': 'FLUX Dev - Photorealistic quality'},
+    {'id': 'flux-dev-uncensored', 'description': 'FLUX Dev Uncensored'},
+    {'id': 'hidream', 'description': 'HiDream - Creative image generation'},
+    {'id': 'playground-v2.5', 'description': 'Playground v2.5 - Versatile styles'},
+    {'id': 'dreamshaper', 'description': 'Dreamshaper - Stylized/abstract'},
+    {'id': 'stable-diffusion-3.5-large', 'description': 'Stable Diffusion 3.5 Large'},
+    {'id': 'venice-sd35', 'description': 'Venice SD 3.5'},
+    {'id': 'nano-banana-pro', 'description': 'Nano Banana Pro - Fast generation'},
+    {'id': 'lustify-sdxl', 'description': 'Lustify SDXL'},
+    {'id': 'lustify-v7', 'description': 'Lustify v7'},
+    {'id': 'wai-illustrious', 'description': 'WAI Illustrious'},
+    {'id': 'qwen-image', 'description': 'Qwen Image'},
+]
+
+@app.route('/image/models')
+def get_image_models():
+    """
+    Retrieves image-capable models from the Venice API
+    Returns known Venice image models or fetches from API if available
+    """
+    try:
+        response = requests.get(
+            "https://api.venice.ai/api/v1/models",
+            headers={
+                "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
+                "Content-Type": "application/json"
+            }
+        )
+        response.raise_for_status()
+        models_data = response.json()
+        
+        image_models = []
+        for model in models_data.get('data', []):
+            model_spec = model.get('model_spec', {})
+            if model_spec.get('offline'):
+                continue
+            model_type = model_spec.get('type', '')
+            if model_type == 'image':
+                image_models.append({
+                    'id': model.get('id'),
+                    'model_spec': model_spec
+                })
+        
+        if not image_models:
+            image_models = KNOWN_IMAGE_MODELS
+        
+        return json.dumps({'models': image_models})
+    except Exception as e:
+        logger.error(f"Error fetching image models: {str(e)}")
+        return json.dumps({'models': KNOWN_IMAGE_MODELS})
+
+
+@app.route('/image/styles')
+def get_image_styles():
+    """
+    Retrieves available image styles from the Venice API
+    """
+    try:
+        response = requests.get(
+            "https://api.venice.ai/api/v1/image/styles",
+            headers={
+                "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
+                "Content-Type": "application/json"
+            }
+        )
+        response.raise_for_status()
+        styles_data = response.json()
+        
+        return json.dumps({
+            'styles': styles_data.get('data', []),
+            'formats': ['webp', 'png', 'jpeg']
+        })
+    except Exception as e:
+        logger.error(f"Error fetching image styles: {str(e)}")
+        return json.dumps({'error': str(e)}), 500
+
+
+@app.route('/image/generate', methods=['POST'])
+def generate_image():
+    """
+    Generates an image using the Venice API
+    
+    Accepts:
+        - JSON with prompt, model, style_preset (optional), format (optional),
+          width, height, negative_prompt (optional), steps (optional)
+    
+    Returns:
+        - JSON with base64 encoded image(s) and metadata
+    """
+    try:
+        if not request.json:
+            return json.dumps({'error': 'No JSON data provided'}), 400
+            
+        data = request.json
+        prompt = data.get('prompt', '').strip()
+        model = data.get('model', 'fluently-xl')
+        style_preset = data.get('style_preset')
+        image_format = data.get('format', 'webp')
+        width = data.get('width', 1024)
+        height = data.get('height', 1024)
+        negative_prompt = data.get('negative_prompt', '')
+        steps = data.get('steps', 20)
+        safe_mode = data.get('safe_mode', True)
+        
+        if not prompt:
+            return json.dumps({'error': 'Prompt is required'}), 400
+        
+        logger.info(f"Image generation request: model={model}, prompt={prompt[:50]}...")
+        
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "format": image_format,
+            "width": width,
+            "height": height,
+            "steps": steps,
+            "safe_mode": safe_mode,
+            "return_binary": False
+        }
+        
+        if style_preset:
+            payload["style_preset"] = style_preset
+        
+        if negative_prompt:
+            payload["negative_prompt"] = negative_prompt
+        
+        response = requests.post(
+            "https://api.venice.ai/api/v1/image/generate",
+            headers={
+                "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
+                "Content-Type": "application/json"
+            },
+            json=payload,
+            timeout=120
+        )
+        
+        if not response.ok:
+            error_msg = response.text
+            logger.error(f"Image generation API error: {response.status_code} - {error_msg}")
+            return json.dumps({'error': f'Image generation failed: {error_msg}'}), response.status_code
+        
+        result = response.json()
+        
+        images = result.get('images', [])
+        if not images:
+            return json.dumps({'error': 'No images generated'}), 500
+        
+        image_data_list = []
+        for img_base64 in images:
+            mime_type = f"image/{image_format}"
+            if image_format == 'jpeg':
+                mime_type = 'image/jpeg'
+            image_data_list.append({
+                'data': f"data:{mime_type};base64,{img_base64}",
+                'format': image_format
+            })
+        
+        logger.info(f"Image generation successful: {len(image_data_list)} image(s) generated")
+        
+        return json.dumps({
+            'images': image_data_list,
+            'id': result.get('id'),
+            'timing': result.get('timing', {})
+        })
+        
+    except requests.exceptions.Timeout:
+        logger.error("Image generation timeout")
+        return json.dumps({'error': 'Image generation timed out. Please try again.'}), 504
+    except Exception as e:
+        logger.exception(f"Image generation error: {str(e)}")
+        return json.dumps({'error': f'Image generation error: {str(e)}'}), 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
