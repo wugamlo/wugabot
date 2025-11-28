@@ -1169,11 +1169,11 @@ KNOWN_IMAGE_MODELS = [
 def get_image_models():
     """
     Retrieves image-capable models from the Venice API
-    Returns known Venice image models or fetches from API if available
+    Uses ?type=image query parameter for direct filtering
     """
     try:
         response = requests.get(
-            "https://api.venice.ai/api/v1/models",
+            "https://api.venice.ai/api/v1/models?type=image",
             headers={
                 "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
                 "Content-Type": "application/json"
@@ -1187,12 +1187,10 @@ def get_image_models():
             model_spec = model.get('model_spec', {})
             if model_spec.get('offline'):
                 continue
-            model_type = model_spec.get('type', '')
-            if model_type == 'image':
-                image_models.append({
-                    'id': model.get('id'),
-                    'model_spec': model_spec
-                })
+            image_models.append({
+                'id': model.get('id'),
+                'model_spec': model_spec
+            })
         
         if not image_models:
             image_models = KNOWN_IMAGE_MODELS
