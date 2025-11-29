@@ -2587,6 +2587,24 @@ function toggleImageGenPanel() {
     }
 }
 
+function handleImageModelChange() {
+    const modelSelect = document.getElementById('imageModel');
+    const model = modelSelect.value;
+    const sizeGroup = document.getElementById('imageSizeGroup');
+    const aspectRatioGroup = document.getElementById('aspectRatioGroup');
+    const resolutionGroup = document.getElementById('resolutionGroup');
+    
+    if (model === 'nano-banana-pro') {
+        sizeGroup.classList.add('hidden');
+        aspectRatioGroup.classList.remove('hidden');
+        resolutionGroup.classList.remove('hidden');
+    } else {
+        sizeGroup.classList.remove('hidden');
+        aspectRatioGroup.classList.add('hidden');
+        resolutionGroup.classList.add('hidden');
+    }
+}
+
 async function fetchImageModels() {
     const modelSelect = document.getElementById('imageModel');
     modelSelect.innerHTML = '<option value="">Loading models...</option>';
@@ -2608,6 +2626,9 @@ async function fetchImageModels() {
                 modelSelect.appendChild(option);
             });
             imageModelsLoaded = true;
+            
+            modelSelect.addEventListener('change', handleImageModelChange);
+            handleImageModelChange();
         } else {
             modelSelect.innerHTML = '<option value="">No image models available</option>';
         }
@@ -2648,7 +2669,6 @@ async function generateImage() {
     const model = document.getElementById('imageModel').value;
     const style = document.getElementById('imageStyle').value;
     const format = document.getElementById('imageFormat').value;
-    const sizeValue = document.getElementById('imageSize').value;
     const negativePrompt = document.getElementById('negativePrompt').value.trim();
     
     if (!prompt) {
@@ -2660,8 +2680,6 @@ async function generateImage() {
         alert('Please select an image model');
         return;
     }
-    
-    const [width, height] = sizeValue.split('x').map(Number);
     
     const chatBox = document.getElementById('chatBox');
     
@@ -2686,10 +2704,18 @@ async function generateImage() {
         const payload = {
             prompt: prompt,
             model: model,
-            format: format,
-            width: width,
-            height: height
+            format: format
         };
+        
+        if (model === 'nano-banana-pro') {
+            payload.aspect_ratio = document.getElementById('imageAspectRatio').value;
+            payload.resolution = document.getElementById('imageResolution').value;
+        } else {
+            const sizeValue = document.getElementById('imageSize').value;
+            const [width, height] = sizeValue.split('x').map(Number);
+            payload.width = width;
+            payload.height = height;
+        }
         
         if (style) {
             payload.style_preset = style;
