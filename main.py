@@ -1247,35 +1247,49 @@ def generate_image():
         model = data.get('model', 'fluently-xl')
         style_preset = data.get('style_preset')
         image_format = data.get('format', 'webp')
-        width = data.get('width', 1024)
-        height = data.get('height', 1024)
         negative_prompt = data.get('negative_prompt', '')
         safe_mode = data.get('safe_mode', False)
         hide_watermark = data.get('hide_watermark', True)
-        
-        # Models that only support steps=1 (fast/optimized models)
-        single_step_models = ['nano-banana-pro', 'qwen-image', 'qwen2-vl-7b-instruct']
-        if model in single_step_models:
-            steps = 1
-        else:
-            steps = data.get('steps', 20)
         
         if not prompt:
             return json.dumps({'error': 'Prompt is required'}), 400
         
         logger.info(f"Image generation request: model={model}, prompt={prompt[:50]}...")
         
-        payload = {
-            "model": model,
-            "prompt": prompt,
-            "format": image_format,
-            "width": width,
-            "height": height,
-            "steps": steps,
-            "safe_mode": safe_mode,
-            "hide_watermark": hide_watermark,
-            "return_binary": False
-        }
+        # nano-banana-pro uses different parameters (aspect_ratio + resolution instead of width/height)
+        if model == 'nano-banana-pro':
+            aspect_ratio = data.get('aspect_ratio', '1:1')
+            resolution = data.get('resolution', '1K')
+            
+            payload = {
+                "model": model,
+                "prompt": prompt,
+                "aspect_ratio": aspect_ratio,
+                "resolution": resolution,
+                "return_binary": False
+            }
+        else:
+            width = data.get('width', 1024)
+            height = data.get('height', 1024)
+            
+            # Models that only support steps=1 (fast/optimized models)
+            single_step_models = ['qwen-image', 'qwen2-vl-7b-instruct']
+            if model in single_step_models:
+                steps = 1
+            else:
+                steps = data.get('steps', 20)
+            
+            payload = {
+                "model": model,
+                "prompt": prompt,
+                "format": image_format,
+                "width": width,
+                "height": height,
+                "steps": steps,
+                "safe_mode": safe_mode,
+                "hide_watermark": hide_watermark,
+                "return_binary": False
+            }
         
         if style_preset:
             payload["style_preset"] = style_preset
