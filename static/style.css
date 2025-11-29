@@ -319,7 +319,11 @@ button {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
+}
+
+.field-group.hidden {
+  display: none !important;
 }
 
 .model-select {
