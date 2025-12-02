@@ -1614,9 +1614,20 @@ input[type="number"] {
 }
 
 .capability-header {
-  min-width: 50px;
+  min-width: 36px;
   font-size: 16px;
   color: var(--secondary-color);
+}
+
+.price-header {
+  min-width: 80px;
+  font-size: 13px;
+  color: var(--secondary-color);
+}
+
+.price-cell {
+  font-family: monospace;
+  font-size: 13px;
 }
 
 .model-info-table .model-name {

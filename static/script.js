@@ -575,6 +575,11 @@ function populateModelDropdown(models) {
         // Get default temperature if available
         const defaultTemperature = model.model_spec?.constraints?.temperature?.default || 0.7;
 
+        // Get pricing information in Diem
+        const pricing = model.model_spec?.pricing || {};
+        const inputPrice = pricing.input?.diem || 0;
+        const outputPrice = pricing.output?.diem || 0;
+
         // Create display text with capability indicators
         let displayText = model.id;
         if (supportsReasoning) displayText += ' - Reasoning';
@@ -591,6 +596,8 @@ function populateModelDropdown(models) {
         option.dataset.supportsFunctionCalling = String(supportsFunctionCalling || false);
         option.dataset.availableContextTokens = String(availableContextTokens);
         option.dataset.defaultTemperature = defaultTemperature;
+        option.dataset.inputPrice = String(inputPrice);
+        option.dataset.outputPrice = String(outputPrice);
         console.log(`Setting model ${model.id} vision support:`, option.dataset.supportsVision);
         modelSelect.appendChild(option);
 
@@ -2521,7 +2528,9 @@ function populateModelInfoTable() {
             supportsWebSearch: option.dataset.supportsWebSearch === 'true',
             optimizedForCode: option.dataset.optimizedForCode === 'true',
             supportsFunctionCalling: option.dataset.supportsFunctionCalling === 'true',
-            availableContextTokens: parseInt(option.dataset.availableContextTokens) || 0
+            availableContextTokens: parseInt(option.dataset.availableContextTokens) || 0,
+            inputPrice: parseFloat(option.dataset.inputPrice) || 0,
+            outputPrice: parseFloat(option.dataset.outputPrice) || 0
         };
 
         return {
@@ -2543,6 +2552,11 @@ function populateModelInfoTable() {
             ? `${Math.floor(model.availableContextTokens / 1000)}K`
             : 'N/A';
 
+        // Format pricing display
+        const priceDisplay = model.inputPrice > 0 || model.outputPrice > 0
+            ? `${model.inputPrice}/${model.outputPrice}`
+            : 'N/A';
+
         row.innerHTML = `
             <td class="model-name" title="${model.id}">${model.id}</td>
             <td class="context-tokens">${contextDisplay}</td>
@@ -2561,6 +2575,7 @@ function populateModelInfoTable() {
             <td class="capability-dot ${model.supportsFunctionCalling ? 'capability-yes' : 'capability-no'}">
                 ${model.supportsFunctionCalling ? '✓' : ''}
             </td>
+            <td class="price-cell">${priceDisplay}</td>
         `;
 
         tableBody.appendChild(row);
