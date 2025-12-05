@@ -1165,6 +1165,40 @@ KNOWN_IMAGE_MODELS = [
     {'id': 'qwen-image', 'description': 'Qwen Image'},
 ]
 
+
+def get_model_default_steps(model_id):
+    """
+    Fetches the default steps value for an image model from the Venice API.
+    Returns the default steps from the model's constraints, or 20 as fallback.
+    """
+    try:
+        response = requests.get(
+            "https://api.venice.ai/api/v1/models?type=image",
+            headers={
+                "Authorization": f"Bearer {os.getenv('VENICE_API_KEY')}",
+                "Content-Type": "application/json"
+            },
+            timeout=10
+        )
+        response.raise_for_status()
+        models_data = response.json()
+        
+        for model in models_data.get('data', []):
+            if model.get('id') == model_id:
+                model_spec = model.get('model_spec', {})
+                constraints = model_spec.get('constraints', {})
+                steps_config = constraints.get('steps', {})
+                default_steps = steps_config.get('default', 20)
+                logger.info(f"Model {model_id}: using default steps={default_steps} from API")
+                return default_steps
+        
+        logger.warning(f"Model {model_id} not found in API, using fallback steps=20")
+        return 20
+    except Exception as e:
+        logger.warning(f"Failed to fetch model steps for {model_id}: {e}, using fallback steps=20")
+        return 20
+
+
 @app.route('/image/models')
 def get_image_models():
     """
@@ -1272,12 +1306,7 @@ def generate_image():
             width = data.get('width', 1024)
             height = data.get('height', 1024)
             
-            # Models that only support steps=1 (fast/optimized models)
-            single_step_models = ['qwen-image', 'qwen2-vl-7b-instruct']
-            if model in single_step_models:
-                steps = 1
-            else:
-                steps = data.get('steps', 20)
+            steps = get_model_default_steps(model)
             
             payload = {
                 "model": model,
