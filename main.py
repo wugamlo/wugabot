@@ -1326,6 +1326,11 @@ def generate_image():
         if negative_prompt:
             payload["negative_prompt"] = negative_prompt
         
+        enable_web_search = data.get('enable_web_search')
+        if enable_web_search is not None:
+            payload["enable_web_search"] = enable_web_search
+            logger.info(f"Image generation with web search: {enable_web_search}")
+        
         response = requests.post(
             "https://api.venice.ai/api/v1/image/generate",
             headers={

@@ -2584,6 +2584,7 @@ function populateModelInfoTable() {
 
 let imageModelsLoaded = false;
 let imageStylesLoaded = false;
+let imageModelCapabilities = {};
 
 function toggleImageGenPanel() {
     const panel = document.querySelector('.image-gen-panel');
@@ -2608,6 +2609,7 @@ function handleImageModelChange() {
     const sizeGroup = document.getElementById('imageSizeGroup');
     const aspectRatioGroup = document.getElementById('aspectRatioGroup');
     const resolutionGroup = document.getElementById('resolutionGroup');
+    const webSearchGroup = document.getElementById('imageWebSearchGroup');
     
     if (model === 'nano-banana-pro') {
         sizeGroup.classList.add('hidden');
@@ -2617,6 +2619,13 @@ function handleImageModelChange() {
         sizeGroup.classList.remove('hidden');
         aspectRatioGroup.classList.add('hidden');
         resolutionGroup.classList.add('hidden');
+    }
+    
+    const modelCaps = imageModelCapabilities[model] || {};
+    if (modelCaps.supportsWebSearch) {
+        webSearchGroup.classList.remove('hidden');
+    } else {
+        webSearchGroup.classList.add('hidden');
     }
 }
 
@@ -2632,6 +2641,7 @@ async function fetchImageModels() {
         const data = await response.json();
         
         modelSelect.innerHTML = '';
+        imageModelCapabilities = {};
         
         if (data.models && data.models.length > 0) {
             data.models.forEach(model => {
@@ -2639,6 +2649,11 @@ async function fetchImageModels() {
                 option.value = model.id;
                 option.textContent = model.id;
                 modelSelect.appendChild(option);
+                
+                const modelSpec = model.model_spec || {};
+                imageModelCapabilities[model.id] = {
+                    supportsWebSearch: modelSpec.supportsWebSearch || false
+                };
             });
             imageModelsLoaded = true;
             
@@ -2738,6 +2753,12 @@ async function generateImage() {
         
         if (negativePrompt) {
             payload.negative_prompt = negativePrompt;
+        }
+        
+        const modelCaps = imageModelCapabilities[model] || {};
+        if (modelCaps.supportsWebSearch) {
+            const webSearchToggle = document.getElementById('imageWebSearch');
+            payload.enable_web_search = webSearchToggle.checked;
         }
         
         const response = await fetch('/image/generate', {
