@@ -579,6 +579,7 @@ function populateModelDropdown(models) {
         const pricing = model.model_spec?.pricing || {};
         const inputPrice = pricing.input?.diem || 0;
         const outputPrice = pricing.output?.diem || 0;
+        const cachePriceUsd = pricing.cache_input?.usd || null;
 
         // Create display text with capability indicators
         let displayText = model.id;
@@ -598,6 +599,7 @@ function populateModelDropdown(models) {
         option.dataset.defaultTemperature = defaultTemperature;
         option.dataset.inputPrice = String(inputPrice);
         option.dataset.outputPrice = String(outputPrice);
+        option.dataset.cachePriceUsd = cachePriceUsd !== null ? String(cachePriceUsd) : '';
         console.log(`Setting model ${model.id} vision support:`, option.dataset.supportsVision);
         modelSelect.appendChild(option);
 
@@ -2530,7 +2532,8 @@ function populateModelInfoTable() {
             supportsFunctionCalling: option.dataset.supportsFunctionCalling === 'true',
             availableContextTokens: parseInt(option.dataset.availableContextTokens) || 0,
             inputPrice: parseFloat(option.dataset.inputPrice) || 0,
-            outputPrice: parseFloat(option.dataset.outputPrice) || 0
+            outputPrice: parseFloat(option.dataset.outputPrice) || 0,
+            cachePriceUsd: option.dataset.cachePriceUsd || null
         };
 
         return {
@@ -2556,6 +2559,10 @@ function populateModelInfoTable() {
         const priceDisplay = model.inputPrice > 0 || model.outputPrice > 0
             ? `${model.inputPrice}/${model.outputPrice}`
             : 'N/A';
+        
+        const cachePriceDisplay = model.cachePriceUsd !== null && model.cachePriceUsd !== ''
+            ? `$${parseFloat(model.cachePriceUsd).toFixed(2)}`
+            : '-';
 
         row.innerHTML = `
             <td class="model-name" title="${model.id}">${model.id}</td>
@@ -2576,6 +2583,7 @@ function populateModelInfoTable() {
                 ${model.supportsFunctionCalling ? '✓' : ''}
             </td>
             <td class="price-cell">${priceDisplay}</td>
+            <td class="price-cell">${cachePriceDisplay}</td>
         `;
 
         tableBody.appendChild(row);
