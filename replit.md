@@ -1,5 +1,12 @@
 # WugaBot2
 
+## Technical Documentation
+
+For comprehensive technical documentation enabling full replication of WugaBot, see:
+**[WUGABOT_TECHNICAL_DOCUMENTATION.md](WUGABOT_TECHNICAL_DOCUMENTATION.md)**
+
+This documentation covers all functionalities including streaming chat, deep research mode, RAG integration, web search with citations, vision capabilities, file processing, image generation, visualization creation, and complete UI implementation.
+
 ## Overview
 
 WugaBot2 is a web-based chat interface that provides AI-powered conversational capabilities with advanced features including file processing, data visualization, and web search integration. The application serves as a privacy-focused chatbot platform that connects to external AI services (primarily Venice.ai) while offering a rich, mobile-responsive user experience.
